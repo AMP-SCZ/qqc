@@ -3,7 +3,8 @@ Snippets used in the phantom QC
 
 
 - Requirements
-  - nibabel
+  - dcm2niix in $PATH
+  - nibabel module in python
 
 
 - How to run it from the shell
@@ -15,6 +16,14 @@ Snippets used in the phantom QC
   --apb0dir1 phantom_dir/dMRI_b0_AP_20 \
   --apb0dir2 phantom_dir/dMRI_b0_AP_24 \
   --padmridir phantom_dir/dMRI_dir176_PA_22 \
+  --out test.png
+
+# Use different threshold for b0
+./phantom_figure.py  \
+  --apb0dir1 phantom_dir/dMRI_b0_AP_20 \
+  --apb0dir2 phantom_dir/dMRI_b0_AP_24 \
+  --padmridir phantom_dir/dMRI_dir176_PA_22 \
+  --b0thr 100 \
   --out test.png
 ```
 

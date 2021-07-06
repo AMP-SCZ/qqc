@@ -8,40 +8,49 @@ import os
 import nibabel as nb
 import numpy as np
 import matplotlib.pyplot as plt
+import tempfile
 
 
-def convert_to_img(dicom_folder, name):
+def convert_to_img(dicom_folder: str, outdir: str, name: str) -> None:
+    '''Convert dicoms into nifti to a given location outdir/name'''
     command = f'dcm2niix \
-            -o ./ -f {name} {dicom_folder}'
+            -o {outdir} -f {name} {dicom_folder}'
     subprocess.check_call(command, shell=True)
 
 
-def delete_converted(prefix):
-    for i in Path('.').glob(prefix + '*'):
-        os.remove(i)
-
-
-def load_data_bval(prefix):
-    data = nb.load(prefix + '.nii').get_fdata()
-    bval = np.loadtxt(prefix + '.bval')
+def load_data_bval(prefix: Path):
+    '''Return data array and bval array from the files with given prefix'''
+    data = nb.load(prefix.with_suffix('.nii')).get_fdata()
+    bval = np.loadtxt(prefix.with_suffix('.bval'))
 
     return data, bval
 
 
-def get_data(dicom_folder, name, threshold):
-    convert_to_img(dicom_folder, name)
-    data, bval_arr = load_data_bval(name)
+def get_data(dicom_folder: str, name: str, threshold: str):
+    '''Convert dicoms to load 4D dMRI data and threshold it before return'''
+    temp_dir = tempfile.TemporaryDirectory()
+    convert_to_img(dicom_folder, temp_dir.name, name)
+    data, bval_arr = load_data_bval(Path(temp_dir.name) / name)
     data = data[:, :, :, bval_arr < threshold]
     bval_arr = bval_arr[bval_arr < threshold]
-    delete_converted(name)
+    temp_dir.cleanup()
 
     return data, bval_arr
 
 
-def create_figure(data1, data1_bval,
-                  data2, data2_bval,
-                  data3, data3_bval,
-                  out, savefig=False):
+def create_b0_signal_figure(data1: np.array, data1_bval: np.array,
+                            data2: np.array, data2_bval: np.array,
+                            data3: np.array, data3_bval: np.array,
+                            out: str, savefig: bool = False):
+    '''Plot b0 summary from three different 4d dMRI volumes
+
+    Key arguments:
+        data1: first AP B0 volumes
+        data2: second AP B0  volumes
+        data3: b0 volumes extracted from the PA dMRI
+        out: output image file name, eg) test.png
+        savefig: save figure if True
+    '''
     fig, axes = plt.subplots(ncols=3, figsize=(12, 8), dpi=150)
 
     for ax, (data, bval, name, color) in zip(
@@ -103,6 +112,7 @@ if __name__ == '__main__':
     pa_dmri_data, pa_dmri_bval_arr = get_data(
             args.padmridir, 'padmri', args.b0thr)
 
-    create_figure(ap_b0_1_data, ap_b0_1_bval_arr,
-                  ap_b0_2_data, ap_b0_2_bval_arr,
-                  pa_dmri_data, pa_dmri_bval_arr, args.out, True)
+    create_b0_signal_figure(ap_b0_1_data, ap_b0_1_bval_arr,
+                            ap_b0_2_data, ap_b0_2_bval_arr,
+                            pa_dmri_data, pa_dmri_bval_arr,
+                            args.out, True)
