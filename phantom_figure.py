@@ -125,7 +125,8 @@ def create_b0_signal_figure_prev(data1: np.array, data1_bval: np.array,
 
 
 def create_b0_signal_figure(dataset: List[tuple], out: str,
-                            savefig: bool = False, col_num: int = 3):
+                            savefig: bool = False, col_num: int = 3, 
+                            wide_fig: bool = False):
     '''Plot b0 summary from three different 4d dMRI volumes
 
     Key arguments:
@@ -141,8 +142,12 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
     width = len(dataset) * col_width
     height = row_num * row_height
 
-    fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
-            figsize=(width, height), dpi=150)
+    if wide_fig:
+        fig, axes = plt.subplots(nrows=col_num, ncols=row_num,
+                figsize=(height, width), dpi=150)
+    else:
+        fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
+                figsize=(width, height), dpi=150)
 
     # color
     cm = plt.get_cmap('brg')
@@ -209,8 +214,10 @@ def parse_args():
             help='Keep outputs of dcm2niix for later use.')
     parser.add_argument('--b0thr', type=int, default=50,
             help='b0 threshold, default=50')
-    parser.add_argument('--col_num', type=int,
+    parser.add_argument('--fig_num_in_row', type=int,
             help='Number of columns in the figure')
+    parser.add_argument('--wide_fig', action='store_true',
+            help='Create wide figure')
     parser.add_argument('--out_image', type=str, help='Out image file')
 
 
@@ -239,7 +246,8 @@ def dmri_b0_summary(args):
             data, bval_arr = function(var, name, args.b0thr, args.store_nifti)
             dataset.append((data, bval_arr, name))
 
-        create_b0_signal_figure(dataset, args.out_image, True, args.col_num)
+        create_b0_signal_figure(dataset, args.out_image,
+                                True, args.fig_num_in_row, args.wide_fig)
 
 
 def json_check(args):
