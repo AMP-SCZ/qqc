@@ -53,7 +53,7 @@ def get_diffusion_data_from_nifti_prefix(nifti_prefix: str,
                             threshold: str,
                             save_outputs: bool = False):
     '''Convert dicoms to load 4D dMRI data and threshold it before return'''
-    data, bval_arr = load_data_bval(nifti_prefix)
+    data, bval_arr = load_data_bval(Path(nifti_prefix))
     data = data[:, :, :, bval_arr < threshold]
     bval_arr = bval_arr[bval_arr < threshold]
 
