@@ -116,7 +116,7 @@ def create_b0_signal_figure_prev(data1: np.array, data1_bval: np.array,
     for ax in axes:
         ax.set_ylim(min_y-5, max_y+5)
 
-    fig.subplots_adjust(wspace=0.3)
+    fig.subplots_adjust(wspace=0.3, hspace=0.3)
 
     if savefig:
         fig.savefig(out)
@@ -144,7 +144,7 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
 
     if wide_fig:
         fig, axes = plt.subplots(nrows=col_num, ncols=row_num,
-                figsize=(height, width), dpi=150)
+                figsize=(height, width*2), dpi=150)
     else:
         fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
                 figsize=(width, height), dpi=150)
@@ -180,7 +180,7 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
     for ax in np.ravel(axes)[len(dataset):]:
         ax.axis('off')
 
-    fig.subplots_adjust(wspace=0.3)
+    fig.subplots_adjust(wspace=0.3, hspace=0.3)
 
     if savefig:
         fig.savefig(out)
