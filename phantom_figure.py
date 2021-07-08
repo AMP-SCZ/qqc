@@ -144,7 +144,7 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
 
     if wide_fig:
         fig, axes = plt.subplots(nrows=col_num, ncols=row_num,
-                figsize=(height, width*2), dpi=150)
+                figsize=(height*2, width), dpi=150)
     else:
         fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
                 figsize=(width, height), dpi=150)
