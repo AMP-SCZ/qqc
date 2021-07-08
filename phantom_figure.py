@@ -125,7 +125,7 @@ def create_b0_signal_figure_prev(data1: np.array, data1_bval: np.array,
 
 
 def create_b0_signal_figure(dataset: List[tuple], out: str,
-                            savefig: bool = False):
+                            savefig: bool = False, col_num: int = 3):
     '''Plot b0 summary from three different 4d dMRI volumes
 
     Key arguments:
@@ -135,7 +135,6 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
         out: output image file name, eg) test.png
         savefig: save figure if True
     '''
-    col_num = 3
     col_width = 4
     row_num = math.ceil(len(dataset) / col_num)
     row_height = 8
@@ -210,6 +209,8 @@ def parse_args():
             help='Keep outputs of dcm2niix for later use.')
     parser.add_argument('--b0thr', type=int, default=50,
             help='b0 threshold, default=50')
+    parser.add_argument('--col_num', type=int,
+            help='Number of columns in the figure')
     parser.add_argument('--out_image', type=str, help='Out image file')
 
 
@@ -238,7 +239,7 @@ def dmri_b0_summary(args):
             data, bval_arr = function(var, name, args.b0thr, args.store_nifti)
             dataset.append((data, bval_arr, name))
 
-        create_b0_signal_figure(dataset, args.out_image, True)
+        create_b0_signal_figure(dataset, args.out_image, True, args.col_num)
 
 
 def json_check(args):
