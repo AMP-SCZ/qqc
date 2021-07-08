@@ -30,17 +30,57 @@ the figure creation.
 # to print help message
 ./phantom_figure.py -h
 
-./phantom_figure.py  \
-  --apb0dir1 phantom_dir/dMRI_b0_AP_20 \
-  --apb0dir2 phantom_dir/dMRI_b0_AP_24 \
-  --padmridir phantom_dir/dMRI_dir176_PA_22 \
-  --out test.png
+# summaryize b0 from the dicom directories
+./phantom_figure.py \
+    --mode dmri_b0 \
+    --dicom_dirs \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_20 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_dir176_PA_22 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_24 \
+    --names \
+        apb0_1 pa_dmri apb0_2 \
+    --out_image new_test.png
 
-# Use different threshold for b0
-./phantom_figure.py  \
-  --apb0dir1 phantom_dir/dMRI_b0_AP_20 \
-  --apb0dir2 phantom_dir/dMRI_b0_AP_24 \
-  --padmridir phantom_dir/dMRI_dir176_PA_22 \
-  --b0thr 100 \
-  --out test.png
+
+# allows more than three dicom inputs
+./phantom_figure.py \
+    --mode dmri_b0 \
+    --dicom_dirs \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_20 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_dir176_PA_22 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_24 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_20 \
+    --names \
+        apb0_1 pa_dmri apb0_2 dup \
+    --out_image new_test_dup.png
+
+
+# store outputs from the dcm2niix
+./phantom_figure.py \
+    --mode dmri_b0 \
+    --dicom_dirs \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_20 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_dir176_PA_22 \
+        /data/predict/phantom_data/ProNET_UCLA/dMRI_b0_AP_24 \
+    --names \
+        apb0_1 pa_dmri apb0_2 \
+    --store_nifti \
+    --out_image new_test_dup.png
+
+
+# run summary on nifti directories
+./phantom_figure.py \
+    --mode dmri_b0 \
+    --nifti_dirs apb0_1 pa_dmri apb0_2 \
+    --names apb0_1 pa_dmri apb0_2 \
+    --out_image new_test_nifti_dir.png
+
+
+# use different threshold when summarizing the b0
+./phantom_figure.py \
+    --mode dmri_b0 \
+    --nifti_dirs apb0_1 pa_dmri apb0_2 \
+    --names apb0_1 pa_dmri apb0_2 \
+    --b0thr 5000 \
+    --out_image new_test_nifti_dir_thr5000.png
 ```
