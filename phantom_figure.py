@@ -178,7 +178,7 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
         ax.set_ylim(min_y-5, max_y+5)
 
         if wide_fig:
-            ax.set_xticklabels(rotate=90)
+            ax.set_xticklabels(ax.get_xticklabels(), rotate=90)
 
     for ax in np.ravel(axes)[len(dataset):]:
         ax.axis('off')
