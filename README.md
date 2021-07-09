@@ -8,7 +8,7 @@ Snippets used in the phantom QC
 
 
 
-## Quick sumary
+## Quick summary
 
 ```
 ./phantom_figure.py \
@@ -29,6 +29,7 @@ Snippets used in the phantom QC
         apb0_2/apb0_2.json \
     --save_excel json_summary.xlsx
 ```
+
 
 ## 1. Signal summary figure
 
