@@ -29,6 +29,46 @@ def load_data_bval(prefix: Path):
     return data, bval
 
 
+def get_nondmri_data(data_source: str,
+                     dtype: List[str],
+                     name: str,
+                     save_outputs: bool = False):
+    '''Get fMRI data and name
+
+    Key Arguments:
+        - data_source: Nifiti prefix, dicom or nifti directory, str
+            - dicom_dir
+            - nifti_dir
+            - nifti_prefix
+        - name: name of the data source, str.
+        - save_outputs: save dcm2niix outputs when data_source == dicom dir,
+                        bool.
+    '''
+    if dtype == 'dicom_dir':
+        temp_dir = tempfile.TemporaryDirectory()
+        convert_to_img(data_source, temp_dir.name, name)
+        data = nb.load(
+                (Path(temp_dir.name) / name).with_suffix(
+                    '.nii.gz')).get_fdata()
+        if save_outputs:
+            shutil.copytree(temp_dir.name, name)
+        temp_dir.cleanup()
+
+    elif dtype == 'nifti_prefix':
+        data = nb.load(Path(data_source).with_suffix('.nii.gz')).get_fdata()
+
+    elif dtype == 'nifti_dir':
+        nifti_prefix = list(Path(data_source).glob('*.nii.gz'))[0]
+        data = nb.load(nifti_prefix).get_fdata()
+
+    else:
+        print('Please provide correct dtype')
+        print('Exiting')
+        sys.exit()
+
+    return data
+
+
 def get_diffusion_data_from_dicom_dir(dicom_dir: str,
                             name: str,
                             threshold: str,
@@ -122,6 +162,73 @@ def create_b0_signal_figure_prev(data1: np.array, data1_bval: np.array,
         fig.savefig(out)
     else:
         return fig
+
+
+def create_image_signal_figure(dataset: List[tuple], out: str,
+                               savefig: bool = False, col_num: int = 3, 
+                               wide_fig: bool = False):
+    '''Plot b0 summary from three different 4d dMRI volumes
+
+    Key arguments:
+        dataset: Tuple of (data, name), tuple.
+        out: output image file name, eg) test.png, str.
+        savefig: save figure if True, bool.
+        col_num: number of figures in a single row, int.
+        wide_fig: option to create horizontally long figure, bool.
+    '''
+    col_width = 4
+    row_num = math.ceil(len(dataset) / col_num)
+    row_height = 8
+    width = len(dataset) * col_width
+    height = row_num * row_height
+
+    if wide_fig:
+        fig, axes = plt.subplots(nrows=col_num, ncols=row_num,
+                figsize=(height*2, width), dpi=150)
+    else:
+        fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
+                figsize=(width, height), dpi=150)
+
+    # color
+    cm = plt.get_cmap('brg')
+
+    color_num = 0
+    for ax, (data, name) in zip(np.ravel(axes), dataset):
+        color = cm(1.*color_num/len(dataset))
+        data_mean = [data[:, :, :, vol_num].mean() for vol_num in
+                np.arange(data.shape[-1])]
+        ax.plot(data_mean, color=color, linestyle='-', marker='o')
+        ax.set_ylabel("Average signal in all voxels")
+        ax.set_xlabel("Volume")
+        ax.set_title(name)
+        color_num += 1
+
+    max_y = 0
+    min_y = 100000
+    for data in [x[0] for x in dataset]:
+        values = np.array(
+                [data[:, :, :, vol_num].mean() for vol_num
+                    in np.arange(data.shape[-1])])
+        max_y = values.max() if values.max() > max_y else max_y
+        min_y = values.min() if values.min() < min_y else min_y
+
+    for ax in np.ravel(axes):
+        ax.set_ylim(min_y-5, max_y+5)
+
+        if wide_fig:
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+
+    for ax in np.ravel(axes)[len(dataset):]:
+        ax.axis('off')
+
+    fig.subplots_adjust(wspace=0.3, hspace=0.3)
+
+    if savefig:
+        fig.savefig(out)
+    else:
+        return fig
+
+
 
 
 def create_b0_signal_figure(dataset: List[tuple], out: str,
@@ -252,14 +359,42 @@ def dmri_b0_summary(args):
         create_b0_signal_figure(dataset, args.out_image,
                                 True, args.fig_num_in_row, args.wide_fig)
 
+def fmri_summary(args):
+    if args.mode == 'fmri':
+        function = get_nondmri_data
+        if args.dicom_dirs:
+            dtype = 'dicom_dir'
+            vars = args.dicom_dirs
+        elif args.nifti_prefixes:
+            dtype = 'nifti_prefix'
+            vars = args.nifti_prefixes
+        elif args.nifti_dirs:
+            dtype = 'nifti_dir'
+            vars = args.nifti_dirs
+        else:
+            sys.exit('Data input needs to be provided. Provide one of '
+            '--dicom_dirs, --nifti_prefixes or --nifti_dirs. Exiting.')
+
+        dataset = []
+        for num, var in enumerate(vars):
+            name = args.names[num] if args.names else Path(var).name
+            data = function(var, dtype, name, args.store_nifti)
+            dataset.append((data, name))
+
+        create_image_signal_figure(dataset, args.out_image,
+                                   True, args.fig_num_in_row,
+                                   args.wide_fig)
+
 
 def json_check(args):
     if args.mode == 'json_check':
         pass
+
 
 if __name__ == '__main__':
     args = parse_args()
 
     # dmri_b0_summary
     dmri_b0_summary(args)
+    fmri_summary(args)
     json_check(args)
