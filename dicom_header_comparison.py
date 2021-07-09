@@ -38,6 +38,9 @@ def parse_args(argv):
     parser.add_argument('--print_shared', action='store_true',
             help='Print the same items between the json_files')
 
+    parser.add_argument('--save_excel', type=str,
+            help='Save the diff and shared table to an excel file')
+
     # extra options
     args = parser.parse_args(argv)
     return args
@@ -104,7 +107,15 @@ def json_check(json_files: List[str],
         print('='*80)
         print()
 
+    return (df_all_diff, df_all_shared)
 
 if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
-    json_check(args.json_files, args.print_diff, args.print_shared)
+    df_all_diff, df_all_shared = json_check(
+            args.json_files, args.print_diff, args.print_shared)
+
+    if args.save_excel:
+        with pd.ExcelWriter(args.save_excel) as writer:
+            df_all_diff.to_excel(writer, sheet_name='diff')
+            df_all_shared.to_excel(writer, sheet_name='diff')
+        
