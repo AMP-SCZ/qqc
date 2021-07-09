@@ -70,9 +70,9 @@ def get_nondmri_data(data_source: str,
 
 
 def get_diffusion_data_from_dicom_dir(dicom_dir: str,
-                            name: str,
-                            threshold: str,
-                            save_outputs: bool = False):
+                                      name: str,
+                                      threshold: str,
+                                      save_outputs: bool = False):
     '''Convert dicoms to load 4D dMRI data and threshold it before return'''
     temp_dir = tempfile.TemporaryDirectory()
     convert_to_img(dicom_dir, temp_dir.name, name)
