@@ -121,7 +121,7 @@ is used compare command and unique values in each items of the json file.
 # to print help message
 ./dicom_header_comparison.py -h
 
-# summaryize b0 from the dicom directories
+# summaryize three json files and print the comparison table
 ./dicom_header_comparison.py \
     --json_files \
         dMRI_b0_AP_20.json \
@@ -129,5 +129,14 @@ is used compare command and unique values in each items of the json file.
         dMRI_b0_AP_24.json \
     --print_diff \
     --print_shared
+
+
+# summaryize b0 from the dicom directories
+./dicom_header_comparison.py \
+    --json_files \
+        dMRI_b0_AP_20.json \
+        dMRI_dir176_PA_22.json \
+        dMRI_b0_AP_24.json \
+    --save_excel json_summary.xlsx
 ```
 

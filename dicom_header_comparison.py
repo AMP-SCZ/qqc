@@ -117,5 +117,5 @@ if __name__ == '__main__':
     if args.save_excel:
         with pd.ExcelWriter(args.save_excel) as writer:
             df_all_diff.to_excel(writer, sheet_name='diff')
-            df_all_shared.to_excel(writer, sheet_name='diff')
+            df_all_shared.to_excel(writer, sheet_name='shared')
         
