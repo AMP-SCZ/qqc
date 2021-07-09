@@ -46,7 +46,16 @@ for dMRI scans.
 ### How to run it
 
 1. Unzip transferred phantom file
-2. Summarize different b0 volumes using `phantom_figure.py`
+2. Summarize different 4d images using `phantom_figure.py`
+
+
+
+#### Options in `phantom_figure.py`
+
+- `--mode`
+  - choose either `dmri_b0` or  `general_4d`
+  - 
+
   - Reqruies paths of directories that contain dicom files for each volumes.
   - This function runs `dcm2niix` saving outputs to a temporary file, which is
     then deleted after creating figure.
@@ -59,6 +68,10 @@ for dMRI scans.
     eg) `--names dmri_b0_ap dmri_b0_pa`
   - `--out_image` option should specify the name of the output figure.
     eg) `--out_image diffusion_b0_summary.png`
+
+
+
+### Examples
 
 
 ```
