@@ -324,7 +324,7 @@ def parse_args():
             help='Keep outputs of dcm2niix for later use.')
     parser.add_argument('--b0thr', type=int, default=50,
             help='b0 threshold, default=50')
-    parser.add_argument('--fig_num_in_row', type=int,
+    parser.add_argument('--fig_num_in_row', type=int, default=3,
             help='Number of columns in the figure')
     parser.add_argument('--wide_fig', action='store_true',
             help='Create wide figure')
