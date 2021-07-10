@@ -5,6 +5,7 @@ Snippets used in the phantom QC
 
 #### Short example
 
+1. Average intensity summary across volumes in different scans
 ```
 ./phantom_figure.py \
     --mode dmri \
@@ -17,14 +18,25 @@ Snippets used in the phantom QC
     --b0thr 50 \
     --store_nifti \
     --out_image b0_summary.png
+```
 
+![output_img](docs/b0_summary.png) 
+
+
+2. Comparison between MR protocols using BIDS sidecar from `dcm2niix`
+
+```
 ./dicom_header_comparison.py \
     --json_files \
         apb0_1/apb0_1.json \
         pa_dmri/pa_dmri.json \
         apb0_2/apb0_2.json \
-    --save_excel json_summary.xlsx
+    --print_diff \
+    --save_excel test.xlsx
 ```
+
+![output_img_2](docs/screen_print.png) 
+![output_img_3](docs/excel_screenshot.png) 
 
 
 
