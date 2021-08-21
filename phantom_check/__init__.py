@@ -29,10 +29,7 @@ def json_check_for_a_session(json_files: List[str],
                 orient='index',
                 columns=[f'{json_file}'])
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
-
-    df_all['digits'] = df_all[f'{json_file}'].str.extract('(\d+$)')
-    df_all = df_all.sort_values('digits', ascending=True)
-    df_all = df_all.drop('digits', axis=1).T
+    df_all = df_all.T
     
     df_all_diff = pd.DataFrame()
     df_all_shared = pd.DataFrame()
@@ -40,15 +37,20 @@ def json_check_for_a_session(json_files: List[str],
         if len(df_all[col].unique()) == 1:
             df_all_diff = df_all.drop(col, axis=1)
         else:
-            df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
             df_all_shared = df_all.drop(col, axis=1)
 
+    for col in df_all_diff.columns:
+        df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all_diff = df_all_diff.sort_values(f'{col}_unique_rank')
+
     if print_diff:
-        print_diff_shared('Jsons show differences', df_all_diff)
+        print_diff_shared(
+                'Json files from the same scan session show differences',
+                df_all_diff)
 
     if print_shared:
         print_diff_shared(
-                'Items in the table below are consistent across jsons',
+                'Items in the table below are consistent across json files',
                 df_all_shared)
 
     return (df_all_diff, df_all_shared)
