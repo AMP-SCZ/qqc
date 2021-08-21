@@ -67,12 +67,12 @@ def compare_jsons(args):
 
     elif args.json_files:
         df_all_diff, df_all_shared = json_check_function(
-                args.json_files, args.from_single_session, args.print_diff, args.print_shared)
+                args.json_files, args.print_diff, args.print_shared)
 
     elif args.multi_file_dir:
         json_files = Path(args.multi_file_dir).glob('*json')
         df_all_diff, df_all_shared = json_check_function(
-                json_files, args.from_single_session, args.print_diff, args.print_shared)
+                json_files, args.print_diff, args.print_shared)
 
     else:
         sys.exit('Please provide either --dicom_dirs or --json_files')
