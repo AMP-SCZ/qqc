@@ -31,7 +31,9 @@ def json_check_for_a_session(json_files: List[str],
         df_tmp['digits'] = df_tmp[f'{json_file}'].str.extract('(\d+$)')
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
 
-    df_all = df_all.sort_values('digits', ascending=True).T
+    df_all = df_all.sort_values('digits', ascending=True)
+    df_all = df_all.drop('digits').T
+    
 
     for col in df_all.columns:
         if len(df_all[col].unique()) == 1:
