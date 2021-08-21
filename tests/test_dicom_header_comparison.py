@@ -1,7 +1,16 @@
 import sys
-sys.path.append('/Users/kc244/phantom_check')
+import phantom_check
+import os
+from pathlib import Path
 
-from dicom_header_comparison import parse_args, json_check, compare_jsons
+phantom_check_root = Path(phantom_check.__path__[0]).parent
+scripts_dir = phantom_check_root / 'scripts'
+test_dir = phantom_check_root / 'tests'
+sys.path.append(str(scripts_dir))
+sys.path.append(str(test_dir))
+
+from dicom_header_comparison import parse_args, compare_jsons
+from phantom_check import json_check
 import pytest
 import pandas as pd
 import json
@@ -59,7 +68,6 @@ def test_three_jsons():
         print(diff_items)
 
 
-
 def test_json_check():
     argparseArg = parse_args([
         '--json_files',
@@ -67,8 +75,19 @@ def test_json_check():
         '--print_diff', '--print_shared'])
 
     json_check(argparseArg.json_files,
+            False,
             argparseArg.print_diff, argparseArg.print_shared)
 
+
+def test_json_check_from_single_scan_session():
+    argparseArg = parse_args([
+        '--json_files',
+            'first.json', 'second.json', 'third.json',
+        '--print_diff', '--print_shared'])
+
+    json_check(argparseArg.json_files,
+            True,
+            argparseArg.print_diff, argparseArg.print_shared)
 
 
 def test_json_check_excel():
