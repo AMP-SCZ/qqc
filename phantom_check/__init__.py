@@ -28,13 +28,14 @@ def json_check_for_a_session(json_files: List[str],
                 dict((x, str(y)) for x, y in dict_for_file.items()),
                 orient='index',
                 columns=[f'{json_file}'])
-        df_tmp['digits'] = df_tmp[f'{json_file}'].str.extract('(\d+$)')
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
 
+    df_all['digits'] = df_all[f'{json_file}'].str.extract('(\d+$)')
     df_all = df_all.sort_values('digits', ascending=True)
-    df_all = df_all.drop('digits').T
+    df_all = df_all.drop('digits', axis=1).T
     
-
+    df_all_diff = pd.DataFrame()
+    df_all_shared = pd.DataFrame()
     for col in df_all.columns:
         if len(df_all[col].unique()) == 1:
             df_all_diff = df_all.drop(col, axis=1)
