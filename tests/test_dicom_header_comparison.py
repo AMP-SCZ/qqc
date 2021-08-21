@@ -1,7 +1,7 @@
 import sys
 sys.path.append('/Users/kc244/phantom_check')
 
-from dicom_header_comparison import parse_args, json_check
+from dicom_header_comparison import parse_args, json_check, compare_jsons
 import pytest
 import pandas as pd
 import json
@@ -68,3 +68,14 @@ def test_json_check():
 
     json_check(argparseArg.json_files,
             argparseArg.print_diff, argparseArg.print_shared)
+
+
+
+def test_json_check_excel():
+    argparseArg = parse_args([
+        '--json_files',
+            'first.json', 'second.json', 'third.json',
+        '--print_diff', '--print_shared',
+        '--save_excel', 'test.xlsx'])
+
+    compare_jsons(argparseArg)

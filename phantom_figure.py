@@ -70,9 +70,9 @@ def get_nondmri_data(data_source: str,
 
 
 def get_diffusion_data_from_dicom_dir(dicom_dir: str,
-                            name: str,
-                            threshold: str,
-                            save_outputs: bool = False):
+                                      name: str,
+                                      threshold: str,
+                                      save_outputs: bool = False):
     '''Convert dicoms to load 4D dMRI data and threshold it before return'''
     temp_dir = tempfile.TemporaryDirectory()
     convert_to_img(dicom_dir, temp_dir.name, name)
@@ -304,7 +304,7 @@ def parse_args():
 
     # mode
     parser.add_argument('--mode', type=str, required=True,
-            choices=['dmri_b0', 'fmri', 'dmri', 'json_check'],
+            choices=['dmri', 'general_4d'],
             help='Select mode')
 
     # image input related options
@@ -336,54 +336,52 @@ def parse_args():
 
 
 def dmri_b0_summary(args):
-    if args.mode == 'dmri_b0':
-        if args.dicom_dirs:
-            function = get_diffusion_data_from_dicom_dir
-            vars = args.dicom_dirs
-        elif args.nifti_prefixes:
-            function = get_diffusion_data_from_nifti_prefix
-            vars = args.nifti_prefixes
-        elif args.nifti_dirs:
-            function = get_diffusion_data_from_nifti_dir
-            vars = args.nifti_dirs
-        else:
-            sys.exit('Data input needs to be provided. Provide one of '
-            '--dicom_dirs, --nifti_prefixes or --nifti_dirs. Exiting.')
+    if args.dicom_dirs:
+        function = get_diffusion_data_from_dicom_dir
+        vars = args.dicom_dirs
+    elif args.nifti_prefixes:
+        function = get_diffusion_data_from_nifti_prefix
+        vars = args.nifti_prefixes
+    elif args.nifti_dirs:
+        function = get_diffusion_data_from_nifti_dir
+        vars = args.nifti_dirs
+    else:
+        sys.exit('Data input needs to be provided. Provide one of '
+        '--dicom_dirs, --nifti_prefixes or --nifti_dirs. Exiting.')
 
-        dataset = []
-        for num, var in enumerate(vars):
-            name = args.names[num] if args.names else Path(var).name
-            data, bval_arr = function(var, name, args.b0thr, args.store_nifti)
-            dataset.append((data, bval_arr, name))
+    dataset = []
+    for num, var in enumerate(vars):
+        name = args.names[num] if args.names else Path(var).name
+        data, bval_arr = function(var, name, args.b0thr, args.store_nifti)
+        dataset.append((data, bval_arr, name))
 
-        create_b0_signal_figure(dataset, args.out_image,
-                                True, args.fig_num_in_row, args.wide_fig)
+    create_b0_signal_figure(dataset, args.out_image,
+                            True, args.fig_num_in_row, args.wide_fig)
 
 def fmri_summary(args):
-    if args.mode == 'fmri':
-        function = get_nondmri_data
-        if args.dicom_dirs:
-            dtype = 'dicom_dir'
-            vars = args.dicom_dirs
-        elif args.nifti_prefixes:
-            dtype = 'nifti_prefix'
-            vars = args.nifti_prefixes
-        elif args.nifti_dirs:
-            dtype = 'nifti_dir'
-            vars = args.nifti_dirs
-        else:
-            sys.exit('Data input needs to be provided. Provide one of '
-            '--dicom_dirs, --nifti_prefixes or --nifti_dirs. Exiting.')
+    function = get_nondmri_data
+    if args.dicom_dirs:
+        dtype = 'dicom_dir'
+        vars = args.dicom_dirs
+    elif args.nifti_prefixes:
+        dtype = 'nifti_prefix'
+        vars = args.nifti_prefixes
+    elif args.nifti_dirs:
+        dtype = 'nifti_dir'
+        vars = args.nifti_dirs
+    else:
+        sys.exit('Data input needs to be provided. Provide one of '
+        '--dicom_dirs, --nifti_prefixes or --nifti_dirs. Exiting.')
 
-        dataset = []
-        for num, var in enumerate(vars):
-            name = args.names[num] if args.names else Path(var).name
-            data = function(var, dtype, name, args.store_nifti)
-            dataset.append((data, name))
+    dataset = []
+    for num, var in enumerate(vars):
+        name = args.names[num] if args.names else Path(var).name
+        data = function(var, dtype, name, args.store_nifti)
+        dataset.append((data, name))
 
-        create_image_signal_figure(dataset, args.out_image,
-                                   True, args.fig_num_in_row,
-                                   args.wide_fig)
+    create_image_signal_figure(dataset, args.out_image,
+                               True, args.fig_num_in_row,
+                               args.wide_fig)
 
 
 def json_check(args):
@@ -394,7 +392,8 @@ def json_check(args):
 if __name__ == '__main__':
     args = parse_args()
 
-    # dmri_b0_summary
-    dmri_b0_summary(args)
-    fmri_summary(args)
-    json_check(args)
+    if args.mode == 'dmri':
+        dmri_b0_summary(args)
+
+    if args.mode == 'general_4d':
+        fmri_summary(args)
