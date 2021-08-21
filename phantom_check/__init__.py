@@ -43,7 +43,8 @@ def json_check(json_files: List[str],
                         first_dict[k] == second_dict[k]}
 
         df_diff = pd.DataFrame.from_dict(
-                diff_items, orient='index',
+                dict((x, str(y)) for x, y in diff_items.items()),
+                orient='index',
                 columns=[f'{name_1} (vs {name_2})'])
 
         df_shared = pd.DataFrame.from_dict(
@@ -51,8 +52,8 @@ def json_check(json_files: List[str],
                 orient='index',
                 columns=[f'{name_1} (vs {name_2})'])
 
-        df_all_diff = pd.concat([df_all_diff, df_diff], axis=1)
-        df_all_shared = pd.concat([df_all_shared, df_shared], axis=1)
+        df_all_diff = pd.concat([df_all_diff, df_diff], axis=1, sort=True)
+        df_all_shared = pd.concat([df_all_shared, df_shared], axis=1, sort=True)
 
     if print_diff:
         print_diff_shared('Different items', df_all_diff)
@@ -60,6 +61,27 @@ def json_check(json_files: List[str],
     if print_shared:
         print_diff_shared('The same items included in both each comparison',
                           df_all_shared)
+
+    if single_session:
+        df_all_diff = pd.DataFrame()
+        for json_file, dict_for_file in zip(json_files, dicts):
+            df_diff = pd.DataFrame.from_dict(
+                    dict((x, str(y)) for x, y in dict_for_file.items()),
+                    orient='index',
+                    columns=[f'{json_file}'])
+            df_all_diff = pd.concat([df_all_diff, df_diff], axis=1, sort=True)
+
+        df_all_diff = df_all_diff.T
+        df_all_shared = df_all_shared.T
+
+        for col in df_all_diff.columns:
+            if len(df_all_diff[col].unique()) == 1:
+                df_all_diff.drop(col, axis=1, inplace=True)
+
+        for col in df_all_shared.columns:
+            if len(df_all_shared[col].unique()) != 1:
+                df_all_shared.drop(col, axis=1, inplace=True)
+
 
     return (df_all_diff, df_all_shared)
 
