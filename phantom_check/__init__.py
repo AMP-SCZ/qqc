@@ -36,6 +36,7 @@ def json_check_for_a_session(json_files: List[str],
         if len(df_all[col].unique()) == 1:
             df_all_diff = df_all.drop(col, axis=1)
         else:
+            df_all_diff[f'{col}_type'] = df_all_diff[col].rank()
             df_all_shared = df_all.drop(col, axis=1)
 
     if print_diff:
