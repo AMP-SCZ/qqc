@@ -31,6 +31,7 @@ def json_check_for_a_session(json_files: List[str],
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
 
     df_all['digits'] = df_all[f'{json_file}'].str.extract('(\d+$)')
+    print(df_all)
     df_all = df_all.sort_values('digits', ascending=True)
     df_all = df_all.drop('digits', axis=1).T
     
@@ -40,7 +41,7 @@ def json_check_for_a_session(json_files: List[str],
         if len(df_all[col].unique()) == 1:
             df_all_diff = df_all.drop(col, axis=1)
         else:
-            df_all_diff[f'{col}_unique_rank'] = df_all_diff[col].rank()
+            df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
             df_all_shared = df_all.drop(col, axis=1)
 
     if print_diff:
