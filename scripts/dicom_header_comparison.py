@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from phantom_check.utils.files import get_jsons_from_dicom_dirs
-from phantom_check import json_check
+from phantom_check import json_check, json_check_for_a_session
 
 import sys
 import argparse
@@ -53,20 +53,25 @@ def parse_args(argv):
 
 
 def compare_jsons(args):
+    if args.from_single_session:
+        json_check_function = json_check_for_a_session
+    else:
+        json_check_function = json_check
+
     if args.dicom_dirs:
         json_files = get_jsons_from_dicom_dirs(args.dicom_dirs,
                                                args.names,
                                                args.save_outputs)
-        df_all_diff, df_all_shared = json_check(
-                json_files, args.from_single_session, args.print_diff, args.print_shared)
+        df_all_diff, df_all_shared = json_check_function(
+                json_files, args.print_diff, args.print_shared)
 
     elif args.json_files:
-        df_all_diff, df_all_shared = json_check(
+        df_all_diff, df_all_shared = json_check_function(
                 args.json_files, args.from_single_session, args.print_diff, args.print_shared)
 
     elif args.multi_file_dir:
         json_files = Path(args.multi_file_dir).glob('*json')
-        df_all_diff, df_all_shared = json_check(
+        df_all_diff, df_all_shared = json_check_function(
                 json_files, args.from_single_session, args.print_diff, args.print_shared)
 
     else:

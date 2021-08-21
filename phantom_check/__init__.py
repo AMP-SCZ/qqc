@@ -10,8 +10,45 @@ from pathlib import Path
 import sys
 
 
+def json_check_for_a_session(json_files: List[str],
+                             print_diff: bool = True,
+                             print_shared: bool = False):
+    '''Iteratively compare between MR protocol json files and print outputs'''
+    dicts = []
+    for i in json_files:
+        with open(i, 'r') as f:
+            single_dict = json.load(f)
+            single_dict = dict((x,y) for x, y in single_dict.items()
+                    if x in ['ImageOrientationPatientDICOM', 'ShimSetting'])
+            dicts.append(single_dict)
+
+    df_all = pd.DataFrame()
+    for json_file, dict_for_file in zip(json_files, dicts):
+        df_tmp = pd.DataFrame.from_dict(
+                dict((x, str(y)) for x, y in dict_for_file.items()),
+                orient='index',
+                columns=[f'{json_file}'])
+        df_all = pd.concat([df_all, df_tmp], axis=1, sort=True)
+
+    df_all = df_all.T
+
+    for col in df_all.columns:
+        if len(df_all[col].unique()) == 1:
+            df_all_diff = df_all.drop(col, axis=1)
+        else:
+            df_all_shared = df_all.drop(col, axis=1)
+
+    if print_diff:
+        print_diff_shared('Jsons show differences', df_all_diff)
+
+    if print_shared:
+        print_diff_shared(
+                'Items in the table below are consistent across jsons',
+                df_all_shared)
+
+    return (df_all_diff, df_all_shared)
+
 def json_check(json_files: List[str],
-               single_session: bool = False,
                print_diff: bool = True,
                print_shared: bool = False):
     '''Iteratively compare between MR protocol json files and print outputs'''
@@ -19,16 +56,6 @@ def json_check(json_files: List[str],
     for i in json_files:
         with open(i, 'r') as f:
             dicts.append(json.load(f))
-
-    if single_session:
-        # only select values to test
-        new_dicts = []
-        for single_dict in dicts:
-            single_dict = dict((x,y) for x, y in single_dict.items()
-                    if x in ['ImageOrientationPatientDICOM', 'ShimSetting'])
-            new_dicts.append(single_dict)
-
-        dicts = new_dicts
 
     names = itertools.combinations(json_files, 2)
     sets = itertools.combinations(dicts, 2)
@@ -61,27 +88,6 @@ def json_check(json_files: List[str],
     if print_shared:
         print_diff_shared('The same items included in both each comparison',
                           df_all_shared)
-
-    if single_session:
-        df_all_diff = pd.DataFrame()
-        for json_file, dict_for_file in zip(json_files, dicts):
-            df_diff = pd.DataFrame.from_dict(
-                    dict((x, str(y)) for x, y in dict_for_file.items()),
-                    orient='index',
-                    columns=[f'{json_file}'])
-            df_all_diff = pd.concat([df_all_diff, df_diff], axis=1, sort=True)
-
-        df_all_diff = df_all_diff.T
-        df_all_shared = df_all_shared.T
-
-        for col in df_all_diff.columns:
-            if len(df_all_diff[col].unique()) == 1:
-                df_all_diff.drop(col, axis=1, inplace=True)
-
-        for col in df_all_shared.columns:
-            if len(df_all_shared[col].unique()) != 1:
-                df_all_shared.drop(col, axis=1, inplace=True)
-
 
     return (df_all_diff, df_all_shared)
 

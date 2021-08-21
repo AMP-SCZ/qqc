@@ -10,7 +10,7 @@ sys.path.append(str(scripts_dir))
 sys.path.append(str(test_dir))
 
 from dicom_header_comparison import parse_args, compare_jsons
-from phantom_check import json_check
+from phantom_check import json_check, json_check_for_a_session
 import pytest
 import pandas as pd
 import json
@@ -75,7 +75,6 @@ def test_json_check():
         '--print_diff', '--print_shared'])
 
     json_check(argparseArg.json_files,
-            False,
             argparseArg.print_diff, argparseArg.print_shared)
 
 
@@ -85,8 +84,7 @@ def test_json_check_from_single_scan_session():
             'first.json', 'second.json', 'third.json',
         '--print_diff', '--print_shared'])
 
-    json_check(argparseArg.json_files,
-            True,
+    json_check_for_a_session(argparseArg.json_files,
             argparseArg.print_diff, argparseArg.print_shared)
 
 
