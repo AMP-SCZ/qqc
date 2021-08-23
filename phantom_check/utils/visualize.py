@@ -14,11 +14,12 @@ def print_diff_shared(title: str, df: pd.DataFrame) -> None:
     print(title)
     print('='*80)
     # pretty_print_dict(diff_items)
-    print(df)
-    print()
-    print()
+    if df.shape[1] > 0:
+        print(df)
+    else:
+        print('No difference')
     print('='*80)
-    print()
+    print('\n\n')
 
 
 def get_jsons_from_dicom_dirs(dicom_dirs: List[str],

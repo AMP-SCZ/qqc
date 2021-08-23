@@ -12,14 +12,18 @@ import sys
 
 def json_check_for_a_session(json_files: List[str],
                              print_diff: bool = True,
-                             print_shared: bool = False):
+                             print_shared: bool = False,
+                             **kwargs):
     '''Iteratively compare between MR protocol json files and print outputs'''
+
+    specific_field = kwargs.get('specific_field', '')
+
     dicts = []
     for i in json_files:
         with open(i, 'r') as f:
             single_dict = json.load(f)
             single_dict = dict((x,y) for x, y in single_dict.items()
-                    if x in ['ImageOrientationPatientDICOM', 'ShimSetting'])
+                    if x in [specific_field])
             dicts.append(single_dict)
 
     df_all = pd.DataFrame()
@@ -31,13 +35,13 @@ def json_check_for_a_session(json_files: List[str],
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
     df_all = df_all.T
     
-    df_all_diff = pd.DataFrame()
-    df_all_shared = pd.DataFrame()
+    df_all_diff = df_all.copy()
+    df_all_shared = df_all.copy()
     for col in df_all.columns:
         if len(df_all[col].unique()) == 1:
-            df_all_diff = df_all.drop(col, axis=1)
+            df_all_diff = df_all_diff.drop(col, axis=1)
         else:
-            df_all_shared = df_all.drop(col, axis=1)
+            df_all_shared = df_all_shared.drop(col, axis=1)
 
     for col in df_all_diff.columns:
         df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
@@ -57,7 +61,8 @@ def json_check_for_a_session(json_files: List[str],
 
 def json_check(json_files: List[str],
                print_diff: bool = True,
-               print_shared: bool = False):
+               print_shared: bool = False,
+               **kwargs):
     '''Iteratively compare between MR protocol json files and print outputs'''
     dicts = []
     for i in json_files:
