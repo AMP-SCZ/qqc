@@ -1,13 +1,14 @@
 # phantom_check
-Snippets used in the phantom QC
+
+Script used in the phantom QC in U24 project.
 
 
 
 #### Short example
 
-1. Average intensity summary across volumes in different scans
+1. Summarizing average intensities across volumes in different phantom scans as a figure.
 ```
-./phantom_figure.py \
+phantom_figure.py \
     --mode dmri \
     --dicom_dirs \
         ProNET_UCLA/dMRI_b0_AP_20 \
@@ -23,10 +24,10 @@ Snippets used in the phantom QC
 ![output_img](docs/b0_summary.png) 
 
 
-2. Comparison between MR protocols using BIDS sidecar from `dcm2niix`
+2. Comparison between MR protocols using BIDS sidecar created from `dcm2niix`
 
 ```
-./dicom_header_comparison.py \
+dicom_header_comparison.py \
     --json_files \
         apb0_1/apb0_1.json \
         pa_dmri/pa_dmri.json \
@@ -38,25 +39,92 @@ Snippets used in the phantom QC
 ![output_img_2](docs/screen_print.png) 
 ![output_img_3](docs/excel_screenshot.png) 
 
+3. Compare diffusion bvalues
+
+```
+dwi_extra_comparison.py --bval_files first.bval second.bval
+```
+
+
+
+```
+# output
+Comparing bvals
+- first.bval
+- second.bval
+        The 2 bval arrays are exactly the same.
+                shells: [   0.  200.  500. 1000. 2000. 3000.] (6 shells)
+                volumes in each shell: [11  6 10 50 50 50] (177 directions)
+```
+
+
+
+4. Compare only a specific field between json files: can be used to check for difference in shim settings or image orientation in json files from the same phantom scan session.
+
+```
+dicom_header_comparison.py \
+    --json_files \
+        DistortionMap_AP.json \
+        dMRI_following_DM.json \
+        fMRI_following_DM.json \
+    --field_specify ShimSetting \
+    --print_diff \
+    --print_shared
+```
+
+
+
 
 
 ## Contents
 
-1. Signal summary figure
-2. Compare json files
+1. Installation
+2. Signal summary figure
+3. Compare json files
 
 
 
-## 1. Signal summary figure
+
+
+## 1. Installation
+
+#### Install dcm2niix and add to $PATH
+
+```
+export PATH=${PATH}:/PATH/TO/DCM2NIIX
+```
+
+
+
+#### Install using pip
+
+```
+pip install phantom_check
+```
+
+
+
+#### Install in degugging mode
+
+```
+git clone https://github.com/AMP-SCZ/phantom_check
+pip install -r requirements.txt
+export PYTHONPATH=${PYTHONPATH}:~/phantom_check
+export PATH=${PATH}:~/phantom_check/scripts
+```
+
+
+
+
+
+## 2. Signal summary figure
 
 This function plots average signal in each volume for different scan runs.
 It expects a list of data sources, where the average signal for all voxels will
 be used to create a figure. Extra options are available for b0 signal extraction
 for dMRI scans.
 
-### Requirements
-  - dcm2niix in $PATH
-  - nibabel module in python
+
 
 
 ### How to run it
@@ -138,7 +206,7 @@ for dMRI scans.
 
 
 
-## 2. Compare json files
+## 3. Compare json files
 
 dcm2niix creates a bids side car in a json file. `dicom_header_comparison.py` is used compare command and unique values in each items of the json file.
 
@@ -161,14 +229,19 @@ dcm2niix creates a bids side car in a json file. `dicom_header_comparison.py` is
     - `dcm2niix` will be used to convert the dicoms into nifti in a temporary directory, which will be removed after loading the data from the nifti files.
     - use `--store_nifti` to save the `dcm2niix` outputs
       - names given to the `--names` will be used as the prefix in the `dcm2niix`, which will create directories under the current directory with the prefix.
+- `--field_specify`: Select a specific json field to be compared between json files.
 - `--print_diff`: print the differences between each json source compared to each other, on screen.
 - `--print_shared`: print common items between each json source compared to each other, on screen.
 - `--save_excel`: takes a path of excel file path to save the differences.
 
 
 
-
 ### How to run it
+
+
+
+- [field_specify example](https://github.com/AMP-SCZ/phantom_check/blob/main/docs/example_script_same_session.sh)
+- 
 
 ```
 # to print help message
@@ -191,5 +264,15 @@ dcm2niix creates a bids side car in a json file. `dicom_header_comparison.py` is
         dMRI_dir176_PA_22.json \
         dMRI_b0_AP_24.json \
     --save_excel json_summary.xlsx
+    
+# compare ShimSetting field between json files
+dicom_header_comparison.py \
+    --json_files \
+        DistortionMap_AP.json \
+        dMRI_following_DM.json \
+        fMRI_following_DM.json \
+    --field_specify ShimSetting \
+    --print_diff \
+    --print_shared
 ```
 
