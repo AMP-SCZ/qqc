@@ -19,7 +19,8 @@ ${script_location}/scripts/dicom_header_comparison.py \
         dMRI_b0_AP_SBRef_23/dMRI_b0_AP_SBRef_23.json \
         dMRI_b0_AP_24/dMRI_b0_AP_24.json \
     --field_specify ShimSetting \
-    --print_diff
+    --print_diff \
+    --print_shared
 
 
 # checking shim setting in scans from 25 - 30
@@ -32,7 +33,8 @@ ${script_location}/scripts/dicom_header_comparison.py \
         rfMRI_REST_PA_29/rfMRI_REST_PA_SBRef_29.json \
         rfMRI_REST_PA_30/rfMRI_REST_PA_30.json \
     --field_specify ShimSetting \
-    --print_diff 
+    --print_diff \
+    --print_shared
 
 
 # checking image orientation in dMRI, fMRI and distortionMap
@@ -59,7 +61,8 @@ ${script_location}/scripts/dicom_header_comparison.py \
         dMRI_b0_AP_20/dMRI_b0_AP_20.json \
         rfMRI_REST_AP_16/rfMRI_REST_AP_16.json \
     --field_specify ImageOrientationPatientDICOM \
-    --print_diff
+    --print_diff \
+    --print_shared
 
 
 # checking image orientation in T1w and T2w
@@ -70,4 +73,5 @@ ${script_location}/scripts/dicom_header_comparison.py \
         T2w_SPC_11/T2w_SPC_11.json \
         T2w_SPC_12/T2w_SPC_12.json \
     --field_specify ImageOrientationPatientDICOM \
-    --print_diff
+    --print_diff \
+    --print_shared
