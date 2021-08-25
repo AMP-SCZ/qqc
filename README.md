@@ -238,10 +238,11 @@ dcm2niix creates a bids side car in a json file. `dicom_header_comparison.py` is
 
 ### How to run it
 
+#### Full examples
 
+- [Convert and summarize](docs/example_convert_figure.sh)
+- [field_specify example](docs/example_script_same_session.sh)
 
-- [field_specify example](https://github.com/AMP-SCZ/phantom_check/blob/main/docs/example_script_same_session.sh)
-- 
 
 ```
 # to print help message
