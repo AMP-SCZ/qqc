@@ -1,3 +1,4 @@
+import phantom_check
 from typing import List
 import tempfile
 import shutil
@@ -5,7 +6,11 @@ import subprocess
 from pathlib import Path
 import nibabel as nb
 import numpy as np
+import pandas as pd
 import sys
+import json
+from sklearn.cluster import KMeans
+from sklearn import preprocessing
 
 
 def load_data_bval(prefix: Path):
@@ -124,3 +129,79 @@ def get_diffusion_data_from_nifti_dir(nifti_dir: str,
     bval_arr = bval_arr[bval_arr < threshold]
 
     return data, bval_arr
+
+
+def load_anat_json_from_mriqc(json_file: str) -> pd.DataFrame:
+    '''Read json file from mriqc
+
+    Returns a dataframe with the index of qc_vars, and the values as a column
+    '''
+    with open(json_file, 'r') as f:
+        json_dict = json.load(f)
+
+    subject = Path(json_file).name.split('.json')[0]
+
+    json_dict = dict((x,y) for x, y in json_dict.items()
+            if x not in ["bids_meta", "provenance"])
+
+    df = pd.DataFrame.from_dict(
+            json_dict, orient='index', columns=[subject])
+
+    return df
+
+
+def load_anat_jsons_from_mriqc(json_files: list,
+                               normalize: bool = False) -> pd.DataFrame:
+    '''Read json files from mriqc
+
+    Returns a dataframe with the index of qc_vars, and subjects as columns
+    '''
+
+    dfs = []
+    for json_file in json_files:
+        df_tmp = load_anat_json_from_mriqc(json_file)
+        dfs.append(df_tmp)
+
+    df = pd.concat(dfs, axis=1)
+
+
+    # df_open_data = load_and_filter_anat_qc_from_open_data(
+    
+    if normalize:
+        # normalize each rows
+        df = df.div(df.sum(axis=1), axis=0).fillna(0)
+
+    kmeans = KMeans(n_clusters=3, random_state=0).fit(
+            df.mean(axis=1).values.reshape(-1, 1))
+    df['labels'] = kmeans.labels_
+
+    return df
+
+
+def load_and_filter_anat_qc_from_open_data(csv_file: str) -> pd.DataFrame:
+    '''Load anat qc from open data'''
+
+    df = pd.read_csv(csv_file)
+
+    # filter
+    df = df[df['bids_meta.MagneticFieldStrength'] == 3]
+
+    return df
+
+
+def add_open_data_qc_measures(df: pd.DataFrame,
+                              df_open: pd.DataFrame) -> pd.DataFrame:
+    '''Add open data columns to the mriqc df'''
+    df.loc['source'] = 'mriqc'
+
+    # add open data qc measures
+    open_data_csv = Path(phantom_check.__file__).parent.parent / \
+            'data' / 'T1w_demo.csv'
+    df_open = load_and_filter_anat_qc_from_open_data(open_data_csv)
+    df_open['source'] = 'opendata'
+
+    df_open = df_open[[x for x in df_open.columns if x in df.index]].T
+
+    df = pd.concat([df, df_open], axis=1)
+
+    return df

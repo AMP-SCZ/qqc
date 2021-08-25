@@ -8,6 +8,9 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.gridspec as gridspec
+
+import seaborn as sns
 
 
 def print_diff_shared(title: str, df: pd.DataFrame) -> None:
@@ -222,3 +225,116 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
         return fig
 
 
+
+def plot_anat_jsons_from_mriqc(df: pd.DataFrame) -> None:
+    '''Plot anat jsons from mriqc'''
+    df_melt = pd.melt(df.reset_index(), id_vars=['index', 'labels'],
+            var_name='subject')
+
+    g = sns.catplot(x='index', y='value', hue='subject',
+            sharex=False, sharey=False,
+            data=df_melt)
+            # data=df_melt[~df_melt['index'].str.startswith('summary')])
+
+    g.fig.set_size_inches(15, 10)
+    g.fig.set_dpi(150)
+    g.ax.tick_params(axis='x', rotation=90)
+    # g.ax.set_ylabel('QC Value provided by MRIQC')
+    g.ax.set_ylabel('QC Value provided by MRIQC - Normalized')
+
+    g.fig.subplots_adjust(bottom=0.2)
+    g.fig.savefig('tmp.png')
+
+    return
+
+
+def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
+    '''Plot anat jsons from mriqc'''
+
+    # open_data
+    df_melt = pd.melt(
+            df.T[df.T['source'] == 'opendata'].drop(
+                'source', axis=1).T.reset_index(),
+            id_vars=['index'],
+            var_name='subject')
+
+    # mriqc data
+    df_mri_qc_melt = pd.melt(
+            df.T[df.T['source'] == 'mriqc'].drop(
+                'source', axis=1).T.reset_index(),
+            id_vars=['index'],
+            var_name='subject')
+
+    # plot box plots
+    g = sns.catplot(x='index', y='value',
+            col='index', col_wrap=10,
+            sharex=False, sharey=False,
+            kind='box',
+            data=df_melt)
+
+    # set boxplot transparency
+    for ax in np.ravel(g.axes):
+        alpha = 0.1
+
+        a = ax.get_lines()
+        for i in a:
+            i.set_alpha(alpha+1)
+
+        for patch in ax.artists:
+            # patch
+            patch.set_alpha(0.1)
+            red, green, blue, a = patch.get_facecolor()
+            patch.set_facecolor((red, green, blue, alpha))
+
+            # edge
+            red, green, blue, a = patch.get_edgecolor()
+            patch.set_edgecolor((red, green, blue, alpha))
+
+
+    # add mriqc data points (as points)
+    for num, ax in enumerate(np.ravel(g.axes)):
+        index = ax.get_title().split(' = ')[1]
+        df_tmp = df_mri_qc_melt.groupby('index').get_group(index)
+        df_tmp = df_tmp[df_tmp['subject'] != 'labels']
+
+        # for each measure
+        for index, row in df_tmp.iterrows():
+            # ylim adjust if needed
+            ylim_range = ax.get_ylim()
+            if row['value'] < ylim_range[0]:
+                ax.set_ylim(row['value'], ylim_range[1])
+            
+            if row['value'] > ylim_range[1]:
+                ax.set_ylim(ylim_range[0], row['value'])
+
+            # plot for each subject
+            ax.plot(0, row['value'], 'o',
+                          alpha=0.9, label=row['subject'])
+
+        # store an example point set for the legend
+        if num == 0:
+            handles, labels = ax.get_legend_handles_labels()
+
+        ax.set_title('')
+
+
+    # figure settings
+    g.fig.set_size_inches(15, 15)
+    g.fig.set_dpi(150)
+
+    # legend ax
+    legend_ax = g.fig.add_axes([0.95, 0.1, 0.01, 0.01])
+    legend_ax.axis('off')
+    legend_ax.legend(handles, labels, loc='best')
+
+    # subplots position adjust
+    g.fig.subplots_adjust(wspace=0.25, hspace=0.25,
+            bottom=0.05, top=0.95, left=0.08, right=0.95)
+
+    g.fig.suptitle(
+            f'MRIQC summary overlaid on top of normative (3T) qc measures '
+            f'(n={len(df_melt.subject.unique())})')
+
+    g.fig.savefig('tmp.png')
+
+    return
