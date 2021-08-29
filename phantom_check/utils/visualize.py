@@ -64,7 +64,7 @@ def create_b0_signal_figure_prev(data1: np.array, data1_bval: np.array,
              (data3, data3_bval, 'b0 PA dMRI', 'r'),
              (data2, data2_bval, 'b0 AP 2', 'b')]):
         data_mean = [data[:, :, :, vol_num].mean() for vol_num in
-                np.arange(data.shape[-1])]
+                     np.arange(data.shape[-1])]
         ax.plot(data_mean, color+'-')
         ax.plot(data_mean, color+'o')
         ax.set_ylabel("Average signal in all voxels")
@@ -113,10 +113,10 @@ def create_image_signal_figure(dataset: List[tuple], out: str,
 
     if wide_fig:
         fig, axes = plt.subplots(nrows=col_num, ncols=row_num,
-                figsize=(height*2, width), dpi=150)
+                                 figsize=(height*2, width), dpi=150)
     else:
         fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
-                figsize=(width, height), dpi=150)
+                                 figsize=(width, height), dpi=150)
 
     # color
     cm = plt.get_cmap('brg')
@@ -125,7 +125,7 @@ def create_image_signal_figure(dataset: List[tuple], out: str,
     for ax, (data, name) in zip(np.ravel(axes), dataset):
         color = cm(1.*color_num/len(dataset))
         data_mean = [data[:, :, :, vol_num].mean() for vol_num in
-                np.arange(data.shape[-1])]
+                     np.arange(data.shape[-1])]
         ax.plot(data_mean, color=color, linestyle='-', marker='o')
         ax.set_ylabel("Average signal in all voxels")
         ax.set_xlabel("Volume")
@@ -136,8 +136,8 @@ def create_image_signal_figure(dataset: List[tuple], out: str,
     min_y = 100000
     for data in [x[0] for x in dataset]:
         values = np.array(
-                [data[:, :, :, vol_num].mean() for vol_num
-                    in np.arange(data.shape[-1])])
+                [data[:, :, :, vol_num].mean() for vol_num in
+                 np.arange(data.shape[-1])])
         max_y = values.max() if values.max() > max_y else max_y
         min_y = values.min() if values.min() < min_y else min_y
 
@@ -178,10 +178,10 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
 
     if wide_fig:
         fig, axes = plt.subplots(nrows=col_num, ncols=row_num,
-                figsize=(height*2, width), dpi=150)
+                                 figsize=(height*2, width), dpi=150)
     else:
         fig, axes = plt.subplots(ncols=col_num, nrows=row_num,
-                figsize=(width, height), dpi=150)
+                                 figsize=(width, height), dpi=150)
 
     # color
     cm = plt.get_cmap('brg')
@@ -229,17 +229,15 @@ def create_b0_signal_figure(dataset: List[tuple], out: str,
 def plot_anat_jsons_from_mriqc(df: pd.DataFrame) -> None:
     '''Plot anat jsons from mriqc'''
     df_melt = pd.melt(df.reset_index(), id_vars=['index', 'labels'],
-            var_name='subject')
+                      var_name='subject')
 
     g = sns.catplot(x='index', y='value', hue='subject',
-            sharex=False, sharey=False,
-            data=df_melt)
-            # data=df_melt[~df_melt['index'].str.startswith('summary')])
+                    sharex=False, sharey=False,
+                    data=df_melt)
 
     g.fig.set_size_inches(15, 10)
     g.fig.set_dpi(150)
     g.ax.tick_params(axis='x', rotation=90)
-    # g.ax.set_ylabel('QC Value provided by MRIQC')
     g.ax.set_ylabel('QC Value provided by MRIQC - Normalized')
 
     g.fig.subplots_adjust(bottom=0.2)
@@ -267,10 +265,10 @@ def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
 
     # plot box plots
     g = sns.catplot(x='index', y='value',
-            col='index', col_wrap=10,
-            sharex=False, sharey=False,
-            kind='box',
-            data=df_melt)
+                    col='index', col_wrap=10,
+                    sharex=False, sharey=False,
+                    kind='box',
+                    data=df_melt)
 
     # set boxplot transparency
     for ax in np.ravel(g.axes):
@@ -283,11 +281,11 @@ def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
         for patch in ax.artists:
             # patch
             patch.set_alpha(0.1)
-            red, green, blue, a = patch.get_facecolor()
+            red, green, blue, _ = patch.get_facecolor()
             patch.set_facecolor((red, green, blue, alpha))
 
             # edge
-            red, green, blue, a = patch.get_edgecolor()
+            red, green, blue, _ = patch.get_edgecolor()
             patch.set_edgecolor((red, green, blue, alpha))
 
 
@@ -303,20 +301,19 @@ def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
             ylim_range = ax.get_ylim()
             if row['value'] < ylim_range[0]:
                 ax.set_ylim(row['value'], ylim_range[1])
-            
+
             if row['value'] > ylim_range[1]:
                 ax.set_ylim(ylim_range[0], row['value'])
 
             # plot for each subject
             ax.plot(0, row['value'], 'o',
-                          alpha=0.9, label=row['subject'])
+                    alpha=0.9, label=row['subject'])
 
         # store an example point set for the legend
         if num == 0:
             handles, labels = ax.get_legend_handles_labels()
 
         ax.set_title('')
-
 
     # figure settings
     g.fig.set_size_inches(15, 15)
@@ -329,7 +326,7 @@ def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
 
     # subplots position adjust
     g.fig.subplots_adjust(wspace=0.25, hspace=0.25,
-            bottom=0.05, top=0.95, left=0.08, right=0.95)
+                          bottom=0.05, top=0.95, left=0.08, right=0.95)
 
     g.fig.suptitle(
             f'MRIQC summary overlaid on top of normative (3T) qc measures '
