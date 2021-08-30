@@ -31,6 +31,7 @@ def convert_to_img(dicom_folder: str, outdir: str, name: str) -> None:
 def get_jsons_from_dicom_dirs(dicom_dirs: List[str],
                               names: List[str] = None,
                               save_outputs: bool = True):
+    '''Get json files from the dicom directories'''
     json_files = []
     for num, dicom_dir in enumerate(dicom_dirs):
         name = names[num] if names else Path(dicom_dir).name
@@ -106,10 +107,16 @@ def get_diffusion_data_from_dicom_dir(dicom_dir: str,
 
 
 def get_diffusion_data_from_nifti_prefix(nifti_prefix: str,
-                            name: str,
-                            threshold: str,
-                            save_outputs: bool = False):
-    '''Convert dicoms to load 4D dMRI data and threshold it before return'''
+                                         name: str,
+                                         threshold: str,
+                                         save_outputs: bool = False):
+    '''Convert dicoms to load 4D dMRI data and threshold it before return
+
+    Notes:
+        There are unused inputs, in order to abstract the type of the data
+        source given in the parent function.
+
+    '''
     data, bval_arr = load_data_bval(Path(nifti_prefix))
     data = data[:, :, :, bval_arr < threshold]
     bval_arr = bval_arr[bval_arr < threshold]
@@ -118,10 +125,16 @@ def get_diffusion_data_from_nifti_prefix(nifti_prefix: str,
 
 
 def get_diffusion_data_from_nifti_dir(nifti_dir: str,
-                            name: str,
-                            threshold: str,
-                            save_outputs: bool = False):
-    '''Convert dicoms to load 4D dMRI data and threshold it before return'''
+                                      name: str,
+                                      threshold: str,
+                                      save_outputs: bool = False):
+    '''Convert dicoms to load 4D dMRI data and threshold it before return
+
+    Notes:
+        There are unused inputs, in order to abstract the type of the data
+        source given in the parent function.
+    '''
+
     nifti_prefix = list(Path(nifti_dir).glob('*.nii.gz'))[0]
     data, bval_arr = load_data_bval(
             nifti_prefix.parent / nifti_prefix.name.split('.')[0])
@@ -141,8 +154,8 @@ def load_anat_json_from_mriqc(json_file: str) -> pd.DataFrame:
 
     subject = Path(json_file).name.split('.json')[0]
 
-    json_dict = dict((x,y) for x, y in json_dict.items()
-            if x not in ["bids_meta", "provenance"])
+    json_dict = dict((x, y) for x, y in json_dict.items()
+                if x not in ["bids_meta", "provenance"])
 
     df = pd.DataFrame.from_dict(
             json_dict, orient='index', columns=[subject])

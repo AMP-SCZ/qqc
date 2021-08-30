@@ -246,7 +246,8 @@ def plot_anat_jsons_from_mriqc(df: pd.DataFrame) -> None:
     return
 
 
-def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
+def plot_anat_jsons_from_mriqc_with_opendata(
+        df: pd.DataFrame, out_image: str) -> None:
     '''Plot anat jsons from mriqc'''
 
     # open_data
@@ -332,6 +333,6 @@ def plot_anat_jsons_from_mriqc_with_opendata(df: pd.DataFrame) -> None:
             f'MRIQC summary overlaid on top of normative (3T) qc measures '
             f'(n={len(df_melt.subject.unique())})')
 
-    g.fig.savefig('tmp.png')
+    g.fig.savefig(out_image)
 
     return
