@@ -1,102 +1,45 @@
 # phantom_check
 
-Script used in the phantom QC in U24 project.
-
-
-
-#### Short example
-
-1. Summarizing average intensities across volumes in different phantom scans as a figure.
-```
-phantom_figure.py \
-    --mode dmri \
-    --dicom_dirs \
-        ProNET_UCLA/dMRI_b0_AP_20 \
-        ProNET_UCLA/dMRI_dir176_PA_22 \
-        ProNET_UCLA/dMRI_b0_AP_24 \
-    --names \
-        apb0_1 pa_dmri apb0_2 \
-    --b0thr 50 \
-    --store_nifti \
-    --out_image b0_summary.png
-```
-
-![output_img](docs/b0_summary.png) 
-
-
-2. Comparison between MR protocols using BIDS sidecar created from `dcm2niix`
-
-```
-dicom_header_comparison.py \
-    --json_files \
-        apb0_1/apb0_1.json \
-        pa_dmri/pa_dmri.json \
-        apb0_2/apb0_2.json \
-    --print_diff \
-    --save_excel test.xlsx
-```
-
-![output_img_2](docs/screen_print.png) 
-![output_img_3](docs/excel_screenshot.png) 
-
-3. Compare diffusion bvalues
-
-```
-dwi_extra_comparison.py --bval_files first.bval second.bval
-```
-
-
-
-```
-# output
-Comparing bvals
-- first.bval
-- second.bval
-        The 2 bval arrays are exactly the same.
-                shells: [   0.  200.  500. 1000. 2000. 3000.] (6 shells)
-                volumes in each shell: [11  6 10 50 50 50] (177 directions)
-```
-
-
-
-4. Compare only a specific field between json files: can be used to check for difference in shim settings or image orientation in json files from the same phantom scan session.
-
-```
-dicom_header_comparison.py \
-    --json_files \
-        DistortionMap_AP.json \
-        dMRI_following_DM.json \
-        fMRI_following_DM.json \
-    --field_specify ShimSetting \
-    --print_diff \
-    --print_shared
-```
-
-
+Script used to check dicom header details in the phantom & human pilot MRI data.
 
 
 
 ## Contents
 
 1. Installation
-2. Signal summary figure
-3. Compare json files
+2. Functions
+   1. `phantom_figure.py`
+   2. `dicom_header_comparison.py`
+   3. `dwi_extra_comparison.py`
+   4. `summarize_mriqc_measures.py`
 
-
+3. Examples
 
 
 
 ## 1. Installation
 
+
+
+### 1. Requirements
+
+- `dcm2niix` (>= version xxx)
+
+- `python3`
+
+
+
 #### Install dcm2niix and add to $PATH
 
 ```
-export PATH=${PATH}:/PATH/TO/DCM2NIIX
+export PATH=${PATH}:/PATH/TO/DCM2NIIX   # add to ~/.bashrc
 ```
 
 
 
-#### Install using pip
+### 2. Installation
+
+#### Install using pip (not supported yet)
 
 ```
 pip install phantom_check
@@ -108,8 +51,13 @@ pip install phantom_check
 
 ```
 git clone https://github.com/AMP-SCZ/phantom_check
+cd phantom_check
 pip install -r requirements.txt
+
+# python environment settings
 export PYTHONPATH=${PYTHONPATH}:~/phantom_check
+
+# path settings
 export PATH=${PATH}:~/phantom_check/scripts
 ```
 
@@ -117,44 +65,34 @@ export PATH=${PATH}:~/phantom_check/scripts
 
 
 
-## 2. Signal summary figure
+## 2. Functions
 
-This function plots average signal in each volume for different scan runs.
-It expects a list of data sources, where the average signal for all voxels will
-be used to create a figure. Extra options are available for b0 signal extraction
-for dMRI scans.
+### 1. `phantom_figure.py`: Summarize signal as a figure
 
+This function plots average of signals from each volume, for different set of dicom or nifti files. It expects a list of data sources, where the average signal for all voxels will be used to create a figure. Extra options are available for b0 signal extraction for dMRI scans.
 
 
 
-### How to run it
-
-1. Unzip transferred phantom file
-2. Summarize different 4d images using `phantom_figure.py`
-
-
-
-#### Options in `phantom_figure.py`
+#### Different options for the `phantom_figure.py`
 
 - `--mode`
-  - choose either `dmri` or  `general_4d`
+  - choose either `--mode dmri` or  `--mode general_4d`.
   - providing `--mode dmri` option will make the script to
-    -  look for `*.bval` files in the same directory with the prefix. 
-    - use `--b0thr` to select specific volumes under a certain bvalue.
--  `--dicom_dirs`, `--nifti_prefixes` or `--nifti_dirs` 
-  - use one of these three options to specify the data source.
+    -  look for `*.bval` files in the given directories, with the same prefix as the nifti or dicom source. 
+    - use `--b0thr` to limit the summary to volumes under a given bvalue.
+- `--dicom_dirs <PATHS>`, `--nifti_prefixes <PATHS>` or `--nifti_dirs <PATHS>`
+  - Use one of three options to specify the data source.
   - you can provide more than one data point separated with a space
     - eg) `--nifti_prefixes dti_AP/dti_AP dti_PA/dti_PA'`
-  - if `--dicom_dirs` is used
+  - if `--dicom_dirs` is provided
     - `dcm2niix` will be used to convert the dicoms into nifti in a temporary directory, which will be removed after loading the data from the nifti files.
-    - use `--store_nifti` to save the `dcm2niix` outputs
-      - names given to the `--names` will be used as the prefix in the `dcm2niix`, which will create directories under the current directory with the prefix.
-- `--names`
-  - a list of name to be used in the subtitle of each figures.
-  - provide a short name for each of data source given in the same order as the data source.
+    - provide `--store_nifti` to save the `dcm2niix` outputs.
+    - names given to the `--names` will be used as the prefix in the `dcm2niix`, which will create directories under the current directory with the prefix.
+- `--names <NAMES>`
+  - A list of space separated names, in the same order as the order of source files. It is used as the labels in each figure, as well as the prefix for the nifti output.
   - if not given, the prefixes of the data sources will be used as the names.
 - `--fig_num_in_row`
-  - provide number of columns in the figure.
+  - provide the number of columns in the figure.
 - `--wide_fig`
   - an option to be used when a horizontal figure would better fit the visualization purpose
 - `--out_image`
@@ -162,7 +100,7 @@ for dMRI scans.
 
 
 
-### Examples
+#### Examples
 
 
 ```
@@ -202,46 +140,67 @@ for dMRI scans.
     --b0thr 5000 \
     --out_image new_test_nifti_dir_thr5000.png
 
+
+phantom_figure.py \
+    --mode dmri \
+    --dicom_dirs \
+        ProNET_UCLA/dMRI_b0_AP_20 \
+        ProNET_UCLA/dMRI_dir176_PA_22 \
+        ProNET_UCLA/dMRI_b0_AP_24 \
+    --names \
+        apb0_1 pa_dmri apb0_2 \
+    --b0thr 50 \
+    --store_nifti \
+    --out_image b0_summary.png
 ```
 
 
 
-## 3. Compare json files
-
-dcm2niix creates a bids side car in a json file. `dicom_header_comparison.py` is used compare command and unique values in each items of the json file.
+![output_img](docs/b0_summary.png)
 
 
 
-### How to run it
 
-1. Unzip transferred phantom file
-2. Summarize the different between difference scans using `dicom_header_comparison.py`
+
+### 2. `dicom_header_comparison.py`: Compare json files
+
+ `dicom_header_comparison.py` uses the BIDS SIDCAR json file created from the `dcm2niix` to compare common and unique fields in across different json files.
 
 
 
 #### Options in `dicom_header_comparison.py`
 
--  `--dicom_dirs`, `--json_files` or `--multi_file_dir` 
-  - use one of these three options to specify the data source.
+-  `--dicom_dirs <PATHS>`, `--nifti_prefixes <PATHS>` or `--nifti_dirs <PATHS>` 
+  - Use one of three options to specify the data source.
   - you can provide more than one data point separated with a space
-    - eg) `--json_files dti_AP/dti_AP dti_PA/dti_PA'`
-  - if `--dicom_dirs` is used
+    - eg) `--nifti_prefixes dti_AP/dti_AP dti_PA/dti_PA'`
+  - if `--dicom_dirs` is provided
     - `dcm2niix` will be used to convert the dicoms into nifti in a temporary directory, which will be removed after loading the data from the nifti files.
-    - use `--store_nifti` to save the `dcm2niix` outputs
-      - names given to the `--names` will be used as the prefix in the `dcm2niix`, which will create directories under the current directory with the prefix.
-- `--field_specify`: Select a specific json field to be compared between json files.
+    - provide `--store_nifti` to save the `dcm2niix` outputs.
+    - names given to the `--names <NAMES>` will be used as the prefix in the `dcm2niix`, which will create directories under the current directory with the prefix.
+- `--field_specify <FIELD_NAME>`: Provide a field name to limit the comparison only to the `FIELD_NAME`.
 - `--print_diff`: print the differences between each json source compared to each other, on screen.
 - `--print_shared`: print common items between each json source compared to each other, on screen.
-- `--save_excel`: takes a path of excel file path to save the differences.
+- `--save_excel </EXCEL/OUTPUT.xlsx>`: path to save the differences.
 
 
 
-### How to run it
+#### Examples
 
-#### Full examples
+```
+dicom_header_comparison.py \
+    --json_files \
+        apb0_1/apb0_1.json \
+        pa_dmri/pa_dmri.json \
+        apb0_2/apb0_2.json \
+    --print_diff \
+    --save_excel test.xlsx
+```
 
-- [Convert and summarize](docs/example_convert_figure.sh)
-- [field_specify example](docs/example_script_same_session.sh)
+![output_img_2](docs/screen_print.png) 
+![output_img_3](docs/excel_screenshot.png) 
+
+
 
 
 ```
@@ -277,3 +236,49 @@ dicom_header_comparison.py \
     --print_shared
 ```
 
+
+
+### 3. `dwi_extra_comparison.py`: Compare bvalues
+
+ `dwi_extra_comparison.py` can be used to compare different bvalues.
+
+
+
+#### Example
+
+```
+dwi_extra_comparison.py --bval_files first.bval second.bval
+```
+
+
+
+```
+# output
+Comparing bvals
+- first.bval
+- second.bval
+        The 2 bval arrays are exactly the same.
+                shells: [   0.  200.  500. 1000. 2000. 3000.] (6 shells)
+                volumes in each shell: [11  6 10 50 50 50] (177 directions)
+```
+
+
+
+
+
+### 4. `summarize_mriqc_measures.py`:  Summarize mriqc outputs
+
+Running `MRIQC` creates a json for a subject included in the list. This json file could be used to extract qualitative measures from the QC.
+
+
+
+#### Options in `DWI_EXTRA***.py`
+
+
+
+
+
+## 3. Examples
+
+- [Convert and summarize](docs/example_convert_figure.sh)
+- [field_specify example](docs/example_script_same_session.sh)
