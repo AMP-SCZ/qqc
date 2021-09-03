@@ -34,7 +34,7 @@ def json_check_for_a_session(json_files: List[str],
                 columns=[f'{json_file}'])
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
     df_all = df_all.T
-    
+
     df_all_diff = df_all.copy()
     df_all_shared = df_all.copy()
     for col in df_all.columns:
