@@ -11,7 +11,8 @@ Script used to check dicom header details in the phantom & human pilot MRI data.
    1. `phantom_figure.py`
    2. `dicom_header_comparison.py`
    3. `dwi_extra_comparison.py`
-   4. `summarize_mriqc_measures.py`
+   4. `extract_given_field_from_dicom.py`
+   5. `summarize_mriqc_measures.py`
 
 3. Examples
 
@@ -265,20 +266,43 @@ Comparing bvals
 
 
 
+### 4. `extract_given_field_from_dicom.py`: extract specific information from a dicom file
 
-### 4. `summarize_mriqc_measures.py`:  Summarize mriqc outputs
+#### Examples
+
+```
+# print on the screen
+extract_given_field_from_dicom.py \
+    --dicom_file example.dcm \
+    --group_number 0029 \
+    --element_number 1020
+    
+# save as a text file
+extract_given_field_from_dicom.py \
+    --dicom_file example.dcm \
+    --group_number 0029 \
+    --element_number 1020 \
+    --output_file test.txt
+```
+
+
+
+### 5. `summarize_mriqc_measures.py`:  Summarize mriqc outputs
 
 Running `MRIQC` creates a json for a subject included in the list. This json file could be used to extract qualitative measures from the QC.
 
 
+#### Example
+```
+summairze_mriqc_measures.py \
+    --mri_qc_jsons sub-01_T1w.json sub-02_T1w.json \
+    --opendata_csv mriqception/demo_api/T1w_demo.csv \
+    --out_image t1w_mriqc.png
+```
 
-#### Options in `DWI_EXTRA***.py`
 
 
-
-
-
-## 3. Examples
+## 3. Other examples
 
 - [Convert and summarize](docs/example_convert_figure.sh)
 - [field_specify example](docs/example_script_same_session.sh)
