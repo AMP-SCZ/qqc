@@ -10,8 +10,8 @@ def parse_args(argv):
             description='Extract extra information from dicom')
 
     # image input related options
-    parser.add_argument('--dicom_files', '-df', type=str, nargs='+',
-            help='List of dicom files.')
+    parser.add_argument('--dicom_file', '-df', type=str,
+            help='Path of dicom file.')
 
     # header information
     parser.add_argument('--group_number', '-gn', type=str,
@@ -20,7 +20,7 @@ def parse_args(argv):
             help='Element number to extract information from.')
 
     # output
-    parser.add_argument('--output', '-o', type=str,
+    parser.add_argument('--output_file', '-o', type=str,
             help='Output text file to store information.')
 
     args = parser.parse_args(argv)
@@ -34,11 +34,12 @@ def write_dicom_information_as_text(dicom_file: str, group_number: str,
     with open(output_file, 'w') as f:
         dicom_f = pydicom.read_file(dicom_file)
         a = dicom_f.get((group_number, element_number))
-        f.write(a.value.decode(errors='ignore'))
+        f.write(a.value.decode(errors='ignore').split('### ASCCONV')[1])
 
 
 if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
-    dicom_f = pydicom.read_file(sys.argv[1])
+    write_dicom_information_as_text(args.dicom_file, args.group_number,
+                                    args.element_number, args.output_file)
 
 
