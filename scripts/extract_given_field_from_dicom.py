@@ -20,21 +20,30 @@ def parse_args(argv):
             help='Element number to extract information from.')
 
     # output
-    parser.add_argument('--output_file', '-o', type=str,
-            help='Output text file to store information.')
+    parser.add_argument('--output_file', '-o', type=str, default=False,
+            help='Path of a text file to store the information.')
 
     args = parser.parse_args(argv)
     return args
 
 
-def write_dicom_information_as_text(dicom_file: str, group_number: str,
-                                    element_number: str, output_file: str):
+def write_dicom_information_as_text(dicom_file: str,
+                                    group_number: str,
+                                    element_number: str,
+                                    output_file: str = False):
     '''Write dicom information as text'''
 
-    with open(output_file, 'w') as f:
-        dicom_f = pydicom.read_file(dicom_file)
-        a = dicom_f.get((group_number, element_number))
-        f.write(a.value.decode(errors='ignore').split('### ASCCONV')[1])
+    dicom_f = pydicom.read_file(dicom_file)
+    info = dicom_f.get((group_number, element_number))
+    extracted_text = info.value.decode(errors='ignore').split(
+            '### ASCCONV')[1]
+
+    if output_file:
+        with open(output_file, 'w') as f:
+            f.write(extracted_text)
+    else:
+        print(extracted_text)
+
 
 
 if __name__ == '__main__':
