@@ -30,7 +30,7 @@ ${script_location}/scripts/dicom_header_comparison.py \
         DistortionMap_PA_26/DistortionMap_PA_26.json \
         rfMRI_AP_SBRef_27/rfMRI_REST_AP_SBRef_27.json \
         rfMRI_REST_AP_28/rfMRI_REST_AP_28.json \
-        rfMRI_REST_PA_29/rfMRI_REST_PA_SBRef_29.json \
+        rfMRI_REST_PA_SBRef_29/rfMRI_REST_PA_SBRef_29.json \
         rfMRI_REST_PA_30/rfMRI_REST_PA_30.json \
     --field_specify ShimSetting \
     --print_diff \
@@ -51,7 +51,7 @@ ${script_location}/scripts/dicom_header_comparison.py \
         rfMRI_REST_PA_18/rfMRI_REST_PA_18.json \
         DistortionMap_AP_8/DistortionMap_PA_8.json \
         dMRI_dir176_PA_22/dMRI_dir176_PA_22.json \
-        rfMRI_REST_PA_29/rfMRI_REST_PA_SBRef_29.json \
+        rfMRI_REST_PA_SBRef_29/rfMRI_REST_PA_SBRef_29.json \
         DistortionMap_PA_14/DistortionMap_PA_14.json \
         dMRI_dir176_PA_SBRef_21/dMRI_dir176_PA_SBRef_21.json \
         rfMRI_REST_PA_30/rfMRI_REST_PA_30.json \
