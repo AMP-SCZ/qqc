@@ -107,6 +107,9 @@ def json_check(json_files: List[str],
 def compare_bval_files(bval_files: str):
     '''Compare two more more bval files'''
     print('Comparing bvals')
+    # make bval_files a list of absolute paths
+    bval_files = [Path(x).absolute() for x in bval_files]
+
     bval_arrays = []
     for bval_file in bval_files:
         print('-', bval_file)
@@ -124,6 +127,12 @@ def compare_bval_files(bval_files: str):
     if not same_array:
         print('\tThe given bvals are different - proceeding to checking number '
               'of volume in each shell')
+        for file_name, bval_array in zip(bval_files, bval_arrays):
+            all_unique = np.unique(bval_array, return_counts=True)
+            print(f'\t*{file_name}')
+            print(f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)')
+            print(f'\t\tvolumes in each shell: {all_unique[1]} '
+                  f'({all_unique[1].sum()} directions)')
     else:
         print(f'\tThe {len(bval_files)} bval arrays are exactly the same.')
         all_unique = np.unique(bval_arrays[0], return_counts=True)
@@ -134,9 +143,10 @@ def compare_bval_files(bval_files: str):
 
     # shells
     same_shell_num = True
+    bval_arrays_all = np.concatenate([x for x in bval_arrays])
     for bval_array in bval_arrays:
-        if not (np.unique(bval_array) ==
-                np.unique(np.array(bval_arrays))).all():
+        if not np.array_equal(np.unique(bval_array),
+                              np.unique(bval_arrays_all)):
             print(f'\tNumber of shells differs between bval files')
             same_shell_num = False
 
@@ -145,7 +155,7 @@ def compare_bval_files(bval_files: str):
 
     # number of volumes in shells
     same_vol_num = True
-    for b_shell in np.unique(np.array(bval_arrays)):
+    for b_shell in np.unique(bval_arrays_all):
         vol_counts = []
         for bval_array in bval_arrays:
             unique_count = np.unique(bval_array, return_counts=True)
