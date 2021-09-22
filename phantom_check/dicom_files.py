@@ -117,10 +117,11 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
     '''Copy the dicom in a new format for preprocessing'''
     new_root = Path(new_root)
 
+    
     # series
     for (num, name, scan), table in dicom_df.groupby(
             ['series_num', 'series_desc', 'series_scan']):
-        series_dir_path = new_root / f'{num:02}_{name}'
+        series_dir_path = new_root / 'ses-001' / f'{num:02}_{name}'
         series_dir_path.mkdir(exist_ok=True, parents=True)
         for _, row in table.iterrows():
             shutil.copy(row['file_path'], series_dir_path)

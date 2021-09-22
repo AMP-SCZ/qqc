@@ -7,14 +7,14 @@ Script used to check dicom header details in the phantom & human pilot MRI data.
 ## Contents
 
 1. Installation
-2. Functions
+2. Usage
+3. Functions
    1. `phantom_figure.py`
    2. `dicom_header_comparison.py`
    3. `dwi_extra_comparison.py`
    4. `extract_given_field_from_dicom.py`
    5. `summarize_mriqc_measures.py`
-
-3. Examples
+4. Examples
 
 
 
@@ -64,9 +64,17 @@ export PATH=${PATH}:~/phantom_check/scripts
 
 
 
+## 2. Usage
 
 
-## 2. Functions
+
+Dicom files -> extract unique dicom files representing each series -> inter & intra consistency check
+
+Conversion to dicom to BIDS
+
+
+
+## 3. Functions
 
 ### 1. `phantom_figure.py`: Summarize signal as a figure
 
@@ -302,7 +310,7 @@ summairze_mriqc_measures.py \
 
 
 
-## 3. Other examples
+## 4. Other examples
 
 - [Convert and summarize](docs/example_convert_figure.sh)
 - [field_specify example](docs/example_script_same_session.sh)

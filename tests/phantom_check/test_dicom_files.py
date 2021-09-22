@@ -97,3 +97,15 @@ def test_normalized(get_test_summary_df):
 
     print(df[['series_num', 'series_desc', 'norm']].sort_values(
         by='series_desc'))
+
+
+def test_dicom_rearrange_two(get_test_summary_df):
+    df = get_test_summary_df
+    print(df.head())
+    rearange_dicoms(df, 'sub-01')
+
+    # print(os.popen('tree test_root').read())
+    # print(os.popen('ls test_root').read())
+    # shutil.rmtree('test_root')
+
+
