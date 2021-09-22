@@ -27,6 +27,7 @@ def get_dicom_files_walk(root: Union[Path, str],
     '''Find all dicom path under the root and return it as pandas DataFrame'''
     dicom_paths = []
     start = time.time()
+
     # walk through the root
     for root, dirs, files in os.walk(root):
         for file in files:
@@ -46,9 +47,8 @@ def get_dicom_files_walk(root: Union[Path, str],
     t = end - start
     logger.debug(f'Time taken to dicomise dicom all paths: {t}')
 
-
     start = time.time()
-    df['norm'] = df.pydicom.apply(lambda x: 
+    df['norm'] = df.pydicom.apply(lambda x:
             get_additional_info(x, '0008', '0008'))
     df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
     df['series_num'] = df['series'].str[0]
@@ -57,7 +57,8 @@ def get_dicom_files_walk(root: Union[Path, str],
     df.drop('series', axis=1, inplace=True)
 
 
-    df.iloc[0, df.columns.get_loc('series_uid')] = 'test'
+
+    # df.iloc[0, df.columns.get_loc('series_uid')] = 'test'
     
     # series_scan column to detect if there is any rescan
     gb_series = df.groupby(['series_num', 'series_desc', 'series_uid'])
@@ -80,7 +81,7 @@ def get_dicom_files_walk(root: Union[Path, str],
     end = time.time()
     t = end - start
     logger.debug(f'Time taken to extract info from pydicom objects: {t}')
-    df.drop('pydicom', axis=1, inplace=True)
+    # df.drop('pydicom', axis=1, inplace=True)
 
     return df
 

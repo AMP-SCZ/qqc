@@ -109,3 +109,31 @@ def test_dicom_rearrange_two(get_test_summary_df):
     # shutil.rmtree('test_root')
 
 
+def test_with_seoul_data_dir():
+    dicom_dir_loc = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
+                    '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
+
+    print()
+    df = get_dicom_files_walk(dicom_dir_loc, True)
+
+    dfs = []
+    for index, row in df.iterrows():
+        if 'dwi' in row.series_desc.lower() or \
+               'fmri'in row.series_desc.lower()  or \
+               't1w'in row.series_desc.lower()  or \
+               't2w'in row.series_desc.lower()  or \
+               'distortion'in row.series_desc.lower():
+            df_tmp = get_csa_header(row['pydicom'])
+            df_tmp = df_tmp.set_index('var')
+            df_tmp.columns = [row.series_desc]
+            dfs.append(df_tmp)
+
+    csa_df = pd.concat(dfs, axis=1)
+
+    diff_df = csa_df[csa_df.apply(lambda x: x[~x.isnull()].nunique() != 1,
+                                  axis=1)].T.sort_index().T
+    same_df = csa_df[csa_df.apply(lambda x: x[~x.isnull()].nunique() == 1,
+                                  axis=1)].T.sort_index().T
+
+    diff_df.to_csv('tmp_diff.csv')
+    same_df.to_csv('tmp_same.csv')
