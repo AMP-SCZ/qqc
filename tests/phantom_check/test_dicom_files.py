@@ -147,7 +147,7 @@ def test_add_detailed_info_to_summary_df(get_test_summary_df):
     print(df_new)
 
 
-def test_whole_flow():
+def test_whole_flow_with_heudiconv():
     script_root = Path(phantom_check.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
@@ -160,3 +160,32 @@ def test_whole_flow():
     # compare to template
     # compare between scans
     # compare CSA
+
+def test_whole_flow_with_heudiconv():
+    script_root = Path(phantom_check.__file__).parent.parent
+    doc_root = script_root / 'docs'
+    dicom_example_root = doc_root / 'dicom_example'
+
+    # df_full = get_dicom_files_walk(dicom_example_root)
+    df_full = get_dicom_files_walk(dicom_example_root, True)
+
+    df = get_dicom_files_walk(dicom_example_root, True)
+    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            df, get_same=True)
+    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+
+    rearange_dicoms(df_full, 'test_root')
+
+    command = 'heudiconv \
+    -d {subject}/*/*/*dcm \
+    -f /Users/kc244/phantom_check/data/heuristic.py \
+    -s test_root -ss 001 -c dcm2niix --overwrite \
+    -b \
+    -o new_test_root'
+
+    os.popen(command).read()
+    # print(os.popen('tree new_test_root').read())
+    # print(os.popen('ls new_test_root').read())
+    # shutil.rmtree('new_test_root')
+
+

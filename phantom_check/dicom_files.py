@@ -83,13 +83,13 @@ def get_dicom_files_walk(root: Union[Path, str],
     df.drop('series', axis=1, inplace=True)
 
     # if unique dicom for a series is required
-    df_tmp = pd.DataFrame()
     if one_file_for_series:
+        df_tmp = pd.DataFrame()
         for group, table in df.groupby(
                 ['series_num', 'series_desc', 'series_uid']):
             # get the first dicom file
             df_tmp = pd.concat([df_tmp, table.iloc[[0]]], axis=0)
-    df = df_tmp.reset_index().drop('index', axis=1)
+        df = df_tmp.reset_index().drop('index', axis=1)
 
     # series_scan column to detect if there is any rescan
     gb_series = df.groupby(['series_num', 'series_desc', 'series_uid'])
@@ -222,9 +222,9 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
     if not get_same:
         return diff_df
     else:
-        same_df = csa_df[csa_df.apply(
+        common_df = csa_df[csa_df.apply(
             lambda x: x[~x.isnull()].nunique() == 1, axis=1)].T.sort_index().T
-        return diff_df, same_df
+        return diff_df, common_df
 
 
 def rearange_dicoms(dicom_df: pd.DataFrame,
