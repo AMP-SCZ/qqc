@@ -101,7 +101,7 @@ def infotodict(seqinfo):
         if 'dMRI' in s.protocol_name:
             if '_dir' in s.series_description:
                 sbref = True if 'SBRef' in s.series_description else False
-                appa = 'AP' if '_AP' in s.seres_description else 'PA'
+                appa = 'AP' if '_AP' in s.series_description else 'PA'
                 dirnum = re.search(r'\d+', s.series_description).group(0)
                 if sbref:
                     info[dwi_sbref].append({
