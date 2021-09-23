@@ -8,9 +8,34 @@ import time
 import numpy as np
 import shutil
 import logging
+from typing import List
 
 
 logger = logging.getLogger(__name__)
+
+
+all_elements_to_extract = [
+    'AcquisitionMatrix',
+    'AngioFlag',
+    'BodyPartExamined', 'Columns',
+    'ContentDate', 'DeviceSerialNumber',
+    'EchoTime', 'EchoTrainLength', 'RepetitionTime',
+    'FlipAngle', 'VariableFlipAngleFlag'
+    'ImageOrientationPatient', 'ImagePositionPatient',
+    'ImageType', 'InPlanePhaseEncodingDirection',
+    'InstitutionAddress', 'InstitutionName', 'InstitutionalDepartmentName',
+    'MRAcquisitionType', 'MagneticFieldStrength', 'Manufacturer',
+    'ManufacturerModelName', 'Modality',
+    'NumberOfAverages', 'NumberOfPhaseEncodingSteps',
+    'PixelBandwidth', 'PixelSpacing', 'PositionReferenceIndicator',
+    'ProtocolName',
+    'Rows', 'SAR', 'SamplesPerPixel',
+    'ScanningSequence', 'SequenceName', 'SequenceVariant',
+    'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber', 'SeriesTime',
+    'SliceLocation', 'SliceThickness', 'SpacingBetweenSlices',
+    'SoftwareVersions', 'StudyDescription',
+    'TransmitCoilName'
+    ]
 
 
 def get_dicom_files_walk(root: Union[Path, str],
@@ -109,6 +134,27 @@ def get_additional_info(dicom: pydicom.dataset.FileDataset,
     return info
 
 
+def get_additional_info_by_elem(dicom: pydicom.dataset.FileDataset,
+                                element_name: str) -> str:
+    '''Get additional information from dicom by element name'''
+    try:
+        return dicom.data_element(element_name).value
+    except:
+        return ''
+
+
+def add_detailed_info_to_summary_df(df: pd.DataFrame,
+                                    element_names: List[str]) -> tuple:
+    '''Get additional information from dicom by element name'''
+
+    for element_name in element_names:
+        data = df.pydicom.apply(
+                lambda x: get_additional_info_by_elem(x, element_name))
+        df[element_name] = data
+
+    return df
+
+
 def get_csa_header(dicom: pydicom.dataset.FileDataset) -> pd.DataFrame:
     '''Clean up private information extracted'''
     info = get_additional_info(dicom, '0029', '1020')
@@ -126,6 +172,59 @@ def get_csa_header(dicom: pydicom.dataset.FileDataset) -> pd.DataFrame:
     df.drop('raw_line', axis=1, inplace=True)
 
     return df
+
+
+def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
+                                     measures: List[str] = None,
+                                     get_same: bool = False) -> pd.DataFrame:
+    '''Get a dataframe, including the rows that are different across columns
+
+    Key Arguments:
+        df: dataframe of dicom files as rows, with 'pydicom' column, which 
+            contains the pydicom object.
+        measures: list of strings to select the name of series in interest,
+                  list of str.
+        get_same: options to return dataframe including the rows that are the
+                  same across columns as well, bool. If True, this function
+                  returns tuple of pd.DataFrame.
+    
+    Returns:
+        pd.DataFrame or Tuple[pd.DataFrame]
+
+    Notes:
+        - in the comparison of values, NaN cells are ignored.
+    '''
+
+    dfs = []
+    for index, row in df.iterrows():
+        if measures is not None:
+            if any([x in row.series_desc.lower() for x in measures]):
+                df_tmp = get_csa_header(row['pydicom'])
+                df_tmp = df_tmp.set_index('var')
+                df_tmp.columns = [row.series_desc]
+                dfs.append(df_tmp)
+
+        elif 'dmri' in row.series_desc.lower() or \
+               'fmri'in row.series_desc.lower()  or \
+               't1w'in row.series_desc.lower()  or \
+               't2w'in row.series_desc.lower()  or \
+               'distortion'in row.series_desc.lower():
+            df_tmp = get_csa_header(row['pydicom'])
+            df_tmp = df_tmp.set_index('var')
+            df_tmp.columns = [row.series_desc]
+            dfs.append(df_tmp)
+
+    csa_df = pd.concat(dfs, axis=1)
+
+    diff_df = csa_df[csa_df.apply(
+        lambda x: x[~x.isnull()].nunique() != 1, axis=1)].T.sort_index().T
+
+    if not get_same:
+        return diff_df
+    else:
+        same_df = csa_df[csa_df.apply(
+            lambda x: x[~x.isnull()].nunique() == 1, axis=1)].T.sort_index().T
+        return diff_df, same_df
 
 
 def rearange_dicoms(dicom_df: pd.DataFrame,

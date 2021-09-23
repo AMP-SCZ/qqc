@@ -10,7 +10,11 @@ import numpy as np
 import shutil
 
 from phantom_check.dicom_files import get_dicom_files_walk, \
-        get_series_info, get_csa_header, rearange_dicoms
+        get_series_info, get_csa_header, rearange_dicoms, \
+        get_diff_in_csa_for_all_measures, all_elements_to_extract, \
+        get_additional_info, get_additional_info_by_elem, \
+        add_detailed_info_to_summary_df
+        
 
 pd.set_option('max_columns', 10)
 
@@ -109,31 +113,50 @@ def test_dicom_rearrange_two(get_test_summary_df):
     # shutil.rmtree('test_root')
 
 
+def test_get_diff_in_csa_for_all_measures(get_test_summary_df):
+    df = get_test_summary_df
+    diff_df, common_df = get_diff_in_csa_for_all_measures(df, get_same=True)
+    diff_df = get_diff_in_csa_for_all_measures(df, ['dmri', 'fmri'])
+    diff_df, common_df = get_diff_in_csa_for_all_measures(
+            df, ['dmri', 'fmri'], True)
+    print(common_df)
+
+
 def test_with_seoul_data_dir():
     dicom_dir_loc = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
                     '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
 
-    print()
+    script_root = Path(phantom_check.__file__).parent.parent
+    doc_root = script_root / 'docs'
+    dicom_dir_loc = doc_root / 'dicom_example'
+
     df = get_dicom_files_walk(dicom_dir_loc, True)
 
-    dfs = []
-    for index, row in df.iterrows():
-        if 'dwi' in row.series_desc.lower() or \
-               'fmri'in row.series_desc.lower()  or \
-               't1w'in row.series_desc.lower()  or \
-               't2w'in row.series_desc.lower()  or \
-               'distortion'in row.series_desc.lower():
-            df_tmp = get_csa_header(row['pydicom'])
-            df_tmp = df_tmp.set_index('var')
-            df_tmp.columns = [row.series_desc]
-            dfs.append(df_tmp)
+    diff_df, common_df = get_diff_in_csa_for_all_measures(df, get_same=True)
+    print(diff_df)
+    print(common_df)
+    # diff_df.to_csv('tmp_diff.csv')
+    # common_df.to_csv('tmp_same.csv')
 
-    csa_df = pd.concat(dfs, axis=1)
 
-    diff_df = csa_df[csa_df.apply(lambda x: x[~x.isnull()].nunique() != 1,
-                                  axis=1)].T.sort_index().T
-    same_df = csa_df[csa_df.apply(lambda x: x[~x.isnull()].nunique() == 1,
-                                  axis=1)].T.sort_index().T
+def test_add_detailed_info_to_summary_df(get_test_summary_df):
+    df = get_test_summary_df
 
-    diff_df.to_csv('tmp_diff.csv')
-    same_df.to_csv('tmp_same.csv')
+    df_new = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+    df_new.drop('pydicom', axis=1, inplace=True)
+    print(df_new)
+
+
+def test_whole_flow():
+    script_root = Path(phantom_check.__file__).parent.parent
+    doc_root = script_root / 'docs'
+    dicom_example_root = doc_root / 'dicom_example'
+
+    df = get_dicom_files_walk(dicom_example_root, True)
+    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            df, get_same=True)
+    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+
+    # compare to template
+    # compare between scans
+    # compare CSA
