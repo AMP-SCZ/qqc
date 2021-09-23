@@ -13,18 +13,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_series_info(dicom: pydicom.dataset.FileDataset):
-    '''Extract series information from pydicom dataset'''
-    num = dicom.get(('0020', '0011')).value
-    description = dicom.get(('0008', '103e')).value
-    instance_uid = dicom.get(('0020', '000e')).value
-
-    return num, description, instance_uid
-
-
 def get_dicom_files_walk(root: Union[Path, str],
-                         one_file_for_dir=False) -> pd.DataFrame:
-    '''Find all dicom path under the root and return it as pandas DataFrame'''
+                         one_file_for_series=False) -> pd.DataFrame:
+    '''Find all dicom path under the root and return it as pandas DataFrame
+
+    Key arguments:
+        root: root directory of the dicom for a subject, str or Path.
+        one_file_for_series: True if to return a df summary of each series,
+                             bool.
+
+    Notes:
+        one_file_for_series = True, assumes there is a single series contained
+        in each sub directories under the dicom root.
+    '''
     dicom_paths = []
     start = time.time()
 
@@ -33,7 +34,7 @@ def get_dicom_files_walk(root: Union[Path, str],
         for file in files:
             if file.lower().endswith('dcm') or file.lower().endswith('ima'):
                 dicom_paths.append(os.path.join(root, file))
-            if one_file_for_dir:
+            if one_file_for_series:  # to load a single file for each dir
                 break
     end = time.time()
     t = end - start
@@ -56,10 +57,15 @@ def get_dicom_files_walk(root: Union[Path, str],
     df['series_uid'] = df['series'].str[2]
     df.drop('series', axis=1, inplace=True)
 
+    # if unique dicom for a series is required
+    df_tmp = pd.DataFrame()
+    if one_file_for_series:
+        for group, table in df.groupby(
+                ['series_num', 'series_desc', 'series_uid']):
+            # get the first dicom file
+            df_tmp = pd.concat([df_tmp, table.iloc[[0]]], axis=0)
+    df = df_tmp.reset_index().drop('index', axis=1)
 
-
-    # df.iloc[0, df.columns.get_loc('series_uid')] = 'test'
-    
     # series_scan column to detect if there is any rescan
     gb_series = df.groupby(['series_num', 'series_desc', 'series_uid'])
     unique_count_df = gb_series.count().reset_index()
@@ -84,6 +90,15 @@ def get_dicom_files_walk(root: Union[Path, str],
     # df.drop('pydicom', axis=1, inplace=True)
 
     return df
+
+
+def get_series_info(dicom: pydicom.dataset.FileDataset):
+    '''Extract series information from pydicom dataset'''
+    num = dicom.get(('0020', '0011')).value
+    description = dicom.get(('0008', '103e')).value
+    instance_uid = dicom.get(('0020', '000e')).value
+
+    return num, description, instance_uid
 
 
 def get_additional_info(dicom: pydicom.dataset.FileDataset,
