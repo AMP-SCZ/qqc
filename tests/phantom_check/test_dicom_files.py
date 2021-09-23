@@ -8,6 +8,7 @@ from typing import Union
 import time
 import numpy as np
 import shutil
+import re
 
 from phantom_check.dicom_files import get_dicom_files_walk, \
         get_series_info, get_csa_header, rearange_dicoms, \
@@ -147,7 +148,7 @@ def test_add_detailed_info_to_summary_df(get_test_summary_df):
     print(df_new)
 
 
-def test_whole_flow_with_heudiconv():
+def test_whole_flow_with_heudiconv_2():
     script_root = Path(phantom_check.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
@@ -166,8 +167,8 @@ def test_whole_flow_with_heudiconv():
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
 
-    # df_full = get_dicom_files_walk(dicom_example_root)
-    df_full = get_dicom_files_walk(dicom_example_root, True)
+    df_full = get_dicom_files_walk(dicom_example_root)
+    # df_full = get_dicom_files_walk(dicom_example_root, True)
 
     df = get_dicom_files_walk(dicom_example_root, True)
     csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
@@ -184,6 +185,17 @@ def test_whole_flow_with_heudiconv():
     -o new_test_root'
 
     os.popen(command).read()
+
+    command = 'docker run -it --rm \
+            -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root:/data:ro \
+            -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root/mriqc_out:/out \
+            poldracklab/mriqc:latest \
+            /data /out group \
+            --verbose-reports'
+    with open('command.sh', 'w') as f:
+        f.write(re.sub('\s\s+', '\ \n\\t', command))
+    # os.popen(command).read()
+
     # print(os.popen('tree new_test_root').read())
     # print(os.popen('ls new_test_root').read())
     # shutil.rmtree('new_test_root')
