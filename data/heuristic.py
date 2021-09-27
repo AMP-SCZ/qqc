@@ -4,6 +4,7 @@ import re
 import sys
 import time
 
+
 def create_key(template, outtype=('nii.gz',), annotation_classes=None):
     if template is None or not template:
         raise ValueError('Template must be a valid format string')
@@ -29,49 +30,49 @@ def infotodict(seqinfo):
     # dwi
     dwi = create_key(
             'sub-{subject}/{session}/dwi/'
-            'sub-{subject}_ses-{session}_acq-{dirnum}_dir-{APPA}'
+            'sub-{subject}_{session}_acq-{dirnum}_dir-{APPA}'
             '_dwi')
 
     dwi_sbref = create_key(
             'sub-{subject}/{session}/dwi/'
-            'sub-{subject}_ses-{session}_acq-{dirnum}_dir-{APPA}'
+            'sub-{subject}_{session}_acq-{dirnum}_dir-{APPA}'
             '_sbref')
 
     dwi_b0 = create_key(
             'sub-{subject}/{session}/dwi/'
-            'sub-{subject}_ses-{session}_acq-b0_dir-{APPA}_run-{item}'
+            'sub-{subject}_{session}_acq-b0_dir-{APPA}_run-{item}'
             '_dwi')
 
     dwi_b0_sbref = create_key(
             'sub-{subject}/{session}/dwi/'
-            'sub-{subject}_ses-{session}_acq-b0_dir-{APPA}_run-{item}'
+            'sub-{subject}_{session}_acq-b0_dir-{APPA}_run-{item}'
             '_sbref')
 
     # rest
     rest_ap = create_key(
             'sub-{subject}/{session}/func/'
-            'sub-{subject}_ses-{session}_task-rest_dir-AP'
+            'sub-{subject}_{session}_task-rest_dir-AP'
             '_run-{item}_bold')
 
     rest_pa = create_key(
             'sub-{subject}/{session}/func/'
-            'sub-{subject}_ses-{session}_task-rest_dir-PA'
+            'sub-{subject}_{session}_task-rest_dir-PA'
             '_run-{item}_bold')
 
     rest_ap_sbref = create_key(
             'sub-{subject}/{session}/func/'
-            'sub-{subject}_ses-{session}_task-rest_dir-AP'
+            'sub-{subject}_{session}_task-rest_dir-AP'
             '_run-{item}_sbref')
 
     rest_pa_sbref = create_key(
             'sub-{subject}/{session}/func/'
-            'sub-{subject}_ses-{session}_task-rest_dir-PA'
+            'sub-{subject}_{session}_task-rest_dir-PA'
             '_run-{item}_sbref')
 
     # distortion maps
     fmap = create_key(
             'sub-{subject}/{session}/fmap/'
-            'sub-{subject}_ses-{session}_mod-{mod}_dir-{APPA}_epi')
+            'sub-{subject}_{session}_acq-{acq}_dir-{APPA}_epi')
 
     info = {t1w: [], t2w: [],
             dwi: [],
@@ -144,11 +145,11 @@ def infotodict(seqinfo):
                         'num': re.search(r'\d+', s.series_id).group(0)}
 
             if series_num < 10:
-                tmp_dict['mod'] = 'anat'
+                tmp_dict['acq'] = 'anat'
             elif series_num < 20:
-                tmp_dict['mod'] = 'dwi'
+                tmp_dict['acq'] = 'dwi'
             else:  #series_num < 30:
-                tmp_dict['mod'] = 'fmri'
+                tmp_dict['acq'] = 'fmri'
 
             info[fmap].append(tmp_dict)
 
