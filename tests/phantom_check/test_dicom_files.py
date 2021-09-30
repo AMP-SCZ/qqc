@@ -162,6 +162,21 @@ def test_whole_flow_with_heudiconv_2():
     # compare between scans
     # compare CSA
 
+def test_flow_with_multiseries_directory():
+    dicom_example_root = '/Users/kc244/phantom_check/tests/phantom_check/Alex_merged/new_dir'
+
+    df_full = get_dicom_files_walk(dicom_example_root)
+    # df_full = get_dicom_files_walk(dicom_example_root, True)
+
+    df = get_dicom_files_walk(dicom_example_root, True)
+    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            df, get_same=True)
+    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+
+    rearange_dicoms(df_full, 'test_root_from_single_root')
+
+
+
 def test_whole_flow_with_heudiconv():
     script_root = Path(phantom_check.__file__).parent.parent
     doc_root = script_root / 'docs'
@@ -182,18 +197,18 @@ def test_whole_flow_with_heudiconv():
     -f /Users/kc244/phantom_check/data/heuristic.py \
     -s test_root -ss 001 -c dcm2niix --overwrite \
     -b \
-    -o new_test_root'
+    -o new_test_root_test'
 
     os.popen(command).read()
 
-    command = 'docker run -it --rm \
-            -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root:/data:ro \
-            -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root/mriqc_out:/out \
-            poldracklab/mriqc:latest \
-            /data /out group \
-            --verbose-reports'
-    with open('command.sh', 'w') as f:
-        f.write(re.sub('\s\s+', '\ \n\\t', command))
+    # command = 'docker run -it --rm \
+            # -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root:/data:ro \
+            # -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root/mriqc_out:/out \
+            # poldracklab/mriqc:latest \
+            # /data /out group \
+            # --verbose-reports'
+    # with open('command.sh', 'w') as f:
+        # f.write(re.sub('\s\s+', '\ \n\\t', command))
     # os.popen(command).read()
 
     # print(os.popen('tree new_test_root').read())
@@ -205,27 +220,32 @@ def test_whole_flow_with_heudiconv_seoul():
     dicom_example_root = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
                     '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
 
+    dicom_example_root = '/Users/kc244/Downloads/Elex_dicom'
 
-    # df_full = get_dicom_files_walk(dicom_example_root)
-    df_full = get_dicom_files_walk(dicom_example_root, True)
+    df_full = get_dicom_files_walk(dicom_example_root)
+    # df_full = get_dicom_files_walk(dicom_example_root, True)
 
     df = get_dicom_files_walk(dicom_example_root, True)
     csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
             df, get_same=True)
-    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
 
-    rearange_dicoms(df_full, 'ProNET_Seoul')
+    csa_diff_df.to_csv('csa_diff.txt')
+    csa_diff_df.to_csv('csa_comman.txt')
+    # df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+
+
+    # rearange_dicoms(df_full, 'Alex')
 
     command = 'heudiconv \
     -d {subject}/*/*/*[IiDd][MmCc][AaMm] \
-    -f /data/predict/kcho/software/devel_tmp/phantom_check/data/heuristic.py \
-    -s ProNET_Seoul -ss 001 -c dcm2niix --overwrite \
+    -f /Users/kc244/phantom_check/data/heuristic.py \
+    -s Alex -ss 001 -c dcm2niix --overwrite \
     -b \
     -o new_test_root'
 
     print(command)
 
-    print(os.popen(command).read())
+    # print(os.popen(command).read())
     # print(os.popen('tree new_test_root').read())
     # print(os.popen('ls new_test_root').read())
     # shutil.rmtree('new_test_root')

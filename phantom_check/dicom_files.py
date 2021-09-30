@@ -163,7 +163,8 @@ def get_csa_header(dicom: pydicom.dataset.FileDataset) -> pd.DataFrame:
 
     new_lines = []
     for line in extracted_text.split('\n'):
-        if line.startswith('sAdjData') or line.startswith('sSliceArray'):
+        if line.startswith('sAdjData.sAdjVolume') \
+                or line.startswith('sSliceArray.asSlice[0].'):
             new_lines.append(line)
 
     df = pd.DataFrame({'raw_line': new_lines})
@@ -205,10 +206,10 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
                 dfs.append(df_tmp)
 
         elif 'dmri' in row.series_desc.lower() or \
-               'fmri'in row.series_desc.lower()  or \
-               't1w'in row.series_desc.lower()  or \
-               't2w'in row.series_desc.lower()  or \
-               'distortion'in row.series_desc.lower():
+             'fmri'in row.series_desc.lower()  or \
+             't1w'in row.series_desc.lower()  or \
+             't2w'in row.series_desc.lower()  or \
+             'distortion'in row.series_desc.lower():
             df_tmp = get_csa_header(row['pydicom'])
             df_tmp = df_tmp.set_index('var')
             df_tmp.columns = [row.series_desc]
