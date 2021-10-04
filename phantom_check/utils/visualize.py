@@ -18,7 +18,8 @@ def print_diff_shared(title: str, df: pd.DataFrame) -> None:
     print(title)
     print('='*80)
     # pretty_print_dict(diff_items)
-    if df.shape[1] > 0:
+    # if df.shape[1] > 0:
+    if len(df) > 0:
         # sort df by name of the json_file if there is "_\d?" pattern
         try:
             df['series_num'] = df.index.str.extract(

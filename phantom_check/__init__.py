@@ -104,15 +104,19 @@ def json_check(json_files: List[str],
     return (df_all_diff, df_all_shared)
 
 
-def compare_bval_files(bval_files: str):
+def compare_bval_files(bval_files: str, out_log: str):
     '''Compare two more more bval files'''
-    print('Comparing bvals')
+
+    out_log = Path(out_log)
+    fp = open(out_log, 'a')
+    fp.write('-'*80 + '\n')
+    fp.write('Comparing bvals\n')
     # make bval_files a list of absolute paths
     bval_files = [Path(x).absolute() for x in bval_files]
 
     bval_arrays = []
     for bval_file in bval_files:
-        print('-', bval_file)
+        fp.write(f'- {bval_file}\n')
         bval_arrays.append(np.round(np.loadtxt(bval_file), -2))
 
     # exactly same bval files
@@ -125,20 +129,24 @@ def compare_bval_files(bval_files: str):
             break
 
     if not same_array:
-        print('\tThe given bvals are different - proceeding to checking number '
-              'of volume in each shell')
+        fp.write(
+            '\tThe given bvals are different - proceeding to checking number '
+            'of volume in each shell\n')
         for file_name, bval_array in zip(bval_files, bval_arrays):
             all_unique = np.unique(bval_array, return_counts=True)
-            print(f'\t*{file_name}')
-            print(f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)')
-            print(f'\t\tvolumes in each shell: {all_unique[1]} '
-                  f'({all_unique[1].sum()} directions)')
+            fp.write(f'\t*{file_name}\n')
+            fp.write(
+                f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)\n')
+            fp.write(f'\t\tvolumes in each shell: {all_unique[1]} '
+                     f'({all_unique[1].sum()} directions)\n')
     else:
-        print(f'\tThe {len(bval_files)} bval arrays are exactly the same.')
+        fp.write(
+            f'\tThe {len(bval_files)} bval arrays are exactly the same.\n')
         all_unique = np.unique(bval_arrays[0], return_counts=True)
-        print(f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)')
-        print(f'\t\tvolumes in each shell: {all_unique[1]} '
-              f'({all_unique[1].sum()} directions)')
+        fp.write(
+            f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)\n')
+        fp.write(f'\t\tvolumes in each shell: {all_unique[1]} '
+                 f'({all_unique[1].sum()} directions)\n')
         return
 
     # shells
@@ -147,11 +155,12 @@ def compare_bval_files(bval_files: str):
     for bval_array in bval_arrays:
         if not np.array_equal(np.unique(bval_array),
                               np.unique(bval_arrays_all)):
-            print(f'\tNumber of shells differs between bval files')
+            fp.write(
+                f'\tNumber of shells differs between bval files\n')
             same_shell_num = False
 
     if same_shell_num:
-        print('\tThey have the same number of shells')
+        fp.write('\tThey have the same number of shells\n')
 
     # number of volumes in shells
     same_vol_num = True
@@ -163,10 +172,11 @@ def compare_bval_files(bval_files: str):
             vol_counts.append(unique_count[1][index])
 
         if not vol_counts.count(vol_counts[0]) == len(vol_counts):
-            print(f'\tNumber of {b_shell} differs between bval files')
+            fp.write(f'\tNumber of {b_shell} differs between bval files\n')
             same_vol_num = False
 
     if same_shell_num:
-        print('\tThey have the same volume in each shell')
+        fp.write('\tThey have the same volume in each shell\n')
+    fp.close()
 
 
