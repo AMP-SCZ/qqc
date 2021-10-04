@@ -45,6 +45,9 @@ if __name__ == '__main__':
         csa_common_df.to_csv(args.output)
     
     else:
-        tmp = pd.concat([csa_diff_df, csa_common_df])
-        tmp.to_csv(args.output)
+        tmp = pd.concat([csa_diff_df, csa_common_df],
+                        sort=False).sort_index().T
+        tmp['series_num'] = tmp.index.str.extract('(\d+)').astype(int).values
+        tmp.sort_values(by='series_num').drop(
+                'series_num', axis=1).to_csv(args.output)
 

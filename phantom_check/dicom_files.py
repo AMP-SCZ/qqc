@@ -202,7 +202,7 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
             if any([x in row.series_desc.lower() for x in measures]):
                 df_tmp = get_csa_header(row['pydicom'])
                 df_tmp = df_tmp.set_index('var')
-                df_tmp.columns = [row.series_desc]
+                df_tmp.columns = [f'{row.series_num}_{row.series_desc}']
                 dfs.append(df_tmp)
 
         elif 'dmri' in row.series_desc.lower() or \
@@ -212,10 +212,10 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
              'distortion'in row.series_desc.lower():
             df_tmp = get_csa_header(row['pydicom'])
             df_tmp = df_tmp.set_index('var')
-            df_tmp.columns = [row.series_desc]
+            df_tmp.columns = [f'{row.series_num}_{row.series_desc}']
             dfs.append(df_tmp)
 
-    csa_df = pd.concat(dfs, axis=1)
+    csa_df = pd.concat(dfs, axis=1, sort=False)
 
     diff_df = csa_df[csa_df.apply(
         lambda x: x[~x.isnull()].nunique() != 1, axis=1)].T.sort_index().T
