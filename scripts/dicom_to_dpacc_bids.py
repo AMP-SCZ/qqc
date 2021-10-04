@@ -48,24 +48,28 @@ def parse_args(argv):
 
 def dicom_to_bids(input_dir: str, subject_name: str,
                   session_name: str, output_dir: str):
+    print(f'Walking through {input_dir}, searching for dicom files')
     df_full = get_dicom_files_walk(input_dir)
+    print(f'File walk - complete')
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        rearange_dicoms(df_full, tmpdir, subject_name, session_name)
+    # with tempfile.TemporaryDirectory() as tmpdir:
+    dicom_clearned_up_output = Path(output_dir) / 'dicom'
+    rearange_dicoms(df_full, dicom_clearned_up_output,
+                    subject_name, session_name)
 
-        heuristic_file = Path(phantom_check.__file__).parent.parent / 'data' / \
-                'heuristic.py'
+    heuristic_file = Path(phantom_check.__file__).parent.parent / 'data' / \
+            'heuristic.py'
 
-        command = f'heudiconv \
-        -d {tmpdir}' + '/{subject}/*/*/*dcm ' \
-        f'-f {heuristic_file} ' \
-        f'-s {subject_name} -ss {session_name} -c dcm2niix --overwrite \
-        -b \
-        -o {output_dir}'
+    command = f'heudiconv \
+    -d {dicom_clearned_up_output}' + '/{subject}/*/*/* ' \
+    f'-f {heuristic_file} ' \
+    f'-s {subject_name} -ss {session_name} -c dcm2niix \
+    -b \
+    -o {output_dir}'
 
-        print(command)
+    print(command)
 
-        os.popen(command).read()
+    os.popen(command).read()
 
     return df_full
 
@@ -191,28 +195,32 @@ def quick_figures(subject_dir: Path, session_name: str, outdir: Path):
 
 
 def dicom_to_bids_with_quick_qc(args):
-    # variable settings
-    subject_dir = Path(args.output_dir) / ('sub-' + re.sub(
-            '_-', ' ', args.subject_name))
-    qc_out_dir = Path(args.output_dir) / 'quick_qc' / \
-            subject_dir.name / args.session_name
-    qc_out_dir.mkdir(exist_ok=True, parents=True)
-
+    args.session_name = re.sub('[_-]', '', args.session_name)
 
     # dicom to bids
     dicom_to_bids(args.input_dir, args.subject_name,
                   args.session_name, args.output_dir)
 
-    # diff comparison (json & image figure)
-    compare_data_to_standard(subject_dir, args.standard_dir, qc_out_dir)
+    # variable settings
+    subject_dir = Path(args.output_dir) / ('sub-' + re.sub(
+            '[_-]', '', args.subject_name))
+    qc_out_dir = Path(args.output_dir) / 'quick_qc' / \
+            subject_dir.name / args.session_name
+    qc_out_dir.mkdir(exist_ok=True, parents=True)
 
     # CSA extraction
     df = get_dicom_files_walk(args.input_dir, True)
     csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
             df, get_same=True)
-    csa_df = pd.concat([csa_diff_df, csa_common_df])
-    csa_df.to_csv(qc_out_dir / 'csa_headers.csv')
+    csa_df = pd.concat([csa_diff_df, csa_common_df],
+                    sort=False).sort_index().T
+    csa_df['series_num'] = csa_df.index.str.extract('(\d+)').astype(int).values
+    csa_df.sort_values(by='series_num').drop(
+            'series_num', axis=1).to_csv(qc_out_dir / 'csa_headers.csv')
 
+    if args.standard_dir:
+        # diff comparison (json & image figure)
+        compare_data_to_standard(subject_dir, args.standard_dir, qc_out_dir)
 
 if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
