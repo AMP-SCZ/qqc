@@ -57,7 +57,10 @@ def get_dicom_files_walk(root: Union[Path, str],
     # walk through the root
     for root, dirs, files in os.walk(root):
         for file in files:
-            if file.lower().endswith('dcm') or file.lower().endswith('ima'):
+            # includes the logics to detect dicoms without dcm / ima extension
+            if file.lower().endswith('dcm') or file.lower().endswith('ima') \
+                    or (file.startswith('MR') and \
+                        len(Path(file).name.split('.')[-1]) > 10):
                 dicom_paths.append(os.path.join(root, file))
             if one_file_for_series:  # to load a single file for each dir
                 break
@@ -229,15 +232,17 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
 
 
 def rearange_dicoms(dicom_df: pd.DataFrame,
-                    new_root: Union[str, Path]) -> None:
+                    new_root: Union[str, Path],
+                    subject: str,
+                    session: str) -> None:
     '''Copy the dicom in a new format for preprocessing'''
     new_root = Path(new_root)
-
     
     # series
     for (num, name, scan), table in dicom_df.groupby(
             ['series_num', 'series_desc', 'series_scan']):
-        series_dir_path = new_root / 'ses-001' / f'{num:02}_{name}'
+        series_dir_path = new_root / subject / f'ses-{session}' / \
+                f'{num:02}_{name}'
         series_dir_path.mkdir(exist_ok=True, parents=True)
         for _, row in table.iterrows():
             shutil.copy(row['file_path'], series_dir_path)
