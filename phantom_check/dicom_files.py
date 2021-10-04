@@ -234,7 +234,8 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
 def rearange_dicoms(dicom_df: pd.DataFrame,
                     new_root: Union[str, Path],
                     subject: str,
-                    session: str) -> None:
+                    session: str,
+                    force: bool = False) -> None:
     '''Copy the dicom in a new format for preprocessing'''
     new_root = Path(new_root)
     
@@ -243,6 +244,12 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
             ['series_num', 'series_desc', 'series_scan']):
         series_dir_path = new_root / subject / f'ses-{session}' / \
                 f'{num:02}_{name}'
+
+        if not force and series_dir_path.is_dir() \
+                and len(table) == len(list(series_dir_path.glob('*'))):
+            print(f'Not overwriting {series_dir_path}')
+            continue
+
         series_dir_path.mkdir(exist_ok=True, parents=True)
         for _, row in table.iterrows():
             shutil.copy(row['file_path'], series_dir_path)
