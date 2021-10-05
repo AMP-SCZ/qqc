@@ -61,7 +61,7 @@ def dicom_to_bids(input_dir: str, subject_name: str,
             'heuristic.py'
 
     command = f'heudiconv \
-    -d {dicom_clearned_up_output}' + '/{subject}/*/*/* ' \
+    -d {dicom_clearned_up_output}' + '/{subject}/ses-{session}/*/* ' \
     f'-f {heuristic_file} ' \
     f'-s {subject_name} -ss {session_name} -c dcm2niix \
     -b \
