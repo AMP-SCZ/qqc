@@ -20,12 +20,26 @@ def infotodict(seqinfo):
     subject: participant id
     seqitem: run number during scanning
     subindex: sub index within group
+
     """
+
+    localizer = create_key(
+            'sub-{subject}/{session}/ignore/'
+            'sub-{subject}_{session}_ignore-bids_num-{num}_localizer')
+
+    localizer_aligned = create_key(
+            'sub-{subject}/{session}/ignore/'
+            'sub-{subject}_{session}_ignore-bids_num-{num}_localizer_aligned')
+
+    scout = create_key(
+            'sub-{subject}/{session}/ignore/'
+            'sub-{subject}_{session}_ignore-bids_num-{num}_scout')
+
     # return info
     t1w = create_key('sub-{subject}/{session}/'
-                     'anat/sub-{subject}_ses-{session}_rec-{norm}_T1w')
+                     'anat/sub-{subject}_{session}_rec-{norm}_T1w')
     t2w = create_key('sub-{subject}/{session}/'
-                     'anat/sub-{subject}_ses-{session}_rec-{norm}_T2w')
+                     'anat/sub-{subject}_{session}_rec-{norm}_T2w')
 
     # dwi
     dwi = create_key(
@@ -83,7 +97,10 @@ def infotodict(seqinfo):
             rest_pa: [],
             rest_ap_sbref: [],
             rest_pa_sbref: [],
-            fmap: []}
+            fmap: [],
+            localizer: [],
+            localizer_aligned: [],
+            scout: []}
 
 
     for s in seqinfo:
@@ -123,7 +140,7 @@ def infotodict(seqinfo):
                                                'APPA': appa})
 
 
-        if ('rfMRI' in s.protocol_name):
+        if 'rfMRI' in s.protocol_name:
             sbref = True if 'SBRef' in s.series_description else False
             appa = True if '_AP' in s.series_description else False
 
@@ -137,7 +154,7 @@ def infotodict(seqinfo):
                 info[rest_pa].append({'item': s.series_id})
 
 
-        if ('distortion' in s.series_description.lower()):
+        if 'distortion' in s.series_description.lower():
             appa = 'AP' if '_AP' in s.series_description else 'PA'
             series_num = int(re.search(r'\d+', s.series_id).group(0))
             tmp_dict = {'item': s.series_id,
@@ -152,6 +169,23 @@ def infotodict(seqinfo):
                 tmp_dict['acq'] = 'fmri'
 
             info[fmap].append(tmp_dict)
+
+
+        if 'localizer' in s.series_description.lower():
+            if 'aligned' in s.series_description.lower():
+                tmp_dict = {'item': s.series_id,
+                            'num': re.search(r'\d+', s.series_id).group(0)}
+                info[localizer_aligned].append(tmp_dict)
+            else:
+                tmp_dict = {'item': s.series_id,
+                            'num': re.search(r'\d+', s.series_id).group(0)}
+                info[localizer].append(tmp_dict)
+
+
+        if 'scout' in s.series_description.lower():
+            tmp_dict = {'item': s.series_id,
+                        'num': re.search(r'\d+', s.series_id).group(0)}
+            info[scout].append(tmp_dict)
 
 
     return info
