@@ -19,11 +19,16 @@ def json_check_for_a_session(json_files: List[str],
     specific_field = kwargs.get('specific_field', '')
 
     dicts = []
+    basename_seriesnum_dict = {}
+    basename_seriesname_dict = {}
     for i in json_files:
         with open(i, 'r') as f:
             single_dict = json.load(f)
-            single_dict = dict((x,y) for x, y in single_dict.items()
-                    if x in [specific_field])
+            basename_seriesnum_dict[Path(i).name] = single_dict['SeriesNumber']
+            basename_seriesname_dict[Path(i).name] = \
+                    single_dict['SeriesDescription']
+            single_dict = dict((x, y) for x, y in single_dict.items()
+                               if x in [specific_field])
             dicts.append(single_dict)
 
     df_all = pd.DataFrame()
@@ -33,7 +38,15 @@ def json_check_for_a_session(json_files: List[str],
                 orient='index',
                 columns=[f'{json_file}'])
         df_all = pd.concat([df_all, df_tmp], axis=1, sort=False)
+        df_all.columns = [Path(x).name for x in df_all.columns]
+
     df_all = df_all.T
+    df_all['series_number'] = df_all.index.map(
+            basename_seriesnum_dict).astype(int)
+    df_all['series_name'] = df_all.index.map(basename_seriesname_dict)
+    df_all.sort_values(by='series_number', inplace=True)
+    df_all = df_all.reset_index().set_index(
+            ['series_number', 'series_name', 'index'])
 
     df_all_diff = df_all.copy()
     df_all_shared = df_all.copy()
@@ -45,7 +58,7 @@ def json_check_for_a_session(json_files: List[str],
 
     for col in df_all_diff.columns:
         df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
-        df_all_diff = df_all_diff.sort_values(f'{col}_unique_rank')
+        # df_all_diff = df_all_diff.sort_values(f'{col}_unique_rank')
 
     if print_diff:
         print_diff_shared(
@@ -59,6 +72,7 @@ def json_check_for_a_session(json_files: List[str],
 
     return (df_all_diff, df_all_shared)
 
+
 def json_check(json_files: List[str],
                print_diff: bool = True,
                print_shared: bool = False,
@@ -67,7 +81,8 @@ def json_check(json_files: List[str],
     dicts = []
     for i in json_files:
         with open(i, 'r') as f:
-            dicts.append(json.load(f))
+            single_dict = json.load(f)
+            dicts.append(single_dict)
 
     names = itertools.combinations(json_files, 2)
     sets = itertools.combinations(dicts, 2)
@@ -84,15 +99,34 @@ def json_check(json_files: List[str],
         df_diff = pd.DataFrame.from_dict(
                 dict((x, str(y)) for x, y in diff_items.items()),
                 orient='index',
-                columns=[f'{name_1} (vs {name_2})'])
+                columns=[f'{Path(name_1).name} (vs {Path(name_2).name})'])
 
         df_shared = pd.DataFrame.from_dict(
                 dict((x, str(y)) for x, y in shared_items.items()),
                 orient='index',
-                columns=[f'{name_1} (vs {name_2})'])
+                columns=[f'{Path(name_1).name} (vs {Path(name_2).name})'])
 
         df_all_diff = pd.concat([df_all_diff, df_diff], axis=1, sort=True)
         df_all_shared = pd.concat([df_all_shared, df_shared], axis=1, sort=True)
+
+    # drop unnecessary indices
+    for df_tmp in df_all_diff, df_all_shared:
+        to_drop_list = [
+            'AcquisitionTime', 'ImageOrientationPatientDicom',
+            'ImageOrientationPatientDICOM',
+            'InstitutionAddress', 'InstitutionName',
+            'InstitutionalDepartmentName', 'ManufacturersModelName',
+            'SliceTiming',
+            'ProcedureStepDescription', 'StationName', 'global', 'TxRefAmp',
+            'dcmmeta_affine', 'WipMemBlock', 'DeviceSerialNumber',
+            'SAR', 'time']
+
+        for i in to_drop_list:
+            try:
+                df_tmp.drop(i, inplace=True)
+            except:
+                pass
+
 
     if print_diff:
         print_diff_shared('Different items', df_all_diff)
