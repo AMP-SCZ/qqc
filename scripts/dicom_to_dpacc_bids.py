@@ -14,7 +14,8 @@ from phantom_check.dicom_files import get_dicom_files_walk, \
 
 from phantom_check import json_check, json_check_for_a_session
 from phantom_check import compare_bval_files
-from phantom_check.utils.files import load_data_bval, get_diffusion_data_from_nifti_prefix
+from phantom_check.utils.files import load_data_bval, \
+        get_diffusion_data_from_nifti_prefix
 from phantom_check.utils.visualize import create_b0_signal_figure, \
         create_image_signal_figure
 from phantom_check.utils.files import get_nondmri_data
@@ -57,6 +58,7 @@ def parse_args(argv):
 
 def dicom_to_bids(input_dir: str, subject_name: str,
                   session_name: str, output_dir: str):
+    '''Dicom to BIDS'''
     print(f'Walking through {input_dir}, searching for dicom files')
     df_full = get_dicom_files_walk(input_dir)
     print(f'File walk - complete')
@@ -282,14 +284,25 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path):
 
     with open(qc_out_dir / 'within_phantom_qc.txt', 'w') as fp:
         fp.write('Checking shim settings'+ '\n')
+        fp.write('='*80 + '\n')
         df_all_diff, df_all_shared = json_check_for_a_session(
                 json_paths_input,
                 print_diff=False, print_shared=False,
                 specific_field='ShimSetting')
-        fp.write(df_all_diff.to_string() + '\n\n')
+
+        if df_all_diff.empty:
+            fp.write('Seem settings are consistent' + '\n')
+            fp.write('(Items in the table below are consistent across json '
+                     'files)\n')
+            fp.write(df_all_shared.to_string() + '\n')
+        else:
+            fp.write(df_all_diff.to_string() + '\n')
+        fp.write('='*80 + '\n\n\n')
+
 
         fp.write('Checking image orientation in dMRI, fMRI and '
                  'distortionMaps'+ '\n')
+        fp.write('='*80 + '\n')
         non_anat_json_paths_input = [x for x in json_paths_input
                                       if x.parent.name != 'anat']
         df_all_diff, df_all_shared = json_check_for_a_session(
@@ -297,13 +310,17 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path):
                 print_diff=False, print_shared=False,
                 specific_field='ImageOrientationPatientDICOM')
         if df_all_diff.empty:
-            fp.write('Image Orientations are consistent' + '\n\n')
-            fp.write(df_all_shared.to_string() + '\n\n')
+            fp.write('Image Orientations are consistent' + '\n')
+            fp.write('(Items in the table below are consistent across json '
+                     'files)\n')
+            fp.write(df_all_shared.to_string() + '\n')
         else:
-            fp.write(df_all_diff.to_string() + '\n\n')
+            fp.write(df_all_diff.to_string() + '\n')
+        fp.write('='*80 + '\n\n\n')
 
         # anat
         fp.write('Checking image orientation in anat'+ '\n')
+        fp.write('='*80 + '\n')
         anat_json_paths_input = [x for x in json_paths_input
                                   if x.parent.name == 'anat']
         df_all_diff, df_all_shared = json_check_for_a_session(
@@ -311,10 +328,13 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path):
                 print_diff=False, print_shared=False,
                 specific_field='ImageOrientationPatientDICOM')
         if df_all_diff.empty:
-            fp.write('Image Orientations are consistent' + '\n\n')
-            fp.write(df_all_shared.to_string() + '\n\n')
+            fp.write('Image Orientations are consistent' + '\n')
+            fp.write('(Items in the table below are consistent across json '
+                     'files)\n')
+            fp.write(df_all_shared.to_string() + '\n')
         else:
-            fp.write(df_all_diff.to_string() + '\n\n')
+            fp.write(df_all_diff.to_string() + '\n')
+        fp.write('='*80 + '\n\n\n')
 
 
 def save_csa(df_full: pd.DataFrame, qc_out_dir: Path) -> None:
