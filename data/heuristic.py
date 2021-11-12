@@ -36,20 +36,27 @@ def infotodict(seqinfo):
             'sub-{subject}_{session}_ignore-bids_num-{num}_scout')
 
     # return info
-    t1w = create_key('sub-{subject}/{session}/'
-                     'anat/sub-{subject}_{session}_rec-{norm}_T1w')
-    t2w = create_key('sub-{subject}/{session}/'
-                     'anat/sub-{subject}_{session}_rec-{norm}_T2w')
+    t1w_norm = create_key('sub-{subject}/{session}/'
+                     'anat/sub-{subject}_{session}_rec-norm_run-{item}_T1w')
+
+    t1w_nonnorm = create_key('sub-{subject}/{session}/'
+                     'anat/sub-{subject}_{session}_rec-nonnorm_run-{item}_T1w')
+
+    t2w_norm = create_key('sub-{subject}/{session}/'
+                     'anat/sub-{subject}_{session}_rec-norm_run-{item}_T2w')
+
+    t2w_nonnorm = create_key('sub-{subject}/{session}/'
+                     'anat/sub-{subject}_{session}_rec-nonnorm_run-{item}_T2w')
 
     # dwi
     dwi = create_key(
             'sub-{subject}/{session}/dwi/'
-            'sub-{subject}_{session}_acq-{dirnum}_dir-{APPA}'
+            'sub-{subject}_{session}_acq-{dirnum}_dir-{APPA}_run-{item}'
             '_dwi')
 
     dwi_sbref = create_key(
             'sub-{subject}/{session}/dwi/'
-            'sub-{subject}_{session}_acq-{dirnum}_dir-{APPA}'
+            'sub-{subject}_{session}_acq-{dirnum}_dir-{APPA}_run-{item}'
             '_sbref')
 
     dwi_b0 = create_key(
@@ -88,7 +95,9 @@ def infotodict(seqinfo):
             'sub-{subject}/{session}/fmap/'
             'sub-{subject}_{session}_acq-{acq}_dir-{APPA}_epi')
 
-    info = {t1w: [], t2w: [],
+    info = {
+            t1w_norm: [], t1w_nonnorm: [],
+            t2w_norm: [], t2w_nonnorm: [],
             dwi: [],
             dwi_sbref: [],
             dwi_b0: [],
@@ -106,15 +115,15 @@ def infotodict(seqinfo):
     for s in seqinfo:
         if 'T1w' in s.protocol_name:
             if 'NORM' in s.image_type:  # exclude non motion corrected series
-                info[t1w].append({'item': s.series_id, 'norm': 'norm'})
+                info[t1w_norm].append({'item': s.series_id})
             else:
-                info[t1w].append({'item': s.series_id, 'norm': 'nonorm'})
+                info[t1w_nonnorm].append({'item': s.series_id})
 
         if 'T2w' in s.protocol_name:
             if ('NORM' in s.image_type):  # exclude non motion corrected series
-                info[t2w].append({'item': s.series_id, 'norm': 'norm'})
+                info[t2w_norm].append({'item': s.series_id})
             else:
-                info[t2w].append({'item': s.series_id, 'norm': 'nonorm'})
+                info[t2w_nonnorm].append({'item': s.series_id})
 
         if 'dMRI' in s.protocol_name:
             if '_dir' in s.series_description:
