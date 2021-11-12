@@ -33,7 +33,7 @@ def write_dicom_information_as_text(dicom_file: str,
                                     output_file: str = False):
     '''Write dicom information as text'''
 
-    dicom_f = pydicom.read_file(dicom_file)
+    dicom_f = pydicom.read_file(dicom_file, force=True)
     info = dicom_f.get((group_number, element_number))
     extracted_text = info.value.decode(errors='ignore').split(
             '### ASCCONV')[1]

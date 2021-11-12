@@ -251,3 +251,16 @@ def test_whole_flow_with_heudiconv_seoul():
     # shutil.rmtree('new_test_root')
 
 
+
+def test_manufacturer_model_name():
+
+    f = pydicom.read_file('/data/predict/phantom_data/phantom_data_BIDS/dicom/ProNET_Pittsburgh_Prisma/ses-phantom/14_DistortionMap_PA/MR.1.3.12.2.1107.5.2.43.67078.2021093013240198029914286')
+
+    output = get_additional_info_by_elem(f, 'ManufacturerModelName')
+    print('Output:', output)
+
+
+
+
+
+

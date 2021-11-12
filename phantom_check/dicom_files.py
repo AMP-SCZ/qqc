@@ -60,7 +60,8 @@ def get_dicom_files_walk(root: Union[Path, str],
             # includes the logics to detect dicoms without dcm / ima extension
             if file.lower().endswith('dcm') or file.lower().endswith('ima') \
                     or (file.startswith('MR') and \
-                        len(Path(file).name.split('.')[-1]) > 10):
+                        len(Path(file).name.split('.')[-1]) > 10) \
+                    or file.startswith('MR.'):
                 dicom_paths.append(os.path.join(root, file))
             if one_file_for_series:  # to load a single file for each dir
                 break
@@ -71,7 +72,8 @@ def get_dicom_files_walk(root: Union[Path, str],
     # get dataframe and convert them into pydicom objects
     df = pd.DataFrame({'file_path': dicom_paths})
     start = time.time()
-    df['pydicom'] = df.file_path.apply(lambda x: pydicom.read_file(x))
+    df['pydicom'] = df.file_path.apply(lambda x: pydicom.read_file(x,
+        force=True))
     end = time.time()
     t = end - start
     logger.debug(f'Time taken to dicomise dicom all paths: {t}')
@@ -80,6 +82,7 @@ def get_dicom_files_walk(root: Union[Path, str],
     df['norm'] = df.pydicom.apply(lambda x:
             get_additional_info(x, '0008', '0008'))
     df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
+
     df['series_num'] = df['series'].str[0]
     df['series_desc'] = df['series'].str[1]
     df['series_uid'] = df['series'].str[2]
