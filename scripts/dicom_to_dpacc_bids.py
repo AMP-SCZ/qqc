@@ -33,7 +33,7 @@ def parse_args(argv):
 
     # image input related options
     parser.add_argument('--input_dir', '-i', type=str,
-                        help='List of raw dicom root directories.')
+                        help='Raw dicom root directory.')
 
     parser.add_argument('--subject_name', '-s', type=str,
                         help='Subject name.')
@@ -57,8 +57,24 @@ def parse_args(argv):
 
 
 def dicom_to_bids(input_dir: str, subject_name: str,
-                  session_name: str, output_dir: str):
-    '''Dicom to BIDS'''
+                  session_name: str, output_dir: str) -> pd.DataFrame:
+    '''Rearrange before converting to BIDS structure using dicom headers
+
+    Key arguments:
+        - input_dir: raw dicom root directory, str.
+        - subject_name: name of the subject, str.
+        - session_name: name of the session, str.
+        - output_dir: output BIDS raw directory, str.
+
+    Returns:
+        - df_full: output pd.DataFrame from
+                   phantom_check.dicom_files.get_dicom_files_walk function
+
+    Notes:
+        - currently saving newly arranged dicom files under 'dicom' directory
+          under the output_dir. To be fully follow BIDS suggestions, this 
+          location should be updated in future.
+    '''
     print(f'Walking through {input_dir}, searching for dicom files')
     df_full = get_dicom_files_walk(input_dir)
     print(f'File walk - complete')
@@ -79,18 +95,15 @@ def dicom_to_bids(input_dir: str, subject_name: str,
     rearange_dicoms(df_full, dicom_clearned_up_output,
                     subject_name, session_name)
 
-
     heuristic_file = Path(phantom_check.__file__).parent.parent / 'data' / \
             'heuristic.py'
 
     command = f'heudiconv \
-    -d {dicom_clearned_up_output}' + '/{subject}/ses-{session}/*/* ' \
-    f'-f {heuristic_file} ' \
-    f'-s {subject_name} -ss {session_name} -c dcm2niix \
-    -b \
-    -o {output_dir}'
-
-    print(command)
+        -d {dicom_clearned_up_output}' + '/{subject}/ses-{session}/*/* ' \
+        f'-f {heuristic_file} ' \
+        f'-s {subject_name} -ss {session_name} -c dcm2niix \
+        -b \
+        -o {output_dir}'
 
     os.popen(command).read()
 
@@ -347,20 +360,37 @@ def save_csa(df_full: pd.DataFrame, qc_out_dir: Path) -> None:
             'series_num', axis=1).to_csv(qc_out_dir / 'csa_headers.csv')
 
 
-def dicom_to_bids_with_quick_qc(args):
+def dicom_to_bids_with_quick_qc(args) -> None:
+    '''Sort dicoms, before converting them to BIDS nifti. Also run quick QC.
+
+    Key arguments:
+        args: Argparse parsed arguments.
+            - Must have attributes
+              - subject_name: name of the subject, str.
+              - session_name: name of the session, str.
+              - input_dir: raw dicom root directory, str.
+              - output_dir: output BIDS raw directory, str.
+
+            - Optional attributes
+              - standard_dir: root of a standard dataset to compare the input
+                              data to, str.
+              - skyra: True if the input_dir is skyra data, bool.
+
+    1. run dicom to dicom BIDS
+    '''
     args.session_name = re.sub('[_-]', '', args.session_name)
 
-    # dicom to bids
+    # raw dicom to BIDS
+    # raw dicom -> cleaned up dicom structure -> BIDS
     df_full = dicom_to_bids(args.input_dir, args.subject_name,
                             args.session_name, args.output_dir)
 
-    # QC
-    # settings
-    subject_dir = Path(args.output_dir) / ('sub-' + re.sub(
-            '[_-]', '', args.subject_name))
+    # QC start
+    subject_dir = Path(args.output_dir) / \
+        ('sub-' + re.sub('[_-]', '', args.subject_name))
     session_dir = subject_dir / ('ses-' + args.session_name)
     qc_out_dir = Path(args.output_dir) / 'quick_qc' / \
-            subject_dir.name / args.session_name
+        subject_dir.name / args.session_name
     qc_out_dir.mkdir(exist_ok=True, parents=True)
 
     # within data QC

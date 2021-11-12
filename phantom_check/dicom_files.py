@@ -47,6 +47,10 @@ def get_dicom_files_walk(root: Union[Path, str],
         one_file_for_series: True if to return a df summary of each series,
                              bool.
 
+    Returns:
+        df: pd.DataFrame with file path, pydicom object, series name and 
+            numberk, uid
+
     Notes:
         one_file_for_series = True, assumes there is a single series contained
         in each sub directories under the dicom root.

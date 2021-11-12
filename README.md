@@ -76,7 +76,30 @@ Conversion to dicom to BIDS
 
 ## 3. Functions
 
-### 1. `phantom_figure.py`: Summarize signal as a figure
+### 1. `dicom_to_dpacc_bids.py`
+
+This function is for U24 phantom and human scan dicoms. It first arranges dicoms into a structured
+directory, before running `heudiconv` with U24 settings, making a BIDS structured nifti outputs.
+Subject name and session name have to be specified to put them in the correct BIDS structure.
+
+
+Below is the example command.
+
+```sh
+bsub -q normal -n 2 -e bsub.err -o bsub.out -J ${site} \
+    python /data/predict/phantom_data/kcho/devel_soft/phantom_check/scripts/dicom_to_dpacc_bids.py \
+        --input_dir /data/predict/phantom_data/kcho/tmp/PHANTOM_20211022 \
+        --subject_name ProNET_Oct \
+        --session_name phantom \
+        --output_dir prac \
+        --standard_dir /data/predict/phantom_data/phantom_data_BIDS/sub-ProNETUCLA/ses-humanpilot \
+        --skyra
+```
+
+
+
+
+### 2. `phantom_figure.py`: Summarize signal as a figure
 
 This function plots average of signals from each volume, for different set of dicom or nifti files. It expects a list of data sources, where the average signal for all voxels will be used to create a figure. Extra options are available for b0 signal extraction for dMRI scans.
 
@@ -171,7 +194,7 @@ phantom_figure.py \
 
 
 
-### 2. `dicom_header_comparison.py`: Compare json files
+### 3. `dicom_header_comparison.py`: Compare json files
 
  `dicom_header_comparison.py` uses the BIDS SIDCAR json file created from the `dcm2niix` to compare common and unique fields in across different json files.
 
@@ -247,7 +270,7 @@ dicom_header_comparison.py \
 
 
 
-### 3. `dwi_extra_comparison.py`: Compare bvalues
+### 4. `dwi_extra_comparison.py`: Compare bvalues
 
  `dwi_extra_comparison.py` can be used to compare different bvalues.
 
@@ -274,7 +297,7 @@ Comparing bvals
 
 
 
-### 4. `extract_given_field_from_dicom.py`: extract specific information from a dicom file
+### 5. `extract_given_field_from_dicom.py`: extract specific information from a dicom file
 
 #### Examples
 
@@ -295,7 +318,7 @@ extract_given_field_from_dicom.py \
 
 
 
-### 5. `summarize_mriqc_measures.py`:  Summarize mriqc outputs
+### 6. `summarize_mriqc_measures.py`:  Summarize mriqc outputs
 
 Running `MRIQC` creates a json for a subject included in the list. This json file could be used to extract qualitative measures from the QC.
 
