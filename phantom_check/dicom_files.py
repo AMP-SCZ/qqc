@@ -86,6 +86,7 @@ def get_dicom_files_walk(root: Union[Path, str],
     df['norm'] = df.pydicom.apply(lambda x:
             get_additional_info(x, '0008', '0008'))
     df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
+    print(df)
 
     df['series_num'] = df['series'].str[0]
     df['series_desc'] = df['series'].str[1]

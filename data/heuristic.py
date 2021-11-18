@@ -1,6 +1,5 @@
 import os
 import re
-
 import sys
 import time
 
@@ -93,7 +92,7 @@ def infotodict(seqinfo):
     # distortion maps
     fmap = create_key(
             'sub-{subject}/{session}/fmap/'
-            'sub-{subject}_{session}_acq-{acq}_dir-{APPA}_epi')
+            'sub-{subject}_{session}_acq-{acq}_dir-{APPA}_run-{item}_epi')
 
     info = {
             t1w_norm: [], t1w_nonnorm: [],
@@ -170,12 +169,12 @@ def infotodict(seqinfo):
                         'APPA': appa,
                         'num': re.search(r'\d+', s.series_id).group(0)}
 
-            if series_num < 10:
-                tmp_dict['acq'] = 'anat'
-            elif series_num < 20:
-                tmp_dict['acq'] = 'dwi'
-            else:  #series_num < 30:
-                tmp_dict['acq'] = 'fmri'
+            tmp_dict['acq'] = series_num
+            # if series_num < 10:
+            # elif series_num < 20:
+                # tmp_dict['acq'] = 'dwi'
+            # else:  #series_num < 30:
+                # tmp_dict['acq'] = 'fmri'
 
             info[fmap].append(tmp_dict)
 

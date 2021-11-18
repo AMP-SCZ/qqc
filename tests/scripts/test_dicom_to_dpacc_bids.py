@@ -6,7 +6,7 @@ sys.path.append(str(scripts_path))
 
 from dicom_to_dpacc_bids import dicom_to_bids, parse_args, \
         compare_data_to_standard, quick_figures, dicom_to_bids_with_quick_qc, \
-        within_phantom_qc, save_csa
+        within_phantom_qc, save_csa, check_num_order_of_series
 from phantom_check.dicom_files import get_dicom_files_walk, \
         get_diff_in_csa_for_all_measures
 
@@ -17,6 +17,7 @@ from phantom_check.utils.visualize import create_b0_signal_figure, \
 from phantom_check.utils.files import get_nondmri_data
 import pandas as pd
 import socket
+import numpy as np
 
 
 if socket.gethostname() == 'mbp16':
@@ -92,6 +93,18 @@ def test_compare_data_to_standard():
     qc_out_dir.mkdir(exist_ok=True, parents=True)
 
     compare_data_to_standard(subject_dir, args.standard_dir, qc_out_dir)
+
+
+def test_compare_data_to_standard_all_nifti():
+
+    subject_dir = Path('/data/predict/phantom_human_pilot/'
+                       'sub-ProNETSeoul/ses-phantom')
+    standard_dir = Path('/data/predict/phantom_human_pilot/'
+                        'sub-ProNETUCLA/ses-humanpilot')
+
+    qc_out_dir = Path('tmp')
+    qc_out_dir.mkdir(exist_ok=True)
+    compare_data_to_standard(subject_dir, standard_dir, qc_out_dir)
 
 
 def test_csa_extraction():
@@ -215,3 +228,24 @@ def test_within_phantom_quick_qc_rerun():
     # qc_out_dir = Path(args.output_dir) / 'quick_qc' / \
             # subject_dir.name / args.session_name
     # qc_out_dir.mkdir(exist_ok=True, parents=True)
+
+
+def test_check_number_of_series():
+    print(raw_dicom_dir / 'PHANTOM_20211022')
+    args = parse_args(['-i', str(raw_dicom_dir / 'PHANTOM_20211022'),
+        '-s', 'whole_flow',
+        '-ss', 'testsession',
+        '-o', 'testroot',
+        '-std', '/data/predict/phantom_data/phantom_data_BIDS/sub-ProNETUCLA/ses-humanpilot'])
+
+    args.session_name = re.sub('[_-]', '', args.session_name)
+    # df_full = get_dicom_files_walk(args.input_dir, True)
+
+    if Path('tmp_df.csv').is_file():
+        df_full = pd.read_csv('tmp_df.csv', index_col = 0)
+    else:
+        df_full = get_dicom_files_walk(args.input_dir)
+        df_full.to_csv('tmp_df.csv')
+
+    check_num_order_of_series(df_full, Path('.'))
+
