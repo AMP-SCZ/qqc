@@ -1,0 +1,89 @@
+import nibabel as nb
+import numpy as np
+import pandas as pd
+import json
+from pathlib import Path
+import re
+
+from phantom_check.utils.files import get_all_files_walk
+from phantom_check.utils.names import get_naming_parts_bids
+from phantom_check.utils.visualize import print_diff_shared
+
+
+def compare_volume_to_standard_all_nifti(input_dir: str,
+                                         standard_dir: str,
+                                         qc_out_dir: Path,
+                                         partial_rescan: bool):
+    nifti_paths_input = get_all_files_walk(input_dir, 'nii.gz')
+    nifti_paths_std = get_all_files_walk(standard_dir, 'nii.gz')
+
+    volume_comparison_log = qc_out_dir / \
+            'volume_slice_number_comparison_log.txt'
+
+    volume_comparison_df = pd.DataFrame()
+    num = 0
+
+    for nifti_input in nifti_paths_input:
+        _, _, nifti_suffix_input = \
+            get_naming_parts_bids(nifti_input.name)
+
+        input_json = nifti_input.parent / (
+                nifti_input.name.split('.')[0] + '.json')
+        with open(input_json, 'r') as json_file:
+            data = json.load(json_file)
+
+            image_type = data['ImageType']
+            series_num = data['SeriesNumber']
+            series_desc = data['SeriesDescription']
+
+        for nifti_std in nifti_paths_std:
+            _, _, nifti_suffix_std = \
+                get_naming_parts_bids(nifti_std.name)
+
+            # if partial_rescan:
+            std_json = nifti_std.parent / (
+                    nifti_std.name.split('.')[0] + '.json')
+            with open(std_json, 'r') as json_file:
+                data = json.load(json_file)
+                std_image_type = data['ImageType']
+                std_series_num = data['SeriesNumber']
+                std_series_desc = data['SeriesDescription']
+
+            if (series_desc == std_series_desc) & \
+                    (image_type == std_image_type):
+
+                # make sure the number of localizer and scout files are
+                # the same
+                if ('localizer' in series_desc.lower()) or \
+                        ('scout' in series_desc.lower()):
+                    if nifti_input.name[-8] != nifti_std.name[-8]:
+                        continue
+
+                img_shape_std = nb.load(nifti_std).shape
+                img_shape_input = nb.load(nifti_input).shape
+                try:
+                    volume_comparison_df.loc[num, 'series_num'] = series_num
+                    volume_comparison_df.loc[num, 'series_desc'] = series_desc
+                    volume_comparison_df.loc[num, 'series_desc_std'] = std_series_desc
+                    volume_comparison_df.loc[num, 'nifti_suffix'] = nifti_suffix_input
+                    volume_comparison_df.loc[num, 'nifti_suffix_std'] = nifti_suffix_std
+                    volume_comparison_df.loc[num, 'input shape'] = str(img_shape_input)
+                    volume_comparison_df.loc[num, 'standard shape'] = str(img_shape_std)
+                    break
+
+                except:
+                    pass
+
+        num += 1
+
+    volume_comparison_df['check'] = (volume_comparison_df['input shape'] ==
+            volume_comparison_df['standard shape']).map(
+                    {True: 'Pass', False: 'Fail'})
+    volume_comparison_df.series_num = \
+            volume_comparison_df.series_num.astype(int)
+    volume_comparison_df.set_index('series_num', inplace=True)
+    volume_comparison_df.sort_index().to_csv(
+            qc_out_dir / 'volume_slice_number_comparison_log.csv')
+
+
+

@@ -9,6 +9,7 @@ import numpy as np
 import shutil
 import logging
 from typing import List
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -38,17 +39,17 @@ all_elements_to_extract = [
     ]
 
 
-def get_dicom_files_walk(root: Union[Path, str],
+def get_dicom_files_walk(dicom_root: Union[Path, str],
                          one_file_for_series=False) -> pd.DataFrame:
     '''Find all dicom path under the root and return it as pandas DataFrame
 
     Key arguments:
-        root: root directory of the dicom for a subject, str or Path.
+        dicom_root: root directory of the dicom for a subject, str or Path.
         one_file_for_series: True if to return a df summary of each series,
                              bool.
 
     Returns:
-        df: pd.DataFrame with file path, pydicom object, series name and 
+        df: pd.DataFrame with file path, pydicom object, series name and
             numberk, uid
 
     Notes:
@@ -59,39 +60,66 @@ def get_dicom_files_walk(root: Union[Path, str],
     start = time.time()
 
     # walk through the root
-    for root, dirs, files in os.walk(root):
-        for file in files:
+    logger.info('Walking through the raw dicom directory to find dicom files')
+    max_number_of_dirs = 0
+    for _, folders, _ in os.walk(dicom_root):
+        max_number_of_dirs = len(folders) \
+                if (max_number_of_dirs < len(folders)) else max_number_of_dirs
+
+    num = 0
+    for root, folders, files in os.walk(dicom_root):
+        for file in [x for x in files if not x.startswith('.')]:
+            file_lower = file.lower()
             # includes the logics to detect dicoms without dcm / ima extension
-            if file.lower().endswith('dcm') or file.lower().endswith('ima') \
-                    or (file.startswith('MR') and \
-                        len(Path(file).name.split('.')[-1]) > 10) \
-                    or file.startswith('MR.'):
-                dicom_paths.append(os.path.join(root, file))
-            if one_file_for_series:  # to load a single file for each dir
-                break
+            # file with only digits in the filename
+            try:
+                if file_lower.endswith('dcm') or file_lower.endswith('ima') \
+                        or (file.startswith('MR') and \
+                            len(Path(file).name.split('.')[-1]) > 10) \
+                        or file.startswith('MR.') \
+                        or len(re.search('\d+', file).group(0)) == len(file):
+                    dicom_paths.append(os.path.join(root, file))
+                    num += 1
+                if one_file_for_series:  # to load a single file for each dir
+                    if len(max_number_of_dirs) == 1:
+                        continue
+                    else:
+                        break
+            except:
+                logger.warning(f'There are non-dicom files {root}/{file}')
+
+    if num == 0:
+        logger.critical(f'No dicom files found under {dicom_root}')
+        print(f'No dicom files found under {dicom_root}')
+
     end = time.time()
     t = end - start
-    logger.debug(f'Time taken to walk through dicom root: {t}')
+    logger.info(f'Time taken to walk through dicom root: {t}')
 
     # get dataframe and convert them into pydicom objects
+    logger.info('Convert dicom information to pandas dataframe')
     df = pd.DataFrame({'file_path': dicom_paths})
     start = time.time()
     df['pydicom'] = df.file_path.apply(lambda x: pydicom.read_file(x,
         force=True))
     end = time.time()
     t = end - start
-    logger.debug(f'Time taken to dicomise dicom all paths: {t}')
+    logger.info(f'Time taken to dicomise dicom all paths: {t}')
 
     start = time.time()
+    logger.info('Extracting information from pydicom objects')
     df['norm'] = df.pydicom.apply(lambda x:
             get_additional_info(x, '0008', '0008'))
     df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
-    print(df)
 
-    df['series_num'] = df['series'].str[0]
-    df['series_desc'] = df['series'].str[1]
-    df['series_uid'] = df['series'].str[2]
-    df.drop('series', axis=1, inplace=True)
+    logger.info('Extracting information from pydicom objects')
+    try:
+        df['series_num'] = df['series'].str[0]
+        df['series_desc'] = df['series'].str[1]
+        df['series_uid'] = df['series'].str[2]
+        df.drop('series', axis=1, inplace=True)
+    except IndexError:
+        logger.critical('Pydicom objects have incorrect dicom header')
 
     # if unique dicom for a series is required
     if one_file_for_series:
@@ -103,27 +131,29 @@ def get_dicom_files_walk(root: Union[Path, str],
         df = df_tmp.reset_index().drop('index', axis=1)
 
     # series_scan column to detect if there is any rescan
+    logger.info('Searching for duplicated data using series number,'
+                'description, and uid')
     gb_series = df.groupby(['series_num', 'series_desc', 'series_uid'])
     unique_count_df = gb_series.count().reset_index()
-    series_names, counts = np.unique(unique_count_df['series_desc'],
-                                     return_counts=True)
 
-    for series_name, count in zip(series_names, counts):
-        if count > 1:
-            # index = df['series_names
-            df_tmp = df[df['series_desc'] == series_name]
-            for num, unique_series_uid in enumerate(
-                    df_tmp.series_uid.unique(), 1):
-                index = df[df['series_uid'] == unique_series_uid].index
-                df.loc[index, 'series_scan'] = num
-        else:
-            index = df[df['series_desc'] == series_name].index
-            df.loc[index, 'series_scan'] = 1
+    dup_df = unique_count_df[unique_count_df[
+            ['series_num', 'series_desc', 'series_uid']].duplicated()]
+
+    df['series_scan'] = 1
+    for _, row in dup_df.iterrows():
+        num = 1
+        logger.warning('There are more than one unique scan for %s' %
+                       row.series_desc)
+        df_tmp = df[
+                (df['series_num'] == row.series_num) &
+                (df['series_desc'] == row.series_desc) &
+                (df['series_uid'] == row.series_uid)]
+
+        df.loc[df_tmp.index, 'series_scan'] = num
 
     end = time.time()
     t = end - start
     logger.debug(f'Time taken to extract info from pydicom objects: {t}')
-    # df.drop('pydicom', axis=1, inplace=True)
 
     return df
 
@@ -247,9 +277,11 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
     '''Copy the dicom in a new format for preprocessing'''
     new_root = Path(new_root)
     
-    # series
+    # for each series in the scan
     for (num, name, scan), table in dicom_df.groupby(
             ['series_num', 'series_desc', 'series_scan']):
+
+        # target dir
         series_dir_path = new_root / subject / f'ses-{session}' / \
                 f'{num:02}_{name}'
 

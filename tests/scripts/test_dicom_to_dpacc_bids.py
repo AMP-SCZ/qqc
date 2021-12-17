@@ -4,9 +4,7 @@ import sys
 import re
 sys.path.append(str(scripts_path))
 
-from dicom_to_dpacc_bids import dicom_to_bids, parse_args, \
-        compare_data_to_standard, quick_figures, dicom_to_bids_with_quick_qc, \
-        within_phantom_qc, save_csa, check_num_order_of_series
+from dicom_to_dpacc_bids import parse_args, dicom_to_bids_with_quick_qc
 from phantom_check.dicom_files import get_dicom_files_walk, \
         get_diff_in_csa_for_all_measures
 
@@ -19,6 +17,10 @@ import pandas as pd
 import socket
 import numpy as np
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 if socket.gethostname() == 'mbp16':
     raw_dicom_dir = Path(__file__).parent.parent.parent / 'data' / \
@@ -27,9 +29,12 @@ if socket.gethostname() == 'mbp16':
     standard_dicom_dir = Path(__file__).parent.parent.parent / 'data' / \
             'dicom_raw_source'
 else:
-    raw_dicom_dir = Path('/data/predict/phantom_data/kcho/tmp')
-    standard_dicom_dir = Path(__file__).parent.parent.parent / 'data' / \
-            'dicom_raw_source'
+
+    # raw_dicom_dir = Path('/data/predict/phantom_data/kcho/tmp')
+    # standard_dicom_dir = Path(__file__).parent.parent.parent / 'data' / \
+            # 'dicom_raw_source'
+    raw_dicom_dir = Path('/data/predict/phantom_data/kcho/tmp/PHANTOM_20211022')
+    standard_dicom_dir = Path('/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/ses-humanpilot')
 
 
 
@@ -173,14 +178,27 @@ def test_within_phantom_qc():
     within_phantom_qc(subject_dir, qc_out_dir)
 
 
-def test_within_phantom_qc():
+def test_within_phantom_qc_smooth():
     args = parse_args(['-i', str(raw_dicom_dir),
         '-s', 'whole_flow',
         '-ss', 'testsession',
         '-o', 'testroot',
-        '-std', '/data/predict/phantom_data/phantom_data_BIDS/sub-ProNETYalePrismafit/ses-phantom'])
+        '-std', '/data/predict/phantom_human_pilot/rawdata/sub-ProNETYalePrismafit/ses-phantom'])
 
 
+    print(args)
+    dicom_to_bids_with_quick_qc(args)
+
+
+def test_within_phantom_partial_rescan():
+    args = parse_args(['-i', '/data/predict/phantom_data/site_data/Prescient_Jena_Prisma/phantom/data/dicom/1.3.12.2.1107.5.2.43.67036.30000021112408332049800000006',
+        '-s', 'whole_flow',
+        '-ss', 'partialrescan',
+        '-o', 'testroot',
+        '-std', '/data/predict/phantom_human_pilot/rawdata/sub-ProNETYalePrismafit/ses-phantom',
+        '--partial_rescan'])
+
+    print(args)
     dicom_to_bids_with_quick_qc(args)
 
 

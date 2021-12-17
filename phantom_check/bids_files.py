@@ -1,31 +1,12 @@
 from pathlib import Path
 import json
 import os
+import re
 import pandas as pd
+import nibabel as nb
+import logging
+from typing import Tuple, List
+from phantom_check.utils.files import get_all_files_walk
+from phantom_check.qqc.json import json_check, compare_bval_files
 
-
-def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
-    '''Read all json files from session_dir and return protocol name as df
-
-    Key Argument:
-        session_dir: root of session directory in BIDS format, Path.
-
-    Returns:
-        pd.DataFrame
-    '''
-
-    df = pd.DataFrame()
-    num = 0
-    for root, dirs, files in os.walk(session_dir):
-        for file in files:
-            if file.endswith('json'):
-                with open(Path(root, file), 'r') as json_file:
-                    data = json.load(json_file)
-                    series_num = data['SeriesNumber']
-                    series_desc = data['SeriesDescription']
-                    df.loc[num, 'series_num'] = series_num
-                    df.loc[num, 'series_desc'] = series_desc
-                    num += 1
-
-    return df
 
