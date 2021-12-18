@@ -146,88 +146,16 @@ def dicom_to_bids_with_quick_qc(args) -> None:
                       args.session_name, nifti_dir)
 
 
-    # args.partial_rescan: True if serieses need to be reordered by their
-    # description, bool.
-    # if args.partial_rescan:
-        # logger.info('Partial scan option is used. '
-                    # 'Changing series number to match target series number')
-        # if args.skyra:
-            # series_num_target_dict = {
-                # 1:'Localizer',
-                # 2:'AAHScout',
-                # 3:'AAHScout_MPR_sag',
-                # 4:'AAHScout_MPR_cor',
-                # 5:'AAHScout_MPR_tra',
-                # 6:'Localizer_aligned',
-                # 7:'DistortionMap_AP',
-                # 8:'DistortionMap_PA',
-                # 9:'T1w_MPR',
-                # 10:'T1w_MPR',
-                # 11:'T2w_SPC',
-                # 12:'T2w_SPC',
-                # 13:'DistortionMap_AP',
-                # 14:'DistortionMap_PA',
-                # 15:'rfMRI_REST_AP_SBRef',
-                # 16:'rfMRI_REST_AP',
-                # 17:'rfMRI_REST_PA_SBRef',
-                # 18:'rfMRI_REST_PA',
-                # 19:'dMRI_b0_AP_SBRef',
-                # 20:'dMRI_b0_AP',
-                # 21:'dMRI_dir126_PA_SBRef',
-                # 22:'dMRI_dir126_PA',
-                # 23:'dMRI_b0_AP_SBRef',
-                # 24:'dMRI_b0_AP',
-                # 25:'DistortionMap_AP',
-                # 26:'DistortionMap_PA',
-                # 27:'rfMRI_REST_AP_SBRef',
-                # 28:'rfMRI_REST_AP',
-                # 29:'rfMRI_REST_PA_SBRef',
-                # 30:'rfMRI_REST_PA'}
-        # else:
-            # series_num_target_dict = {
-                # 1:'Localizer',
-                # 2:'AAHScout',
-                # 3:'AAHScout_MPR_sag',
-                # 4:'AAHScout_MPR_cor',
-                # 5:'AAHScout_MPR_tra',
-                # 6:'Localizer_aligned',
-                # 7:'DistortionMap_AP',
-                # 8:'DistortionMap_PA',
-                # 9:'T1w_MPR',
-                # 10:'T1w_MPR',
-                # 11:'T2w_SPC',
-                # 12:'T2w_SPC',
-                # 13:'DistortionMap_AP',
-                # 14:'DistortionMap_PA',
-                # 15:'rfMRI_REST_AP_SBRef',
-                # 16:'rfMRI_REST_AP',
-                # 17:'rfMRI_REST_PA_SBRef',
-                # 18:'rfMRI_REST_PA',
-                # 19:'dMRI_b0_AP_SBRef',
-                # 20:'dMRI_b0_AP',
-                # 21:'dMRI_dir176_PA_SBRef',
-                # 22:'dMRI_dir176_PA',
-                # 23:'dMRI_b0_AP_SBRef',
-                # 24:'dMRI_b0_AP',
-                # 25:'DistortionMap_AP',
-                # 26:'DistortionMap_PA',
-                # 27:'rfMRI_REST_AP_SBRef',
-                # 28:'rfMRI_REST_AP',
-                # 29:'rfMRI_REST_PA_SBRef',
-                # 30:'rfMRI_REST_PA'}
+    # load json information from the user givin standard BIDS directory
+    if args.standard_dir:
+        standard_dir = Path(args.standard_dir)
+        df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
+        df_full_std.sort_values('series_num', inplace=True)
 
-        # series_num_target_dict = {y: x for x, y in
-                # series_num_target_dict.items()}
-
-        # df_full['orig_series_num'] = df_full['series_num']
-        # df_full['series_num'] = df_full['series_desc'].map(
-                # series_num_target_dict)
-
-
-    logger.info('Checking number and order of scan series')
-    # check number & order of series
-    print('Check number & order of series')
-    check_num_order_of_series(df_full, qc_out_dir, args.skyra)
+        logger.info('Checking number and order of scan series')
+        # check number & order of series
+        print('Check number & order of series')
+        check_num_order_of_series(df_full, df_full_std, qc_out_dir)
 
     # within data QC
     logger.info('Beginning within scan QC')

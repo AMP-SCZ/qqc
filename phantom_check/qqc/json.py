@@ -104,7 +104,24 @@ def json_check_for_a_session(json_files: List[str],
                 'Items in the table below are consistent across json files',
                 df_all_shared)
 
-    return (df_all_diff, df_all_shared)
+    return (df_all, df_all_diff, df_all_shared)
+
+
+def summarize_into_file(fp: 'openfile',
+                        df_all_diff: pd.DataFrame,
+                        df_all_shared: pd.DataFrame,
+                        title: str) -> None:
+    '''Write summary of df_all_df into open file fp'''
+    fp.write(f'Checking {title}'+ '\n')
+    fp.write('='*80 + '\n')
+    if df_all_diff.empty:
+        fp.write(f'{title} are consistent' + '\n')
+        fp.write('(Items in the table below are consistent across json '
+                 'files)\n')
+        fp.write(df_all_shared.to_string() + '\n')
+    else:
+        fp.write(df_all_diff.to_string() + '\n')
+    fp.write('='*80 + '\n\n\n')
 
 
 def json_check(json_files: List[str],
@@ -268,60 +285,29 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path):
     Notes:
     '''
     json_paths_input = get_all_files_walk(session_dir, 'json')
+    non_anat_json_paths_input = [x for x in json_paths_input
+                                  if x.parent.name != 'anat']
+    anat_json_paths_input = [x for x in json_paths_input
+                              if x.parent.name == 'anat']
 
-    with open(qc_out_dir / 'within_phantom_qc.txt', 'w') as fp:
-        fp.write('Checking shim settings'+ '\n')
-        fp.write('='*80 + '\n')
-        df_all_diff, df_all_shared = json_check_for_a_session(
-                json_paths_input,
+    fp = open(qc_out_dir / 'within_phantom_qc.txt', 'w')
+    for json_input, specific_field, title in zip(
+        [json_paths_input, non_anat_json_paths_input, anat_json_paths_input],
+        ['ShimSetting',
+         'ImageOrientationPatientDICOM',
+         'ImageOrientationPatientDICOM'],
+        ['shim settings',
+         'image orientation in dMRI, fMRI and distortionMaps',
+         'image orientation in anat']):
+        df_all, df_all_diff, df_all_shared = json_check_for_a_session(
+                json_input,
                 print_diff=False, print_shared=False,
-                specific_field='ShimSetting')
+                specific_field=specific_field)
+        csv_suffix = re.sub('[ ,]+', '_', title)
+        df_all.to_csv(qc_out_dir / f'json_check_{csv_suffix}.csv')
+        summarize_into_file(fp, df_all_diff, df_all_shared, title)
 
-        if df_all_diff.empty:
-            fp.write('Seem settings are consistent' + '\n')
-            fp.write('(Items in the table below are consistent across json '
-                     'files)\n')
-            fp.write(df_all_shared.to_string() + '\n')
-        else:
-            fp.write(df_all_diff.to_string() + '\n')
-        fp.write('='*80 + '\n\n\n')
-
-
-        fp.write('Checking image orientation in dMRI, fMRI and '
-                 'distortionMaps'+ '\n')
-        fp.write('='*80 + '\n')
-        non_anat_json_paths_input = [x for x in json_paths_input
-                                      if x.parent.name != 'anat']
-        df_all_diff, df_all_shared = json_check_for_a_session(
-                non_anat_json_paths_input,
-                print_diff=False, print_shared=False,
-                specific_field='ImageOrientationPatientDICOM')
-        if df_all_diff.empty:
-            fp.write('Image Orientations are consistent' + '\n')
-            fp.write('(Items in the table below are consistent across json '
-                     'files)\n')
-            fp.write(df_all_shared.to_string() + '\n')
-        else:
-            fp.write(df_all_diff.to_string() + '\n')
-        fp.write('='*80 + '\n\n\n')
-
-        # anat
-        fp.write('Checking image orientation in anat'+ '\n')
-        fp.write('='*80 + '\n')
-        anat_json_paths_input = [x for x in json_paths_input
-                                  if x.parent.name == 'anat']
-        df_all_diff, df_all_shared = json_check_for_a_session(
-                anat_json_paths_input,
-                print_diff=False, print_shared=False,
-                specific_field='ImageOrientationPatientDICOM')
-        if df_all_diff.empty:
-            fp.write('Image Orientations are consistent' + '\n')
-            fp.write('(Items in the table below are consistent across json '
-                     'files)\n')
-            fp.write(df_all_shared.to_string() + '\n')
-        else:
-            fp.write(df_all_diff.to_string() + '\n')
-        fp.write('='*80 + '\n\n\n')
+    fp.close()
 
 
 def compare_data_to_standard(input_dir: str, standard_dir: str,
