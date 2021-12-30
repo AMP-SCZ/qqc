@@ -9,7 +9,8 @@ from typing import Union
 def run_heudiconv(dicom_input_root: Union[Path, str],
                   subject_name: str,
                   session_name: str,
-                  nifti_root_dir:Union[Path, str]) -> None:
+                  nifti_root_dir:Union[Path, str],
+                  qc_out_dir: Path) -> None:
     '''Run heudiconv on specified subjects to create nifti structure in BIDS
     
     Key Arguments:
@@ -24,6 +25,7 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
         session_name: Name of session str. Must not have "ses" in front.
                       eg) humanpilot
         nifti_root_dir: root of the nifti output, Path or str.
+        qc_out_dir: QC out directory, Path.
 
     Returns:
         None
@@ -43,4 +45,12 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
 
     logger.info('Running heudiconv')
     logger.info('heudiconv command: %s' % command)
-    os.popen(command).read()
+    output = os.popen(command).read()
+
+    with open(qc_out_dir / 'heudiconv_log.txt', 'w') as fp:
+        fp.write(output)
+
+
+
+
+

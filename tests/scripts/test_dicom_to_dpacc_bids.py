@@ -190,6 +190,57 @@ def test_within_phantom_qc_smooth():
     dicom_to_bids_with_quick_qc(args)
 
 
+def test_within_phantom_nifti_snapshot():
+    args = parse_args(['-i', str(raw_dicom_dir),
+        '-s', 'whole_flow',
+        '-ss', 'testsession',
+        '-o', 'testroot',
+        '-std', '/data/predict/phantom_human_pilot/rawdata/sub-ProNETYalePrismafit/ses-phantom'])
+
+    from nifti_snapshot import nifti_snapshot
+    import re
+    t1w_norm = Path(args.output_dir) / 'rawdata' / \
+            'sub-wholeflow' / 'ses-testsession' / 'anat' / \
+            'sub-wholeflow_ses-testsession_rec-norm_run-1_T1w.nii.gz'
+
+    outfile = './test.png'
+    
+    fig = nifti_snapshot.SimpleFigure(
+        image_files = [t1w_norm],
+        title = 't1w_norm_title',
+        make_transparent_zero = True,
+        cbar_width = 0.5,
+        cbar_title = 'cbar title',
+        output_file = outfile,
+    )
+
+        # percentile = [0.5]
+        # volumes = args.volumes,
+    # # these two lines have to be in the script or in your ~/.bashrc to use the function
+    # export PYTHONPATH=/data/predict/phantom_data/softwares/nifti-snapshot:${PYTHONPATH}
+    # export PATH=/data/predict/phantom_data/softwares/nifti-snapshot/scripts:${PATH}
+
+    # mkdir nifti_snapshot
+    # for i in */*nii.gz
+    # do
+        # name=`basename ${i%.nii.gz}`
+        # nifti_snapshot -i ${i} -o nifti_snapshot/${name}.png -c gray
+    # done
+
+
+    # # if you want to visualize specific volume (vol==5) for a 4d nifti file
+    # nifti_snapshot -i ${i} -o nifti_snapshot/${name}.png -c gray -volumes 5
+
+
+    # # if you want to use different percentile to threshold the image (minimum threshold for 10th percentile, maximum threshold for 95th percentile - Default is 5 and 10)
+    # nifti_snapshot -i ${i} -o nifti_snapshot/${name}.png -c gray --volumes 5 –intensity_percentile 10 95
+
+
+    print(args)
+    # dicom_to_bids_with_quick_qc(args)
+
+
+
 def test_within_phantom_partial_rescan():
     args = parse_args(['-i', '/data/predict/phantom_data/site_data/Prescient_Jena_Prisma/phantom/data/dicom/1.3.12.2.1107.5.2.43.67036.30000021112408332049800000006',
         '-s', 'whole_flow',

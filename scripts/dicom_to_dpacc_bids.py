@@ -17,6 +17,7 @@ from phantom_check.qqc.dicom import check_num_order_of_series, save_csa
 from phantom_check.qqc.json import within_phantom_qc, \
         compare_data_to_standard, compare_data_to_standard_lazy
 from phantom_check.qqc.figures import quick_figures
+from phantom_check.qqc.mriqc import run_mriqc_on_data
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
@@ -51,6 +52,9 @@ def parse_args(argv):
 
     parser.add_argument('--output_dir', '-o', type=str,
                         help='BIDS Output directory')
+
+    parser.add_argument('--qc_subdir', '-qs', type=str,
+                        help='ExtraQC output directory name.')
 
     parser.add_argument('--standard_dir', '-std', type=str,
                         help='Root of a standard dataset to compare to')
@@ -112,11 +116,13 @@ def dicom_to_bids_with_quick_qc(args) -> None:
     qc_out_dir = Path(args.output_dir) / 'derivatives' / 'quick_qc' / \
         subject_dir.name / session_dir.name
 
+    if args.qc_subdir:
+        qc_out_dir = qc_out_dir / args.qc_subdir
+
     try:
         qc_out_dir.mkdir(exist_ok=True, parents=True)
     except PermissionError:
         logger.critical("No permission to write under %s" % qc_out_dir.parent)
-
 
     # Raw dicom to ordered Dicom then to BIDS
     if args.nifti_dir:  # if nifti directory is given
@@ -143,19 +149,8 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         # cleaned up dicom structure -> BIDS
         nifti_dir = Path(args.output_dir) / 'rawdata'
         run_heudiconv(dicom_clearned_up_output, args.subject_name,
-                      args.session_name, nifti_dir)
+                      args.session_name, nifti_dir, qc_out_dir)
 
-
-    # load json information from the user givin standard BIDS directory
-    if args.standard_dir:
-        standard_dir = Path(args.standard_dir)
-        df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
-        df_full_std.sort_values('series_num', inplace=True)
-
-        logger.info('Checking number and order of scan series')
-        # check number & order of series
-        print('Check number & order of series')
-        check_num_order_of_series(df_full, df_full_std, qc_out_dir)
 
     # within data QC
     logger.info('Beginning within scan QC')
@@ -168,7 +163,17 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         x[1].iloc[0] for x in df_full.groupby('series_num')], axis=1).T
     save_csa(df_with_one_series, qc_out_dir)
 
+    # load json information from the user givin standard BIDS directory
     if args.standard_dir:
+        standard_dir = Path(args.standard_dir)
+        df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
+        df_full_std.sort_values('series_num', inplace=True)
+
+        logger.info('Checking number and order of scan series')
+        # check number & order of series
+        print('Check number & order of series')
+        check_num_order_of_series(df_full, df_full_std, qc_out_dir)
+
         print('Comparison to standard')
         compare_data_to_standard(session_dir, args.standard_dir,
                                  qc_out_dir, args.partial_rescan)
@@ -193,11 +198,19 @@ def dicom_to_bids_with_quick_qc(args) -> None:
                 args.partial_rescan)
 
     print('Creating summary figures')
+    if not args.qc_subdir:
+        try:
+            quick_figures(session_dir, qc_out_dir)
+        except RuntimeError:
+            print('Error in creating figures')
 
-    try:
-        quick_figures(session_dir, qc_out_dir)
-    except RuntimeError:
-        print('Error in creating figures')
+        # mriqc
+        mriqc_outdir_root = Path(args.output_dir) / 'derivatives' / 'quick_qc'
+        run_mriqc_on_data(
+            (Path(args.output_dir) / 'rawdata'),
+            subject_dir.name,
+            session_dir.name,
+            mriqc_outdir_root)
 
 
 if __name__ == '__main__':

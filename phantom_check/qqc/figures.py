@@ -3,6 +3,10 @@ from phantom_check.utils.files import get_diffusion_data_from_nifti_prefix, \
         get_nondmri_data, load_data_bval
 from phantom_check.utils.visualize import create_b0_signal_figure, \
         create_image_signal_figure 
+import sys
+sys.path.append('/data/predict/phantom_data/softwares/nifti-snapshot')
+from nifti_snapshot import nifti_snapshot
+
 
 
 def quick_figures(subject_dir: Path, outdir: Path):
@@ -48,4 +52,44 @@ def quick_figures(subject_dir: Path, outdir: Path):
     create_image_signal_figure(dataset, outdir / 'summary_fmri.png',
                             True, 4, wide_fig=True)
 
+
+    anat_dir = subject_dir / 'anat'
+    for nifti_path in anat_dir.glob('*.nii.gz'):
+        outname = nifti_path.name.split('.nii.gz')[0] + '.png'
+        fig = nifti_snapshot.SimpleFigure(
+            image_files = [nifti_path],
+            title = nifti_path.name,
+            make_transparent_zero = True,
+            cbar_width = 0.5,
+            cbar_title = 'Intensity',
+            output_file = outdir / outname,
+        )
+
+    # add dMRI & fMRI visualization
+    dwi_dir = subject_dir / 'dwi'
+    for nifti_path in dwi_dir.glob('*.nii.gz'):
+        outname = nifti_path.name.split('.nii.gz')[0] + '.png'
+        fig = nifti_snapshot.SimpleFigure(
+            image_files = [nifti_path],
+            title = nifti_path.name,
+            make_transparent_zero = True,
+            volumes=[0],
+            cbar_width = 0.5,
+            cbar_title = 'Intensity',
+            output_file = outdir / outname,
+        )
+
+    # add dMRI & fMRI visualization
+    func_dir = subject_dir / 'func'
+    for nifti_path in func_dir.glob('*.nii.gz'):
+        outname = nifti_path.name.split('.nii.gz')[0] + '.png'
+        fig = nifti_snapshot.SimpleFigure(
+            image_files = [nifti_path],
+            title = nifti_path.name,
+            make_transparent_zero = True,
+            volumes=[0],
+            cbar_width = 0.5,
+            cbar_title = 'Intensity',
+            output_file = outdir / outname,
+        )
 
