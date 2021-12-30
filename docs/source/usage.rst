@@ -6,10 +6,9 @@ Usage
 dicom_to_dpacc_bids.py
 ----------------------
 
-To process dicom files under ``PHOENIX/PROTECTED/PronetLA/raw/BW00001/mri/
-LA00006_MR_2021_07_22_1``, compare them to ``rawdata/sub-ProNETUCLA/
-ses-humanpilot``, and save the outputs under ``MRI_ROOT``, use the command
-below:
+To process dicom files under ``PHOENIX/PROTECTED/PronetLA/raw/BW00001/mri/LA00006_MR_2021_07_22_1``,
+compare them to ``rawdata/sub-ProNETUCLA/ses-humanpilot``, and save the
+outputs under ``MRI_ROOT``, use the command below:
 
 .. code-block:: console
 
@@ -125,8 +124,7 @@ Outputs in detail
 -----------------
 
 1. Sort dicom files according to series description
-  - The script copies the raw dicom files to ``${output_dir}/sourcedata/
-    ${subject}/ses-${session}``.
+  - The script copies the raw dicom files to ``${output_dir}/sourcedata/${subject}/ses-${session}``.
   - Dicom files of for each series will be under a separate directory under 
     the target directory, ``{series_number}_{series_description}``.
   - The script has been designed to also work with a dicom directory, where all 
@@ -134,8 +132,7 @@ Outputs in detail
 
 2. Dicom to BIDS using ``heudiconv``
   - The U24 specific heuristic config file ``phantom_check/data/heuristic.py`` 
-    is used. Output nifti files are saved under ``${output_dir}/rawdata/
-    ${subject}/ses-${session}``.
+    is used. Output nifti files are saved under ``${output_dir}/rawdata/${subject}/ses-${session}``.
   - List of modality directories are
 
     - ``anat``: contains T1w and T2w, both normalized and non-normalized.
