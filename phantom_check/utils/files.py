@@ -11,6 +11,18 @@ import sys
 import json
 from sklearn.cluster import KMeans
 from sklearn import preprocessing
+import os
+
+
+def get_all_files_walk(root_dir: str, extension: str) -> List[Path]:
+    '''Return a list of all json file paths under a root_dir'''
+    path_list = []
+    for root, _, files in os.walk(root_dir):
+        for file in files:
+            if file.endswith('.' + extension) and not file.startswith('.'):
+                path_list.append(Path(root) / file)
+
+    return path_list
 
 
 def load_data_bval(prefix: Path):
