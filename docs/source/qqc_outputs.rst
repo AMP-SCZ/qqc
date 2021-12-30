@@ -8,6 +8,8 @@ Quick Quality Check
 List of QQC outputs
 -------------------
 
+.. _qqc_to_standard:
+
 Comparison to the standard BIDS session given by user
 -----------------------------------------------------
 - ``series_count.csv``: This shows the comparison of unique series number 
@@ -45,6 +47,8 @@ Comparison to the standard BIDS session given by user
    :width: 500
 
 
+.. _qqc_same_session:
+
 Consistency across the series in the same scan session
 ------------------------------------------------------
 
@@ -68,6 +72,8 @@ The same information is included in the tables below.
 - ``summary_b0.png``
 
 
+.. _qqc_signals:
+
 Quick summary of signals in DWI and REST fMRI
 ---------------------------------------------
 
@@ -84,6 +90,8 @@ Quick summary of signals in DWI and REST fMRI
 .. image:: images/summary_fmri.png
    :width: 600
 
+
+.. _qqc_snapshot:
 
 Quick capture of all nifti files
 --------------------------------

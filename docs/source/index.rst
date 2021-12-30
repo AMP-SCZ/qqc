@@ -18,5 +18,5 @@ Contents
 
    installation
    usage
-   outputs_in_detail
+   steps_in_detail
    qqc_outputs
