@@ -1,11 +1,11 @@
 Welcome to Phantom_check's documentation!
-===================================
+=========================================
 
-**Pahntom_check** is a Python library for converting U24 MRI dicoms to BIDS 
-format and run quick quality checks.
+**Phantom_check** is a Python library for converting U24 MRI dicoms to BIDS 
+format and running quick quality check (QC) pipelines. 
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+Check out the :doc:`installation` and :doc:`usage` section for further 
+information.
 
 .. note::
 
