@@ -63,9 +63,9 @@ Available options
 
 .. _outputs:
 
---------------------------------------
-Command above creates structure below:
---------------------------------------
+----------------
+Output structure
+----------------
 
 ::
 
