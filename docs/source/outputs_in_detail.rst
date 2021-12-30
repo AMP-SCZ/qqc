@@ -5,6 +5,9 @@ Outputs in detail
 .. _outputs_in_detail:
 
 ---------------------------------------------------
+What the script is doing and what are the outputs ?
+---------------------------------------------------
+
 1. Sort dicom files according to series description
 ---------------------------------------------------
 
@@ -14,7 +17,6 @@ the target directory, ``{series_number}_{series_description}``.
 - The script has been designed to also work with a dicom directory, where all 
 dicom files are dumped under a single directory. 
 
-------------------------------------
 2. Dicom to BIDS using ``heudiconv``
 ------------------------------------
 
@@ -48,7 +50,6 @@ is used. Output nifti files are saved under ``${output_dir}/rawdata/${subject}/s
   - scout
   - alinged localizer
 
------------------------------------
 3. Quick quality check (QC) outputs
 -----------------------------------
 - The script runs set of quality check pipelines to the data, and saves QC
