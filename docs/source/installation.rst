@@ -50,7 +50,7 @@ Install from github
 
 Add the path to ``~/.bashrc``
 
-.. code-block:: console
+.. code-block:: bash
 
    export PATH=${PATH}:~/phantom_check/scripts  # path settings
 

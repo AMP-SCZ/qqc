@@ -18,3 +18,4 @@ Contents
 
    installation
    usage
+   outputs_in_detail
