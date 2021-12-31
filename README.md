@@ -1,16 +1,19 @@
 # phantom_check
 
-**Phantom_check** is a Python library for converting U24 MRI dicoms to BIDS 
+**phantom_check** is a Python library for converting U24 MRI dicoms to BIDS 
 format and running quick quality check (QC) pipelines. 
 
-Check out [full documentation] (https://phantom-check.readthedocs.io/en/latest/index.html)
+Check out our [full documentation](https://phantom-check.readthedocs.io/en/latest/index.html)
+
+
 
 
 ### Simple example
 
-To process dicom files under ``PHOENIX/PROTECTED/PronetLA/raw/BW00001/mri/BW00001_MR_2021_07_22_1``,
-compare them to ``rawdata/sub-ProNETUCLA/ses-humanpilot``, and save the
-outputs under ``MRI_ROOT``, use the command below:
+
+- To process dicom files under ``PHOENIX/PROTECTED/PronetLA/raw/BW00001/mri/BW00001_MR_2021_07_22_1``,
+- compare them to a BIDS session ``rawdata/sub-ProNETUCLA/ses-humanpilot``, 
+- and save the outputs under ``MRI_ROOT``, use the command below
 
 
 ```sh
@@ -27,15 +30,15 @@ $ dicom_to_dpacc_bids.py \
 
 ```sh
 MRI_ROOT/
-├── sourcedata
+├── sourcedata                               
 │   └── BW00001
-│       └── ses-202107221
+│       └── ses-202107221                     # cleaned up dicoms
 │           ├── 01_Localizer
 │           ├── ...
 │           └── 30_rfMRI_REST_PA
 ├── rawdata
 │   └── sub-BW00001
-│       └── ses-202107221
+│       └── ses-202107221                     # BIDS nifti files
 │           ├── anat
 │           │   ├── sub-BW00001_ses-202107221_rec-nonnorm_run-1_T1w.json
 │           │   ├── ...
