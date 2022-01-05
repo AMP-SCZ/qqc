@@ -315,6 +315,30 @@ def find_matching_files_between_BIDS_sessions(
                     json_df_all.loc[index, 'series_num_std'] = r2.series_num
                     diff_in_series_num = diff
 
+        # scout
+        if pd.isnull(row.json_path_std) and \
+                'scout' in row.series_desc.lower():
+            # get dataframe of standard distortion maps in the same position
+            # eg.) distortion maps before T1w_MPR or rfMRI_REST
+            series_tmp = json_df_std[
+                (json_df_std.series_desc == row.series_desc) &
+                (json_df_std.num_num == row.num_num)].iloc[0]
+
+            json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
+            json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
+            json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+
+        # localizers
+        if pd.isnull(row.json_path_std) and \
+            'localizer' in row.series_desc.lower():
+            series_tmp = json_df_std[
+                (json_df_std.series_desc == row.series_desc) &
+                (json_df_std.scout_num == row.scout_num)].iloc[0]
+
+            json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
+            json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
+            json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+
     # standard series not included in the input series
     for num, (index, row) in enumerate(json_df_std[
             ~json_df_std.json_suffix.isin(json_df_all.json_suffix_std)
@@ -515,26 +539,27 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
 
 
 def compare_data_to_standard_all_jsons_new(input_dir: str,
-                                       standard_dir: str,
-                                       qc_out_dir: Path,
-                                       partial_rescan: bool):
+                                           standard_dir: str,
+                                           qc_out_dir: Path,
+                                           partial_rescan: bool):
 
     json_df_all = find_matching_files_between_BIDS_sessions(
             input_dir, standard_dir)
+    json_df_all.to_csv(qc_out_dir / '_input2std_matching_table.csv')
 
     df_diff = pd.DataFrame()
     for _, row in json_df_all.iterrows():
-        if row.json_path_input is 'missing':
+        if row.json_path_input is 'missing' or pd.isnull(row.json_path_input):
             df_row = pd.DataFrame({
                 'series_desc': [row.series_desc],
                 'series_num': row['series_num_input'],
                 'input_json': row['json_path_input'],
                 'standard_json': row['json_path_std'].name})
-        elif row.json_path_std is 'missing':
+        elif row.json_path_std is 'missing' or pd.isnull(row.json_path_std):
             df_row = pd.DataFrame({
                 'series_desc': [row.series_desc],
-                'series_num': row['series_num_input'].name,
-                'input_json': row['json_path_input'].name,
+                'series_num': row['series_num_input'],
+                'input_json': row['json_path_input'],
                 'standard_json': 'missing'})
         else:
             df_row = json_check_new([Path(row.json_path_input),
@@ -565,6 +590,7 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
         df_diff = pd.concat([df_diff, df_row], axis=0)
 
     df_diff.to_excel(qc_out_dir / 'json_comparison_log.xlsx')
+    df_diff.to_csv(qc_out_dir / 'json_comparison_log.csv')
 
 
 def compare_data_to_standard_all_jsons(input_dir: str,
