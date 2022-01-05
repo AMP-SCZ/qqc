@@ -1,12 +1,12 @@
 =================
-Outputs in detail
+Steps in detail
 =================
 
-.. _outputs_in_detail:
+.. _steps_in_detail:
 
----------------------------------------------------
-What the script is doing and what are the outputs ?
----------------------------------------------------
+------------------------
+What the script is doing
+------------------------
 
 1. Sort dicom files according to series description
 ---------------------------------------------------
@@ -52,6 +52,7 @@ is used. Output nifti files are saved under ``${output_dir}/rawdata/${subject}/s
 
 3. Quick quality check (QC) outputs
 -----------------------------------
+
 - The script runs set of quality check pipelines to the data, and saves QC
 outputs under ``${output_dir}/derivatives/``
 
@@ -61,32 +62,8 @@ outputs under ``${output_dir}/derivatives/``
 
 - Protocol check
 
-- ``json_comparison_log.xlsx``: compare input dcm2niix sidecar jsons to
-  json in tempalte BIDS data.
-- ``json_comparison_log.txt``: same as above in a text format.
-- ``series_count.csv``: check number of series against template BIDS data.
-- ``volume_slice_number_comparison_log.csv``: check shape of nifti data 
-  against template BIDS data.
-- ``scan_order.csv``: check order of series acquisitions against template 
-  BIDS data.
-- ``bval_comparison_log.txt``: compare b-values and number of shells in DWI
-  against template BIDS data.
-- ``within_phantom_qc.txt``: compare consistency across series in a same
-  session
-- ``csa_headers.csv``: extract CSA header information for each series.
-- ``json_check_image_orientation_in_anat.csv``
-- ``json_check_image_orientation_in_dMRI_fMRI_and_distortionMaps.csv``
-- ``json_check_shim_settings.csv``
-- ``sub-BW00001_ses-202107221_acq-176_dir-PA_run-1_dwi.png``
-- ``sub-BW00001_ses-202107221_acq-176_dir-PA_run-1_sbref.png``
-- ``sub-BW00001_ses-202107221_acq-b0_dir-AP_run-1_dwi.png``
-- ``sub-BW00001_ses-202107221_acq-b0_dir-AP_run-1_sbref.png``
-- ``sub-BW00001_ses-202107221_acq-b0_dir-AP_run-2_dwi.png``
-- ``sub-BW00001_ses-202107221_acq-b0_dir-AP_run-2_sbref.png``
-- ``sub-BW00001_ses-202107221_rec-nonnorm_run-1_T1w.png``
-- ``sub-BW00001_ses-202107221_rec-nonnorm_run-1_T2w.png``
-- ``sub-BW00001_ses-202107221_rec-norm_run-1_T1w.png``
-- ``sub-BW00001_ses-202107221_rec-norm_run-1_T2w.png``
-- ``summary_b0.png``
-- ``summary_dwi.png``
-- ``summary_fmri.png``
+   1. Comparison to the standard BIDS session given by user. :ref:`qqc_to_standard`
+   2. Check consistency across the series in the same scan session. :ref:`qqc_same_session`
+   3. Quick summary of signals in DWI and REST fMRI. :ref:`qqc_signals`
+   4. Quick screen capture of all nifti files. :ref:`qqc_snapshot`
+
