@@ -27,7 +27,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
     work_dir.mkdir(exist_ok=True, parents=True)
 
     command = f'{singularity} run -e \
-        -B {rawdata_dir}:/data/ro \
+        -B {rawdata_dir}:/data:ro \
         -B {work_dir}:/work \
         -B {mriqc_outdir_root}:/out \
         -B /data/pnl/soft/pnlpipe3/freesurfer/license.txt:/opt/freesurfer/license.txt \

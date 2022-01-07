@@ -18,6 +18,8 @@ from phantom_check.qqc.json import within_phantom_qc, \
         compare_data_to_standard, compare_data_to_standard_lazy
 from phantom_check.qqc.figures import quick_figures
 from phantom_check.qqc.mriqc import run_mriqc_on_data
+from phantom_check.qqc.fmriprep import run_fmriprep_on_data
+from phantom_check.qqc.dwipreproc import run_quick_dwi_preproc_on_data
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
@@ -113,7 +115,8 @@ def dicom_to_bids_with_quick_qc(args) -> None:
 
     # QC output
     # BIDS_root / derivatives / quick_qc
-    qc_out_dir = Path(args.output_dir) / 'derivatives' / 'quick_qc' / \
+    deriv_p = Path(args.output_dir) / 'derivatives'
+    qc_out_dir = deriv_p / 'quick_qc' / \
         subject_dir.name / session_dir.name
 
     if args.qc_subdir:
@@ -204,13 +207,32 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         except RuntimeError:
             print('Error in creating figures')
 
+        # quick dwi preprocessing
+        dwipreproc_outdir_root = deriv_p / 'dwipreproc'
+        run_mriqc_on_data(
+            (Path(args.output_dir) / 'rawdata'),
+            subject_dir.name,
+            session_dir.name,
+            dwipreproc_outdir_root)
+
         # mriqc
-        mriqc_outdir_root = Path(args.output_dir) / 'derivatives' / 'quick_qc'
+        mriqc_outdir_root = deriv_p / 'mriqc'
         run_mriqc_on_data(
             (Path(args.output_dir) / 'rawdata'),
             subject_dir.name,
             session_dir.name,
             mriqc_outdir_root)
+
+        # fmriprep
+        fmriprep_outdir_root = deriv_p / 'fmriprep'
+        fs_outdir_root = deriv_p / 'freesurfer'
+        run_fmriprep_on_data(
+            (Path(args.output_dir) / 'rawdata'),
+            subject_dir.name,
+            session_dir.name,
+            fmriprep_outdir_root,
+            fs_outdir_root)
+
 
 
 if __name__ == '__main__':
