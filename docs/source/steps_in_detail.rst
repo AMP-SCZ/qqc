@@ -1,15 +1,13 @@
-=================
 Steps in detail
 =================
 
 .. _steps_in_detail:
 
-------------------------
 What the script is doing
 ------------------------
 
 1. Sort dicom files according to series description
----------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The script copies the raw dicom files to ``${output_dir}/sourcedata/${subject}/ses-${session}``.
 - Dicom files of for each series will be under a separate directory under 
@@ -18,7 +16,7 @@ the target directory, ``{series_number}_{series_description}``.
 dicom files are dumped under a single directory. 
 
 2. Dicom to BIDS using ``heudiconv``
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The U24 specific heuristic config file ``phantom_check/data/heuristic.py`` 
 is used. Output nifti files are saved under ``${output_dir}/rawdata/${subject}/ses-${session}``.
@@ -51,7 +49,7 @@ is used. Output nifti files are saved under ``${output_dir}/rawdata/${subject}/s
   - alinged localizer
 
 3. Quick quality check (QC) outputs
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The script runs set of quality check pipelines to the data, and saves QC
 outputs under ``${output_dir}/derivatives/``
@@ -59,6 +57,8 @@ outputs under ``${output_dir}/derivatives/``
 - DWI preprocessing
 
 - MRIQC
+
+- FMRIPREP
 
 - Protocol check
 
