@@ -1,35 +1,34 @@
 Installation
-=====
-
-.. _requirements:
-
-Requirements
-------------
-
-- dcm2niix (>= version v1.0.20210317)
-- heudiconv (>= version v0.10.0)
-- python3
-- `nifti_snapshot <https://github.com/pnlbwh/nifti-snapshot>`_
-- matplotlib==3.0.3
-- nibabel==3.1.0
-- numpy==1.16.2
-- pandas==0.24.2
-- pydicom==1.3.0
-- pytest==5.4.3
-- scikit_learn==1.0.2
-- seaborn==0.11.1
-
+============
 
 .. _dcm2niix:
 
 Install dcm2niix
 ----------------
 
-To use phantom_check, first install dcm2niix and add it to PATH variable.
+To use phantom_check, first install
+`dcm2niix <https://github.com/rordenlab/dcm2niix>`_ and add it to PATH
+variable.
 
-.. code-block:: console
+.. code-block:: shell
 
-   $ export PATH=${PATH}:/PATH/TO/DCM2NIIX   # add to ~/.bashrc
+   export PATH=${PATH}:/PATH/TO/DCM2NIIX
+   echo "export PATH=${PATH}:/PATH/TO/DCM2NIIX" > ~/.bashrc
+
+
+.. _dcm2niix:
+
+Install heudiconv
+-----------------
+
+``heudiconv`` is also required to run ``phantom_check``. Install ``heudiconv``
+following the `instruction on their website <https://heudiconv.readthedocs.io/en/latest/installation.html>`_,
+and make sure you can access ``heudiconv`` from your console.
+
+.. code-block:: shell
+
+   heudiconv -h
+
 
 
 .. _install_phantom_check:
@@ -37,20 +36,29 @@ To use phantom_check, first install dcm2niix and add it to PATH variable.
 Install phantom_check
 ---------------------
 
-Install from github
+Install from ``pip``
 
-.. code-block:: console
+.. code-block:: shell
 
-   $ git clone https://github.com/AMP-SCZ/phantom_check
-   $ cd phantom_check
-
-   $ pip install heudiconv[all]  #installing heudiconv
-   $ pip install -r requirements.txt
+   pip install phantom_check
 
 
-Add the path to ``~/.bashrc``
+or install from github
 
-.. code-block:: bash
+.. code-block:: shell
 
-   export PATH=${PATH}:~/phantom_check/scripts  # path settings
+   git clone https://github.com/AMP-SCZ/phantom_check
+   cd phantom_check
+
+   pip install heudiconv[all]  #installing heudiconv
+   pip install -r requirements.txt
+
+
+.. note::
+   if you used git to clone ``phantom_check``, add the script path to your
+   ``~/.bashrc``
+
+   .. code-block:: shell
+
+       echo "export PATH=${PATH}:~/phantom_check/scripts" >> ~/.bashrc
 
