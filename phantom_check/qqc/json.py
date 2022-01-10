@@ -317,6 +317,17 @@ def find_matching_files_between_BIDS_sessions(
 
         # scout
         if pd.isnull(row.json_path_std) and \
+                'aahscout' in row.series_desc.lower():
+            # get dataframe of standard distortion maps in the same position
+            # eg.) distortion maps before T1w_MPR or rfMRI_REST
+            series_tmp = json_df_std[
+                (json_df_std.series_desc == row.series_desc)].iloc[0]
+
+            json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
+            json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
+            json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+        
+        elif pd.isnull(row.json_path_std) and \
                 'scout' in row.series_desc.lower():
             # get dataframe of standard distortion maps in the same position
             # eg.) distortion maps before T1w_MPR or rfMRI_REST
@@ -329,7 +340,7 @@ def find_matching_files_between_BIDS_sessions(
             json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
 
         # localizers
-        if pd.isnull(row.json_path_std) and \
+        elif pd.isnull(row.json_path_std) and \
             'localizer' in row.series_desc.lower():
             series_tmp = json_df_std[
                 (json_df_std.series_desc == row.series_desc) &
