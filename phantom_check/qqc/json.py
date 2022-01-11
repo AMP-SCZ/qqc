@@ -226,7 +226,7 @@ def get_all_json_information_quick(data_dir):
 
     json_df = pd.DataFrame()
     for json_path_input in json_paths:
-        _, _, json_suffix_input = \
+        _, __, json_suffix_input = \
                 get_naming_parts_bids(json_path_input.name)
 
         with open(json_path_input, 'r') as json_file:
@@ -247,8 +247,8 @@ def get_all_json_information_quick(data_dir):
                 'run-(\d+)')
         json_df_tmp['num_num'] = json_df_tmp['json_suffix'].str.extract(
                 'num-(\d+)')
-        json_df_tmp['scout_num'] = json_df_tmp['json_suffix'].str.split(
-                '.').str[0].str[-1]
+        json_df_tmp['scout_num'] = json_df_tmp['json_path'].apply(
+                lambda x: x.name).str.split('.').str[0].str[-1]
 
         json_df = pd.concat([json_df, json_df_tmp], sort=False)
 
@@ -349,6 +349,17 @@ def find_matching_files_between_BIDS_sessions(
             json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
             json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
             json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+
+        # other maps with different series number
+        # else:
+            # series_tmp = json_df_std[
+                # (json_df_std.series_desc == row.series_desc) &
+                # (json_df_std.image_type == row.image_type)
+                # ].iloc[0]
+            # json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
+            # json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
+            # json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+
 
     # standard series not included in the input series
     for num, (index, row) in enumerate(json_df_std[

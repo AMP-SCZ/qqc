@@ -70,6 +70,14 @@ def parse_args(argv):
                              '--input_dir will be ignored and dcm2niix will '
                              'not be ran.')
 
+    parser.add_argument('--skip_dicom_rearrange', '-sdr',
+                        action='store_true',
+                        help='Skip dicom rearrange step.')
+
+    parser.add_argument('--skip_heudiconv', '-sh', default=False,
+                        action='store_true',
+                        help='Skip heudiconv step.')
+
     parser.add_argument('--partial_rescan', '-ps', action='store_true',
                         help='Use series name to find matching serieses - '
                              'Maybe useful for partial rescan')
@@ -144,15 +152,19 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         logger.info('Running dicom_to_bids to sort and convert dicom files')
 
         # raw dicom -> cleaned up dicom structure
-        df_full = get_dicom_files_walk(args.input_dir)
         dicom_clearned_up_output = Path(args.output_dir) / 'sourcedata'
-        rearange_dicoms(df_full, dicom_clearned_up_output,
-                        args.subject_name, args.session_name)
+        if not args.skip_dicom_rearrange:
+            df_full = get_dicom_files_walk(args.input_dir)
+            rearange_dicoms(df_full, dicom_clearned_up_output,
+                            args.subject_name, args.session_name)
+        else:
+            df_full = get_dicom_files_walk(args.input_dir, True)
 
         # cleaned up dicom structure -> BIDS
         nifti_dir = Path(args.output_dir) / 'rawdata'
-        run_heudiconv(dicom_clearned_up_output, args.subject_name,
-                      args.session_name, nifti_dir, qc_out_dir)
+        if not args.skip_heudiconv:
+            run_heudiconv(dicom_clearned_up_output, args.subject_name,
+                          args.session_name, nifti_dir, qc_out_dir)
 
 
     # within data QC
