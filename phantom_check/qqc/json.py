@@ -285,12 +285,20 @@ def find_matching_files_between_BIDS_sessions(
     json_df_input = get_all_json_information_quick(input_dir)
     json_df_std = get_all_json_information_quick(standard_dir)
 
-    json_df_all = pd.merge(
-        json_df_input, json_df_std,
-        how='left',
-        on=['series_desc', 'image_type', 'run_num',
-            'num_num', 'scout_num', 'distortion_map_before'],
-        suffixes=['_input', '_std'])
+    if 'distortion_map_before' in json_df_input.columns:
+        json_df_all = pd.merge(
+            json_df_input, json_df_std,
+            how='left',
+            on=['series_desc', 'image_type', 'run_num',
+                'num_num', 'scout_num', 'distortion_map_before'],
+            suffixes=['_input', '_std'])
+    else:
+        json_df_all = pd.merge(
+            json_df_input, json_df_std,
+            how='left',
+            on=['series_desc', 'image_type', 'run_num',
+                'num_num', 'scout_num'],
+            suffixes=['_input', '_std'])
 
     for index, row in json_df_all.iterrows():
         # When there is extra distortion map, the number in front of run_num
@@ -332,7 +340,7 @@ def find_matching_files_between_BIDS_sessions(
             # get dataframe of standard distortion maps in the same position
             # eg.) distortion maps before T1w_MPR or rfMRI_REST
             series_tmp = json_df_std[
-                (json_df_std.series_desc == row.series_desc) &
+                (json_df_std.series_desc.str.lower() == row.series_desc.lower()) &
                 (json_df_std.num_num == row.num_num)].iloc[0]
 
             json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
@@ -343,7 +351,7 @@ def find_matching_files_between_BIDS_sessions(
         elif pd.isnull(row.json_path_std) and \
             'localizer' in row.series_desc.lower():
             series_tmp = json_df_std[
-                (json_df_std.series_desc == row.series_desc) &
+                (json_df_std.series_desc.str.lower() == row.series_desc.lower()) &
                 (json_df_std.scout_num == row.scout_num)].iloc[0]
 
             json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path

@@ -39,9 +39,21 @@ def check_num_of_series(df_full_input: pd.DataFrame,
 
     count_df_all['count_diff'] = \
             count_df_all['series_num'] - count_df_all['target_count']
-    count_df_all['diff'] = count_df_all['count_diff'] != 0
-    count_df_all['diff'] = count_df_all['diff'].map(
-            {True: 'Fail', False: 'Pass'})
+
+    # count_df_all['diff'] = count_df_all['count_diff'] != 0
+    # count_df_all['diff'] = count_df_all['diff'].map(
+            # {True: 'Fail', False: 'Pass'})
+
+    def return_diff_to_show(num: int) -> str:
+        if num == 0:
+            return 'Pass'
+        elif num < 0:
+            return 'Fail'
+        else:
+            return 'Extra scans'
+
+    count_df_all['diff'] = count_df_all['count_diff'].apply(lambda x:
+            return_diff_to_show(x))
 
     return count_df_all
 

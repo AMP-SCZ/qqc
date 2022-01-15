@@ -176,7 +176,10 @@ def dicom_to_bids_with_quick_qc(args) -> None:
     print('CSA extraction')
     df_with_one_series = pd.concat([
         x[1].iloc[0] for x in df_full.groupby('series_num')], axis=1).T
-    save_csa(df_with_one_series, qc_out_dir)
+    try:
+        save_csa(df_with_one_series, qc_out_dir)
+    except:
+        pass
 
     # load json information from the user givin standard BIDS directory
     if args.standard_dir:
