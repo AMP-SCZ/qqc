@@ -61,8 +61,14 @@ def parse_args(argv):
     parser.add_argument('--standard_dir', '-std', type=str,
                         help='Root of a standard dataset to compare to')
 
-    parser.add_argument('--standard_dir', '-std', type=str,
-                        help='Root of a standard dataset to compare to')
+    parser.add_argument('--mriqc', '-mriqc', action='store_true',
+                        help='Run MRIQC following conversion')
+
+    parser.add_argument('--fmriprep', '-fmriprep', action='store_true',
+                        help='Run FMRIPREP following conversion')
+
+    parser.add_argument('--dwipreproc', '-dwipreproc', action='store_true',
+                        help='Run DWI preprocessing following conversion')
 
     parser.add_argument('--nifti_dir', '-nd', type=str, default=False,
                         help='Nifti root directory. If --nifti_dir is given, '
@@ -202,6 +208,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         except RuntimeError:
             print('Error in creating figures')
 
+    if args.dwipreproc:
         # quick dwi preprocessing
         dwipreproc_outdir_root = deriv_p / 'dwipreproc'
         run_mriqc_on_data(
@@ -210,6 +217,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
             session_dir.name,
             dwipreproc_outdir_root)
 
+    if args.run_mriqc:
         # mriqc
         mriqc_outdir_root = deriv_p / 'mriqc'
         run_mriqc_on_data(
@@ -218,6 +226,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
             session_dir.name,
             mriqc_outdir_root)
 
+    if args.run_mriqc:
         # fmriprep
         fmriprep_outdir_root = deriv_p / 'fmriprep'
         fs_outdir_root = deriv_p / 'freesurfer'
