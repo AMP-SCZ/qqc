@@ -61,9 +61,8 @@ def parse_args(argv):
     parser.add_argument('--standard_dir', '-std', type=str,
                         help='Root of a standard dataset to compare to')
 
-    parser.add_argument('--skyra', '-sk', action='store_true',
-                        help='For skyra scans - match DWI / compared to other '
-                             'skyra etc. (Option for U24 study)')
+    parser.add_argument('--standard_dir', '-std', type=str,
+                        help='Root of a standard dataset to compare to')
 
     parser.add_argument('--nifti_dir', '-nd', type=str, default=False,
                         help='Nifti root directory. If --nifti_dir is given, '
@@ -102,7 +101,6 @@ def dicom_to_bids_with_quick_qc(args) -> None:
               - standard_dir: root of a standard dataset to compare the input
                               data to, str.
               - nifti_dir: if the input_dir is BIDS nifti directory, bool.
-              - skyra: if the input_dir is skyra data, bool.
 
     Returns:
         None
@@ -196,24 +194,6 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         compare_data_to_standard(session_dir, args.standard_dir,
                                  qc_out_dir, args.partial_rescan)
 
-        # skyra scans have different number of diffusion weighting,
-        # therefore, need to compare DWI manually
-        if args.skyra:
-            compare_data_to_standard_lazy(
-                    session_dir, args.standard_dir, qc_out_dir,
-                    args.partial_rescan)
-
-
-    if args.skyra:
-        skyra_preset_loc = '/data/predict/phantom_human_pilot/rawdata/' \
-                           'sub-PrescientAdelaideSkyra/ses-humanpilot'
-        print('Comparison to Skyra standard')
-        print(f'Preset to {skyra_preset_loc}')
-        qc_out_dir_skyra = qc_out_dir / 'comparison_to_skyra_Adelaide'
-        qc_out_dir_skyra.mkdir(exist_ok=True, parents=True)
-        compare_data_to_standard(
-                session_dir, skyra_preset_loc, qc_out_dir_skyra,
-                args.partial_rescan)
 
     print('Creating summary figures')
     if not args.qc_subdir:
