@@ -79,11 +79,29 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
     volume_comparison_df['check'] = (volume_comparison_df['input shape'] ==
             volume_comparison_df['standard shape']).map(
                     {True: 'Pass', False: 'Fail'})
+
     volume_comparison_df.series_num = \
             volume_comparison_df.series_num.astype(int)
+
     volume_comparison_df.set_index('series_num', inplace=True)
-    volume_comparison_df.sort_index().to_csv(
-            qc_out_dir / 'volume_slice_number_comparison_log.csv')
+
+    volume_comparison_summary = volume_comparison_df.iloc[[0]].copy()
+    volume_comparison_summary.index = ['Summary']
+    volume_comparison_summary['series_desc'] = ''
+    volume_comparison_summary['series_desc_std'] = ''
+    volume_comparison_summary['nifti_suffix'] = ''
+    volume_comparison_summary['nifti_suffix_std'] = ''
+    volume_comparison_summary['input shape'] = ''
+    volume_comparison_summary['standard shape'] = ''
+
+    volume_comparison_summary['check'] = 'Pass' if \
+            ~(volume_comparison_df['check'] == 'Fail').any() else 'Fail'
+
+    volume_comparison_df = pd.concat([volume_comparison_summary,
+                                      volume_comparison_df.sort_index()])
+
+    volume_comparison_df.to_csv(
+            qc_out_dir / '03_volume_slice_number_comparison_log.csv')
 
 
 

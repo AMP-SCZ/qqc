@@ -115,8 +115,19 @@ def json_check_for_a_session(json_files: List[str],
         else:
             df_all_shared = df_all_shared.drop(col, axis=1)
 
+    all_cols = []
     for col in df_all_diff.columns:
+        if col not in all_cols:
+            all_cols.append(col) 
         df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
+
+    for col in df_all_shared.columns:
+        if col not in all_cols:
+            all_cols.append(col) 
+        df_all_shared[f'{col}_unique_rank'] = df_all[col].rank()
+
+    for col in all_cols:
+        df_all[f'{col}_unique_rank'] = df_all[col].rank()
 
     if print_diff:
         print_diff_shared(
@@ -482,27 +493,42 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     '''
     json_paths_input = get_all_files_walk(session_dir, 'json')
     non_anat_json_paths_input = [x for x in json_paths_input
-                                 if x.parent.name != 'anat']
+                                 if (x.parent.name != 'anat') and 
+                                    (x.parent.name != 'ignore')]
+
     anat_json_paths_input = [x for x in json_paths_input
                              if x.parent.name == 'anat']
 
     fp = open(qc_out_dir / 'within_phantom_qc.txt', 'w')
     for json_input, specific_field, title in zip(
-            [json_paths_input,
-             non_anat_json_paths_input,
-             anat_json_paths_input],
-            ['ShimSetting',
+            [non_anat_json_paths_input, anat_json_paths_input,
+             non_anat_json_paths_input, anat_json_paths_input],
+            ['ShimSetting', 'ShimSetting',
              'ImageOrientationPatientDICOM',
              'ImageOrientationPatientDICOM'],
-            ['shim settings',
+            ['shim settings in dMRI, fMRI and distortionMaps',
+             'shim settings in anat',
              'image orientation in dMRI, fMRI and distortionMaps',
              'image orientation in anat']):
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
             print_diff=False, print_shared=False,
             specific_field=specific_field)
+
         csv_suffix = re.sub('[ ,]+', '_', title)
-        df_all.to_csv(qc_out_dir / f'json_check_{csv_suffix}.csv')
+
+        # label summary
+        summary_df = df_all.iloc[[0]].copy()
+        summary_df.index = ['summary']
+        for col in summary_df.columns:
+            if col.endswith('unique_rank'):
+                summary_df[col] = 'Pass' if len(df_all[col].unique()) == 1 \
+                        else 'Fail'
+            else:
+                summary_df[col] = ''
+        df_all = pd.concat([summary_df, df_all])
+
+        df_all.to_csv(qc_out_dir / f'05_json_check_{csv_suffix}.csv')
         summarize_into_file(fp, df_all_diff, df_all_shared, title)
     fp.close()
 
@@ -510,8 +536,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
 def compare_data_to_standard(input_dir: str, standard_dir: str,
                              qc_out_dir: Path, partial_rescan: bool) -> None:
 
-    for func in compare_data_to_standard_all_jsons, \
-                compare_data_to_standard_all_jsons_new, \
+    for func in compare_data_to_standard_all_jsons_new, \
                 compare_data_to_standard_all_bvals, \
                 compare_volume_to_standard_all_nifti:
         func(input_dir, standard_dir, qc_out_dir, partial_rescan)
@@ -575,7 +600,7 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
 
     json_df_all = find_matching_files_between_BIDS_sessions(
             input_dir, standard_dir)
-    json_df_all.to_csv(qc_out_dir / '_input2std_matching_table.csv')
+    json_df_all.to_csv(qc_out_dir / '99_input2std_matching_table.csv')
 
     df_diff = pd.DataFrame()
     for _, row in json_df_all.iterrows():
@@ -619,7 +644,7 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
 
         df_diff = pd.concat([df_diff, df_row], axis=0)
 
-    df_diff.to_excel(qc_out_dir / 'json_comparison_log.xlsx')
+    df_diff.to_excel(qc_out_dir / '04_json_comparison_log.xlsx')
     df_diff.to_csv(qc_out_dir / 'json_comparison_log.csv')
 
 
@@ -751,7 +776,7 @@ def compare_data_to_standard_lazy(input_dir: str,
             'dwi/*acq-[1234567890]*.bval')
     bvals_input = Path(input_dir).glob(
             'dwi/*acq-[1234567890]*.bval')
-    bval_comparison_log = qc_out_dir / 'bval_comparison_log.txt'
+    bval_comparison_log = qc_out_dir / '06_bval_comparison_log.txt'
 
     for bval_std in bvals_std:
         modality_std = bval_std.name.split('_')[-1]

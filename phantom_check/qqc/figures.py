@@ -25,7 +25,7 @@ def quick_figures(subject_dir: Path, outdir: Path):
             dataset.append((data, bval_arr,
                             nifti_prefix.name.split('ses-')[1]))
 
-    create_b0_signal_figure(dataset, outdir / 'summary_b0.png',
+    create_b0_signal_figure(dataset, outdir / '07_summary_b0.png',
                             True, fig_num_in_row, wide_fig=False)
 
 
@@ -37,7 +37,7 @@ def quick_figures(subject_dir: Path, outdir: Path):
             data, _ = load_data_bval(nifti_prefix)
             dataset.append((data, nifti_prefix.name.split('ses-')[1]))
 
-    create_image_signal_figure(dataset, outdir / 'summary_dwi.png',
+    create_image_signal_figure(dataset, outdir / '08_summary_dwi.png',
                             True, fig_num_in_row, wide_fig=False)
 
 
@@ -49,7 +49,7 @@ def quick_figures(subject_dir: Path, outdir: Path):
             data = get_nondmri_data(nifti_prefix, 'nifti_prefix', '', False)
             dataset.append((data, nifti_prefix.name.split('ses-')[1]))
 
-    create_image_signal_figure(dataset, outdir / 'summary_fmri.png',
+    create_image_signal_figure(dataset, outdir / '09_summary_fmri.png',
                             True, 4, wide_fig=True)
 
 
