@@ -216,7 +216,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
             session_dir.name,
             dwipreproc_outdir_root)
 
-    if args.run_mriqc:
+    if args.mriqc:
         # mriqc
         mriqc_outdir_root = deriv_p / 'mriqc'
         run_mriqc_on_data(
@@ -225,7 +225,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
             session_dir.name,
             mriqc_outdir_root)
 
-    if args.run_mriqc:
+    if args.fmriprep:
         # fmriprep
         fmriprep_outdir_root = deriv_p / 'fmriprep'
         fs_outdir_root = deriv_p / 'freesurfer'

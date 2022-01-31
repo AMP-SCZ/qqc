@@ -37,12 +37,11 @@ def check_num_of_series(df_full_input: pd.DataFrame,
     count_df_all = pd.merge(count_df, count_target_df,
                             left_index=True, right_index=True, how='outer')
 
+    count_df_all['series_num'].fillna(0, inplace=True)
+    count_df_all['target_count'].fillna(0, inplace=True)
+
     count_df_all['count_diff'] = \
             count_df_all['series_num'] - count_df_all['target_count']
-
-    # count_df_all['diff'] = count_df_all['count_diff'] != 0
-    # count_df_all['diff'] = count_df_all['diff'].map(
-            # {True: 'Fail', False: 'Pass'})
 
     def return_diff_to_show(num: int) -> str:
         if num == 0:
@@ -54,6 +53,18 @@ def check_num_of_series(df_full_input: pd.DataFrame,
 
     count_df_all['diff'] = count_df_all['count_diff'].apply(lambda x:
             return_diff_to_show(x))
+
+    # summary row at the top
+    count_df_all_summary = count_df_all.iloc[[0]].copy()
+    count_df_all_summary.index = ['Summary']
+    count_df_all_summary['series_num'] = ''
+    count_df_all_summary['target_count'] = ''
+    count_df_all_summary['count_diff'] = ''
+    count_df_all_summary['diff'] = 'Fail' if \
+            (count_df_all['diff'] == 'Fail').any() else 'Pass'
+
+    count_df_all = pd.concat([count_df_all_summary,
+                              count_df_all])
 
     return count_df_all
 
@@ -85,6 +96,17 @@ def check_order_of_series(df_full_input: pd.DataFrame,
     series_order_df_all['order_diff'] = series_order_df_all['order_diff'].map(
             {True: 'Fail', False: 'Pass'})
 
+    # summary row at the top
+    series_order_summary = series_order_df_all.iloc[[0]].copy()
+    series_order_summary.index = ['Summary']
+    series_order_summary['series_order_target'] = ''
+    series_order_summary['series_order'] = ''
+    series_order_summary['order_diff'] = 'Fail' if \
+            (series_order_df_all['order_diff'] == 'Fail').any() else 'Pass'
+
+    series_order_df_all = pd.concat([series_order_summary,
+                                     series_order_df_all])
+
     return series_order_df_all
 
 
@@ -102,6 +124,6 @@ def check_num_order_of_series(df_full_input: pd.DataFrame,
     num_check_df = check_num_of_series(df_full_input, df_full_std)
     order_check_df = check_order_of_series(df_full_input, df_full_std)
 
-    num_check_df.to_csv(qc_out_dir / 'series_count.csv')
-    order_check_df.to_csv(qc_out_dir / 'scan_order.csv')
+    order_check_df.to_csv(qc_out_dir / '01_scan_order.csv')
+    num_check_df.to_csv(qc_out_dir / '02_series_count.csv')
 
