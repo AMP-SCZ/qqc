@@ -128,8 +128,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
     # QC output
     # BIDS_root / derivatives / quick_qc
     deriv_p = Path(args.output_dir) / 'derivatives'
-    qc_out_dir = deriv_p / 'quick_qc' / \
-        subject_dir.name / session_dir.name
+    qc_out_dir = deriv_p / 'quick_qc' / subject_dir.name / session_dir.name
 
     if args.qc_subdir:
         qc_out_dir = qc_out_dir / args.qc_subdir
@@ -236,7 +235,6 @@ def dicom_to_bids_with_quick_qc(args) -> None:
             session_dir.name,
             fmriprep_outdir_root,
             fs_outdir_root)
-
 
 
 if __name__ == '__main__':

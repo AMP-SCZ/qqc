@@ -68,7 +68,7 @@ def run_fmriprep_on_data(rawdata_dir: Path,
                 -n 4 -J fmriprep_{subject_id}_{session_id} \
                 {command}'
 
-    command = re.sub('\s+', ' ', command)
+    command = re.sub(r'\s+', ' ', command)
     print(command)
 
     p = Popen(command, shell=True, stdout=PIPE, bufsize=1)
