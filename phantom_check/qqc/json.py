@@ -398,8 +398,13 @@ def find_matching_files_between_BIDS_sessions(
     return json_df_all
 
 
-def compare_bval_files(bval_files: str, out_log: str):
-    '''Compare two more more bval files'''
+def compare_bval_files(bval_files: List[str], out_log: str):
+    '''Compare two more more bval files
+
+    Key arguments:
+        bval_files: matching bvalue file path strings, list of str.
+        out_log: output log file
+    '''
 
     out_log = Path(out_log)
     fp = open(out_log, 'a')
@@ -408,7 +413,30 @@ def compare_bval_files(bval_files: str, out_log: str):
     # make bval_files a list of absolute paths
     bval_files = [Path(x).absolute() for x in bval_files]
 
-    bval_arrays = []
+    bval_arrays = []  # list of arrays
+
+    # dataframe approach
+    bval_df = pd.DataFrame(index=['bval', 'bval_arr', 'shells'])
+    for var, bval_file in zip(['input', 'std'],
+                              [bval_files[0], bval_files[1]]):
+        bval_df.loc['bval', var] = bval_file
+        bval_array = np.round(np.loadtxt(bval_file), -2)
+        bval_df.loc['bval_arr', var] = np.array2string(bval_array)
+        bval_df.loc['shells', var] = np.array2string(np.unique(bval_array))
+
+        for b_shell in np.unique(bval_array):
+            shell, shell_count = np.unique(bval_array, return_counts=True)
+            index = np.where(shell == b_shell)[0]
+            shell_dir = shell_count[index]
+            bval_df.loc[f'shell_{b_shell}', var] = shell_dir[0]
+
+
+    bval_df['check'] = bval_df.eq(bval_df.iloc[:, 0], axis=0).all(1)
+    bval_df.loc['bval', 'check'] = 'Pass' if \
+            (bval_df.iloc[1:]['check'] == True).all() else 'False'
+    print()
+    print(bval_df)
+
     for bval_file in bval_files:
         fp.write(f'- {bval_file}\n')
         bval_arrays.append(np.round(np.loadtxt(bval_file), -2))
