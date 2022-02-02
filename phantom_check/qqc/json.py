@@ -462,23 +462,23 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     anat_json_paths_input = [x for x in json_paths_input
                              if x.parent.name == 'anat']
 
-    fp = open(qc_out_dir / 'within_phantom_qc.txt', 'w')
+    # fp = open(qc_out_dir / 'within_phantom_qc.txt', 'w')
     for json_input, specific_field, title, letter in zip(
             [non_ignore_json_paths_input,
              non_anat_json_paths_input, anat_json_paths_input],
             ['ShimSetting',
              'ImageOrientationPatientDICOM',
              'ImageOrientationPatientDICOM'],
-            ['shim settings in anat, dMRI, fMRI and distortionMaps',
-             'image orientation in dMRI, fMRI and distortionMaps',
+            ['shim settings',
+             'image orientation in others',
              'image orientation in anat'],
-            ['c', 'a', 'b']):
+            ['c', 'b', 'a']):
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
             print_diff=False, print_shared=False,
             specific_field=specific_field)
 
-        csv_suffix = re.sub('[ ,]+', '_', title)
+        csv_suffix = re.sub('[ ]+', '_', title)
 
         # label summary
         summary_df = df_all.iloc[[0]].copy()
@@ -493,9 +493,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                 summary_df[col] = ''
         df_all = pd.concat([summary_df, df_all])
 
-        df_all.to_csv(qc_out_dir / f'05{letter}_json_check_{csv_suffix}.csv')
-        summarize_into_file(fp, df_all_diff, df_all_shared, title)
-    fp.close()
+        df_all.to_csv(qc_out_dir / f'05{letter}_{csv_suffix}.csv')
 
 
 def compare_data_to_standard(input_dir: str, standard_dir: str,

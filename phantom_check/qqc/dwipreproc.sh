@@ -70,8 +70,8 @@ runQuickTopupEddy() {
     # for testing purposes, just use the first b0
     fslmerge -t ${out_dir}/pa_ap_ap_b0_merged \
         ${out_dir}/pa_b0_merged.nii.gz \
-        ${out_dir}/ap_b0_1_0.nii.gz \
-        ${out_dir}/ap_b0_2_0.nii.gz
+        ${out_dir}/ap_b0_1_0.nii.gz
+        #${out_dir}/ap_b0_2_0.nii.gz
 
 
     rm ${out_dir}/acqparams.txt
@@ -91,7 +91,7 @@ runQuickTopupEddy() {
         done
     done
 
-    printf "0 -1 0 0.0646\n0 -1 0 0.0646\n0 -1 0 0.0646" > ${out_dir}/acqparams.txt
+    printf "0 -1 0 0.0646\n0 1 0 0.0646" > ${out_dir}/acqparams.txt
     echo "Topup start"
 
 

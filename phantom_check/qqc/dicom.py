@@ -10,7 +10,7 @@ def save_csa(df_full: pd.DataFrame, qc_out_dir: Path) -> None:
                     sort=False).sort_index().T
     csa_df['series_num'] = csa_df.index.str.extract('(\d+)').astype(int).values
     csa_df.sort_values(by='series_num').drop(
-            'series_num', axis=1).to_csv(qc_out_dir / 'csa_headers.csv')
+            'series_num', axis=1).to_csv(qc_out_dir / '99_csa_headers.csv')
 
 
 def check_num_of_series(df_full_input: pd.DataFrame,

@@ -47,7 +47,7 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     logger.info('heudiconv command: %s' % command)
     output = os.popen(command).read()
 
-    with open(qc_out_dir / 'heudiconv_log.txt', 'a') as fp:
+    with open(qc_out_dir / '99_heudiconv_log.txt', 'a') as fp:
         fp.write(output)
 
 

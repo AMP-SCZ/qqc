@@ -174,5 +174,7 @@ def test_compare_data_to_standard_all_json_new():
     rawdata_dir = root_dir / 'rawdata/sub-NL00000/ses-202112071'
     qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-NL00000/ses-202112071'
 
+    within_phantom_qc(rawdata_dir, qqc_out_dir)
+
     compare_data_to_standard_all_jsons_new(
             rawdata_dir, standard_dir, qqc_out_dir, False)
