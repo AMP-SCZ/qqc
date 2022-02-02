@@ -195,10 +195,11 @@ def test_whole_flow_nl_example():
         '-s', 'NL00000',
         '-ss', '202112071',
         '-o', '/data/predict/kcho/flow_test/MRI_ROOT',
-        '-std',
-            '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
-            'ses-humanpilot',
-        '--dwipreproc', '--mriqc', '--fmriprep'])
+        '--dwipreproc'])
+        # '-std',
+            # '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            # 'ses-humanpilot',
+        # '--dwipreproc', '--mriqc', '--fmriprep'])
 
     dicom_to_bids_with_quick_qc(args)
 

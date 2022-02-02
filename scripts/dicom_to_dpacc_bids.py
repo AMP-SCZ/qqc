@@ -210,7 +210,7 @@ def dicom_to_bids_with_quick_qc(args) -> None:
     if args.dwipreproc:
         # quick dwi preprocessing
         dwipreproc_outdir_root = deriv_p / 'dwipreproc'
-        run_mriqc_on_data(
+        run_quick_dwi_preproc_on_data(
             (Path(args.output_dir) / 'rawdata'),
             subject_dir.name,
             session_dir.name,

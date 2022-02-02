@@ -152,7 +152,7 @@ runQuickTopupEddy() {
 
 export -f runQuickTopupEddy
 
-dwi_dir=$1
+dwi_nifti_dir=$1
 out_dir_root=$2
 
 session_dir=`dirname ${dwi_dir}`
