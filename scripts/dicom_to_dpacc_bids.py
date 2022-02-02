@@ -15,7 +15,7 @@ from phantom_check.heudiconv_ctrl import run_heudiconv
 from phantom_check.qqc.json import jsons_from_bids_to_df
 from phantom_check.qqc.dicom import check_num_order_of_series, save_csa
 from phantom_check.qqc.json import within_phantom_qc, \
-        compare_data_to_standard, compare_data_to_standard_lazy
+        compare_data_to_standard
 from phantom_check.qqc.figures import quick_figures
 from phantom_check.qqc.mriqc import run_mriqc_on_data
 from phantom_check.qqc.fmriprep import run_fmriprep_on_data

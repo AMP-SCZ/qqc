@@ -160,6 +160,49 @@ def test_whole_flow():
     dicom_to_bids_with_quick_qc(args)
 
 
+def test_whole_flow_example():
+    args = parse_args(['-i',
+            '/data/predict/kcho/flow_test/Prescient/PHOENIX/PROTECTED'
+            '/PrescientSG/raw/SG00055/mri/SG00055_MR_2022_01_19_1',
+        '-s', 'SG00055',
+        '-ss', '202201191',
+        '-o', '/data/predict/kcho/flow_test/MRI_ROOT',
+        '-std',
+            '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            'ses-humanpilot'])
+
+    dicom_to_bids_with_quick_qc(args)
+
+
+def test_whole_flow_sf_example():
+    args = parse_args(['-i',
+            '/data/predict/kcho/flow_test/Pronet/PHOENIX/PROTECTED'
+            '/PronetSF/raw/SF11111/mri/SF11111_MR_2022_01_26_1',
+        '-s', 'SF11111',
+        '-ss', '202201261',
+        '-o', '/data/predict/kcho/flow_test/MRI_ROOT',
+        '-std',
+            '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            'ses-humanpilot'])
+
+    dicom_to_bids_with_quick_qc(args)
+
+
+def test_whole_flow_nl_example():
+    args = parse_args(['-i',
+            '/data/predict/kcho/flow_test/Pronet/PHOENIX/PROTECTED'
+            '/PronetNL/raw/NL00000/mri/NL00000_MR_2021_12_07_1',
+        '-s', 'NL00000',
+        '-ss', '202112071',
+        '-o', '/data/predict/kcho/flow_test/MRI_ROOT',
+        '-std',
+            '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            'ses-humanpilot',
+        '--dwipreproc', '--mriqc', '--fmriprep'])
+
+    dicom_to_bids_with_quick_qc(args)
+
+
 def test_within_phantom_qc():
     args = parse_args(['-i', str(raw_dicom_dir),
         '-s', 'whole_flow',

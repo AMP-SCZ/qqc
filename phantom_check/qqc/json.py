@@ -398,108 +398,39 @@ def find_matching_files_between_BIDS_sessions(
     return json_df_all
 
 
-def compare_bval_files(bval_files: List[str], out_log: str):
+def compare_bval_files(bval_files: List[str]):
     '''Compare two more more bval files
 
     Key arguments:
         bval_files: matching bvalue file path strings, list of str.
         out_log: output log file
     '''
-
-    out_log = Path(out_log)
-    fp = open(out_log, 'a')
-    fp.write('-'*80 + '\n')
-    fp.write('Comparing bvals\n')
     # make bval_files a list of absolute paths
     bval_files = [Path(x).absolute() for x in bval_files]
 
     bval_arrays = []  # list of arrays
 
     # dataframe approach
-    bval_df = pd.DataFrame(index=['bval', 'bval_arr', 'shells'])
+    bval_df = pd.DataFrame(index=['bval', 'shells'])
     for var, bval_file in zip(['input', 'std'],
                               [bval_files[0], bval_files[1]]):
-        bval_df.loc['bval', var] = bval_file
+        bval_df.loc['bval', var] = bval_file.name
         bval_array = np.round(np.loadtxt(bval_file), -2)
-        bval_df.loc['bval_arr', var] = np.array2string(bval_array)
+        # bval_df.loc['bval_arr', var] = np.array2string(bval_array)
         bval_df.loc['shells', var] = np.array2string(np.unique(bval_array))
 
         for b_shell in np.unique(bval_array):
             shell, shell_count = np.unique(bval_array, return_counts=True)
             index = np.where(shell == b_shell)[0]
             shell_dir = shell_count[index]
-            bval_df.loc[f'shell_{b_shell}', var] = shell_dir[0]
+            bval_df.loc[f'shell_{b_shell}_dirs', var] = shell_dir[0]
 
 
     bval_df['check'] = bval_df.eq(bval_df.iloc[:, 0], axis=0).all(1)
     bval_df.loc['bval', 'check'] = 'Pass' if \
             (bval_df.iloc[1:]['check'] == True).all() else 'False'
-    print()
-    print(bval_df)
 
-    for bval_file in bval_files:
-        fp.write(f'- {bval_file}\n')
-        bval_arrays.append(np.round(np.loadtxt(bval_file), -2))
-
-    # exactly same bval files
-    same_array = True
-    for a, b in itertools.combinations(bval_arrays, 2):
-        if np.array_equal(a, b):
-            pass
-        else:
-            same_array = False
-            break
-
-    if not same_array:
-        fp.write(
-            '\tThe given bvals are different - proceeding to checking number '
-            'of volume in each shell\n')
-        for file_name, bval_array in zip(bval_files, bval_arrays):
-            all_unique = np.unique(bval_array, return_counts=True)
-            fp.write(f'\t*{file_name}\n')
-            fp.write(
-                f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)\n')
-            fp.write(f'\t\tvolumes in each shell: {all_unique[1]} '
-                     f'({all_unique[1].sum()} directions)\n')
-    else:
-        fp.write(
-            f'\tThe {len(bval_files)} bval arrays are exactly the same.\n')
-        all_unique = np.unique(bval_arrays[0], return_counts=True)
-        fp.write(
-            f'\t\tshells: {all_unique[0]} ({len(all_unique[0])} shells)\n')
-        fp.write(f'\t\tvolumes in each shell: {all_unique[1]} '
-                 f'({all_unique[1].sum()} directions)\n')
-        return
-
-    # shells
-    same_shell_num = True
-    bval_arrays_all = np.concatenate([x for x in bval_arrays])
-    for bval_array in bval_arrays:
-        if not np.array_equal(np.unique(bval_array),
-                              np.unique(bval_arrays_all)):
-            fp.write(
-                f'\tNumber of shells differs between bval files\n')
-            same_shell_num = False
-
-    if same_shell_num:
-        fp.write('\tThey have the same number of shells\n')
-
-    # number of volumes in shells
-    same_vol_num = True
-    for b_shell in np.unique(bval_arrays_all):
-        vol_counts = []
-        for bval_array in bval_arrays:
-            unique_count = np.unique(bval_array, return_counts=True)
-            index = np.where(unique_count[0] == b_shell)[0]
-            vol_counts.append(unique_count[1][index])
-
-        if not vol_counts.count(vol_counts[0]) == len(vol_counts):
-            fp.write(f'\tNumber of {b_shell} differs between bval files\n')
-            same_vol_num = False
-
-    if same_shell_num:
-        fp.write('\tThey have the same volume in each shell\n')
-    fp.close()
+    return bval_df
 
 
 def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
@@ -520,6 +451,10 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     Notes:
     '''
     json_paths_input = get_all_files_walk(session_dir, 'json')
+
+    non_ignore_json_paths_input = [x for x in json_paths_input
+                                 if (x.parent.name != 'ignore')]
+
     non_anat_json_paths_input = [x for x in json_paths_input
                                  if (x.parent.name != 'anat') and 
                                     (x.parent.name != 'ignore')]
@@ -529,13 +464,12 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
 
     fp = open(qc_out_dir / 'within_phantom_qc.txt', 'w')
     for json_input, specific_field, title in zip(
-            [non_anat_json_paths_input, anat_json_paths_input,
+            [non_ignore_json_paths_input,
              non_anat_json_paths_input, anat_json_paths_input],
-            ['ShimSetting', 'ShimSetting',
+            ['ShimSetting',
              'ImageOrientationPatientDICOM',
              'ImageOrientationPatientDICOM'],
-            ['shim settings in dMRI, fMRI and distortionMaps',
-             'shim settings in anat',
+            ['shim settings in anat, dMRI, fMRI and distortionMaps',
              'image orientation in dMRI, fMRI and distortionMaps',
              'image orientation in anat']):
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
@@ -547,7 +481,9 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
 
         # label summary
         summary_df = df_all.iloc[[0]].copy()
-        summary_df.index = ['summary']
+        summary_df.index = pd.MultiIndex.from_tuples(
+                [('Summary', '', '')],
+                names=['series_number', 'series_name', 'index'])
         for col in summary_df.columns:
             if col.endswith('unique_rank'):
                 summary_df[col] = 'Pass' if len(df_all[col].unique()) == 1 \
@@ -596,7 +532,7 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
         'global', 'TxRefAmp',
         'dcmmeta_affine', 'WipMemBlock',
         'SAR', 'time',
-        'ShimSetting']
+        'ShimSetting', 'SeriesNumber']
 
     dicts = []
     cols = []
@@ -672,7 +608,15 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
 
         df_diff = pd.concat([df_diff, df_row], axis=0)
 
-    df_diff.to_excel(qc_out_dir / '04_json_comparison_log.xlsx')
+    writer = pd.ExcelWriter(qc_out_dir / '04_json_comparison_log.xlsx')
+    df_diff.to_excel(writer, sheet_name='sheet1')
+    for column in df_diff:
+        column_width = max(
+                df_diff[column].astype(str).map(len).max(), len(column))
+        col_idx = df_diff.columns.get_loc(column)
+        writer.sheets['sheet1'].set_column(col_idx, col_idx, column_width)
+    writer.save()
+
     df_diff.to_csv(qc_out_dir / 'json_comparison_log.csv')
 
 
@@ -754,67 +698,31 @@ def compare_data_to_standard_all_bvals(input_dir: str,
     bval_paths_input = get_all_files_walk(input_dir, 'bval')
     bval_paths_std = get_all_files_walk(standard_dir, 'bval')
 
-    bval_comparison_log = qc_out_dir / 'bval_comparison_log.txt'
-    if bval_comparison_log.is_file():
-        os.remove(qc_out_dir / 'bval_comparison_log.txt')
-
+    bval_df = pd.DataFrame()
     for bval_path_input in bval_paths_input:
         _, _, bval_suffix_input = get_naming_parts_bids(bval_path_input.name)
 
         for bval_path_std in bval_paths_std:
             _, _, bval_suffix_std = get_naming_parts_bids(bval_path_std.name)
             if bval_suffix_input == bval_suffix_std:
-                compare_bval_files([bval_path_input, bval_path_std],
-                                    bval_comparison_log)
+                bval_df_tmp = compare_bval_files(
+                        [bval_path_input, bval_path_std])
+                bval_df_tmp['suffix'] = bval_suffix_input
+                bval_df = pd.concat([bval_df, bval_df_tmp.reset_index().set_index(['suffix', 'index'])])
 
+    if 'Fail' in bval_df['check']:
+        bval_df = pd.concat([pd.DataFrame({'check': ['Fail'],
+                                           'suffix': 'Summary',
+                                           'index': ''}).set_index(
+                                               ['suffix', 'index']),
+                             bval_df])
+    else:
+        bval_df = pd.concat([pd.DataFrame({'check': ['All Pass'],
+                                           'suffix': 'Summary',
+                                           'index': ''}).set_index(
+                                               ['suffix', 'index']),
+                             bval_df])
 
-def compare_data_to_standard_lazy(input_dir: str,
-                                  standard_dir: str,
-                                  qc_out_dir: Path,
-                                  partial_rescan: bool):
-    '''pass'''
-    weighted_scans_std = Path(standard_dir).glob(
-            'dwi/*acq-[1234567890]*.json')
-    weighted_scans_input = Path(input_dir).glob(
-            'dwi/*acq-[1234567890]*.json')
-
-    with open(qc_out_dir / 'json_comparison_log.txt', 'a') as fp:
-        for weighted_scan_std in weighted_scans_std:
-            modality_std = weighted_scan_std.name.split('_')[-1]
-            for weighted_scan_input in weighted_scans_input:
-                modality_input = weighted_scan_input.name.split('_')[-1]
-                if modality_std == modality_input:
-                    fp.write(f'Comparing diffusion weighted image for skyra '
-                              'to that of Prisma\n')
-                    fp.write(f'- {weighted_scan_input}\n')
-                    fp.write(f'- {weighted_scan_std}\n')
-                    df_all_diff, df_all_shared = json_check(
-                            [weighted_scan_input, weighted_scan_std], False)
-                    if len(df_all_diff) > 0:
-                        dfAsString = df_all_diff.to_string()
-
-                        fp.write(dfAsString + '\n')
-                    else:
-                        fp.write('*No difference\n')
-                    fp.write('='*80)
-                    fp.write('\n\n\n\n')
-
-    
-    bvals_std = Path(standard_dir).glob(
-            'dwi/*acq-[1234567890]*.bval')
-    bvals_input = Path(input_dir).glob(
-            'dwi/*acq-[1234567890]*.bval')
-    bval_comparison_log = qc_out_dir / '06_bval_comparison_log.txt'
-
-    for bval_std in bvals_std:
-        modality_std = bval_std.name.split('_')[-1]
-        for bval_input in bvals_input:
-            modality_input = bval_input.name.split('_')[-1]
-            if modality_std == modality_input:
-                compare_bval_files([bval_input, bval_std],
-                                    bval_comparison_log)
-
-    compare_volume_to_standard_all_nifti(input_dir, standard_dir, qc_out_dir)
-
-
+    bval_df[['input', 'std', 'check']].to_csv(
+            qc_out_dir / '06_bval_comparison_log.csv')
 
