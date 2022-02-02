@@ -463,7 +463,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                              if x.parent.name == 'anat']
 
     fp = open(qc_out_dir / 'within_phantom_qc.txt', 'w')
-    for json_input, specific_field, title in zip(
+    for json_input, specific_field, title, letter in zip(
             [non_ignore_json_paths_input,
              non_anat_json_paths_input, anat_json_paths_input],
             ['ShimSetting',
@@ -471,7 +471,8 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
              'ImageOrientationPatientDICOM'],
             ['shim settings in anat, dMRI, fMRI and distortionMaps',
              'image orientation in dMRI, fMRI and distortionMaps',
-             'image orientation in anat']):
+             'image orientation in anat'],
+            ['c', 'a', 'b']):
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
             print_diff=False, print_shared=False,
@@ -492,7 +493,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                 summary_df[col] = ''
         df_all = pd.concat([summary_df, df_all])
 
-        df_all.to_csv(qc_out_dir / f'05_json_check_{csv_suffix}.csv')
+        df_all.to_csv(qc_out_dir / f'05{letter}_json_check_{csv_suffix}.csv')
         summarize_into_file(fp, df_all_diff, df_all_shared, title)
     fp.close()
 
@@ -608,16 +609,7 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
 
         df_diff = pd.concat([df_diff, df_row], axis=0)
 
-    writer = pd.ExcelWriter(qc_out_dir / '04_json_comparison_log.xlsx')
-    df_diff.to_excel(writer, sheet_name='sheet1')
-    for column in df_diff:
-        column_width = max(
-                df_diff[column].astype(str).map(len).max(), len(column))
-        col_idx = df_diff.columns.get_loc(column)
-        writer.sheets['sheet1'].set_column(col_idx, col_idx, column_width)
-    writer.save()
-
-    df_diff.to_csv(qc_out_dir / 'json_comparison_log.csv')
+    df_diff.to_csv(qc_out_dir / '04_json_comparison_log.csv')
 
 
 def compare_data_to_standard_all_jsons(input_dir: str,

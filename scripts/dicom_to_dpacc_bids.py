@@ -16,6 +16,7 @@ from phantom_check.qqc.json import jsons_from_bids_to_df
 from phantom_check.qqc.dicom import check_num_order_of_series, save_csa
 from phantom_check.qqc.json import within_phantom_qc, \
         compare_data_to_standard
+from phantom_check.qqc.qqc_summary import qqc_summary
 from phantom_check.qqc.figures import quick_figures
 from phantom_check.qqc.mriqc import run_mriqc_on_data
 from phantom_check.qqc.fmriprep import run_fmriprep_on_data
@@ -198,6 +199,9 @@ def dicom_to_bids_with_quick_qc(args) -> None:
         print('Comparison to standard')
         compare_data_to_standard(session_dir, args.standard_dir,
                                  qc_out_dir, args.partial_rescan)
+
+        print('Summary function')
+        qqc_summary(qc_out_dir)
 
 
     print('Creating summary figures')
