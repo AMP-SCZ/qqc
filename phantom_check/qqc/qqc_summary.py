@@ -32,6 +32,7 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
     df = pd.DataFrame(columns=[colname])
 
     other_dfs = []
+    titles = []
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
             non_anat_orident, shim_settings, bval:
         # clean up the name of each QC output
@@ -42,6 +43,7 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
 
         df_tmp = pd.read_csv(df_loc)
         other_dfs.append(df_tmp)
+        titles.append(title)
 
         rename_all_pass = lambda x: 'Pass' if x == 'All Pass' else x
         df.loc[title, colname] = rename_all_pass(df_tmp.iloc[0][-1])
@@ -60,6 +62,7 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
     # json comparison QC - add lines of difference
     json_comp_df = pd.read_csv(json_comp)
     other_dfs.append(json_comp_df)
+    titles.append('MRI protocol comparison')
     json_comp_df['num'] = json_comp_df.input_json.str.split(
             '.json').str[0].str[-1]
 
@@ -86,7 +89,7 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
                             ', '.join(diff_items)
     json_comp_df.drop('num', axis=1, inplace=True)
 
-    return df, df_2, other_dfs
+    return df, df_2, other_dfs, titles
 
 def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
     '''Summarize quick QC output into a single CSV file
@@ -179,7 +182,7 @@ def qqc_summary_for_dpdash(qqc_out_dir: Path) -> None:
     header_df.columns = qqc_summary_df.columns
     qqc_summary_df = pd.concat([header_df, qqc_summary_df]).T
 
-    qqc_summary_df.to_csv(qqc_out_dir / f'{site}-{subject_name}-{session_name}-mriqc-day1to1.csv', index=False)
+    qqc_summary_df.to_csv(qqc_out_dir / f'{site}-{subject_name}_{session_name}-mriqc-day1to1.csv', index=False)
 
 
 

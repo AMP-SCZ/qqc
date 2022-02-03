@@ -99,7 +99,7 @@ def send_out_qqc_results(qqc_out_dir: Path,
     rawdata_dir = qqc_out_dir.parent.parent.parent.parent / 'rawdata' / \
         qqc_out_dir.name / qqc_out_dir.parent.name
 
-    summary_df, protocol_df, other_dfs = qqc_summary_detailed(qqc_out_dir)
+    summary_df, protocol_df, other_dfs, titles = qqc_summary_detailed(qqc_out_dir)
 
     # extract extra information
     json_comp = qqc_out_dir / '04_json_comparison_log.csv'
@@ -112,11 +112,11 @@ def send_out_qqc_results(qqc_out_dir: Path,
         ['kc244@research.partners.org'],
         f'{subject_name} - MRI QQC',
         f'{subject_name} {session_name}',
-        f'<h2>Nifti data location</h2><br><code>{rawdata_dir}</code><br><br>'
-        f'<h2>Full Quick QC output location</h2><br><code>{qqc_out_dir}</code><br><br>'
-        '<h2>Basic QC</h2>' + summary_df.to_html() + '<br><br>'
-        '<h2>Number of different fields</h2>' + protocol_df.to_html() + '<br><br>',
-        '<h2>Each file in detail</h2>' + '<br><br>'.join([x.to_html() for x in other_dfs]),
+        f'<h2>Nifti data location</h2><code>{rawdata_dir}</code><br><br>'
+        f'<h2>Full Quick QC output location</h2><code>{qqc_out_dir}</code><br><br>'
+        '<h2>Quick-QC Summary</h2>' + summary_df.to_html() + '<br><br>'
+        '<h2>Comparing series protocols to standard</h2>' + protocol_df.to_html() + '<br><br>',
+        '<h2>Each QC output in more detail</h2>' + '<br><br>'.join([f'<h3>{x}</h3>'+ y.to_html() for x, y in zip(titles, other_dfs)]),
         [''],
         'tmp version',
         test, mailx)
