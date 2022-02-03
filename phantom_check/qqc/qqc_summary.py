@@ -3,6 +3,91 @@ from pathlib import Path
 import re
 
 
+def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
+    '''Summarize quick QC output into a single CSV file
+
+    Key Arguments:
+        qqc_out_dir: quick QC location of the session data
+
+    Returns:
+        pd.DataFrame of quick QC summary
+    '''
+    # set up QC output file locations
+    scan_order = qqc_out_dir / '01_scan_order.csv'
+    scan_count = qqc_out_dir / '02_series_count.csv'
+    volume_shape = qqc_out_dir / '03_volume_slice_number_comparison_log.csv'
+    json_comp = qqc_out_dir / '04_json_comparison_log.csv'
+    anat_orient = qqc_out_dir / '05a_image_orientation_in_anat.csv'
+    non_anat_orident = qqc_out_dir / '05b_image_orientation_in_others.csv'
+    shim_settings = qqc_out_dir / '05c_shim_settings.csv'
+    bval = qqc_out_dir / '06_bval_comparison_log.csv'
+
+    # get subject info
+    session_name = qqc_out_dir.name
+    subject_name = qqc_out_dir.parent.name
+
+    # summarize each QC summaries
+    colname = f'{subject_name}/{session_name} QC'
+    colname_2 = 'Issue in'
+    df = pd.DataFrame(columns=[colname])
+
+    other_dfs = []
+    for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
+            non_anat_orident, shim_settings, bval:
+        # clean up the name of each QC output
+        title = re.sub('\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
+        title = re.sub(r'_', ' ', title)
+        title = re.sub(r' log', '', title)
+        title = title[0].upper() + title[1:]
+
+        df_tmp = pd.read_csv(df_loc)
+        other_dfs.append(df_tmp)
+
+        rename_all_pass = lambda x: 'Pass' if x == 'All Pass' else x
+        df.loc[title, colname] = rename_all_pass(df_tmp.iloc[0][-1])
+
+        if df.loc[title, colname] == 'Fail':
+            if 'volume_slice' in df_loc.name:
+                df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
+            elif 'series_count' in df_loc.name:
+                print(df_tmp)
+                df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
+            elif 'scan_order' in df_loc.name:
+                df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_order.dropna().unique())
+            else:
+                pass
+
+    # json comparison QC - add lines of difference
+    json_comp_df = pd.read_csv(json_comp)
+    other_dfs.append(json_comp_df)
+    json_comp_df['num'] = json_comp_df.input_json.str.split(
+            '.json').str[0].str[-1]
+
+    df_2 = pd.DataFrame(columns=[colname])
+    if len(json_comp_df) == 0:
+        df_2.loc['Protocol comparison to standard', colname] = 'Pass'
+    else:
+        gb = json_comp_df.groupby(['series_desc', 'series_num'])
+        for (series_desc, series_num), table_upper in gb:
+            for loop_num, (num, table) in enumerate(
+                    table_upper.groupby('num')):
+
+                diff_items = table['index'].tolist()
+
+                if loop_num > 0:
+                    df_2.loc[f'{series_desc} {loop_num}', colname] = \
+                            f'{len(table)}'
+                    df_2.loc[f'{series_desc} {loop_num}', colname_2] = \
+                            ', '.join(diff_items)
+                else:
+                    df_2.loc[f'{series_desc}', colname] = \
+                            f'{len(table)}'
+                    df_2.loc[f'{series_desc}', colname_2] = \
+                            ', '.join(diff_items)
+    json_comp_df.drop('num', axis=1, inplace=True)
+
+    return df, df_2, other_dfs
+
 def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
     '''Summarize quick QC output into a single CSV file
 
@@ -43,7 +128,8 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
 
     # json comparison QC - add lines of difference
     json_comp_df = pd.read_csv(json_comp)
-    json_comp_df['num'] = json_comp_df.input_json.str.split('.json').str[0].str[-1]
+    json_comp_df['num'] = json_comp_df.input_json.str.split(
+            '.json').str[0].str[-1]
 
     if len(json_comp_df) == 0:
         series['Protocol comparison to standard'] = 'Pass'
@@ -53,10 +139,10 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
             for loop_num, (num, table) in enumerate(
                     table_upper.groupby('num')):
                 if loop_num > 0:
-                    series[f'Diff proc fields in {series_desc} {loop_num}'] = \
+                    series[f'Different fields in {series_desc} {loop_num}'] = \
                             f'{len(table)}'
                 else:
-                    series[f'Different field in {series_desc}'] = \
+                    series[f'Different fields in {series_desc}'] = \
                             f'{len(table)}'
 
     df_all = pd.DataFrame(series)

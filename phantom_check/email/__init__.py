@@ -11,14 +11,14 @@ import subprocess
 import pandas as pd
 from pytz import timezone
 import socket
-from phantom_check.qqc.qqc_summary import qqc_summary
+from phantom_check.qqc.qqc_summary import qqc_summary, qqc_summary_detailed
 tz = timezone('EST')
 
 __dir__ = os.path.dirname(__file__)
 
 def send(recipients, sender, subject, message):
     '''send an email'''
-    email_template = os.path.join(__dir__, 'template.html')
+    email_template = os.path.join(__dir__, 'bootdey_template.html')
     with open(email_template, 'r') as fo:
         template = string.Template(fo.read())
     message = template.safe_substitute(message=str(message))
@@ -67,7 +67,7 @@ def send_detail(sender: str, recipients: List[str],
                                username=getpass.getuser())
 
     msg = MIMEText(html_str, 'html')
-    msg['Subject'] = f'Lochness update {datetime.now(tz).date()}'
+    msg['Subject'] = title
     msg['From'] = sender
     msg['To'] = recipients[0]
 
@@ -93,100 +93,34 @@ def send_out_qqc_results(qqc_out_dir: Path,
                          test: bool = False,
                          mailx: bool = True):
     '''Send Quick QC summary'''
+    # get subject info
+    session_name = qqc_out_dir.name.split('-')[1]
+    subject_name = qqc_out_dir.parent.name.split('-')[1]
+    rawdata_dir = qqc_out_dir.parent.parent.parent.parent / 'rawdata' / \
+        qqc_out_dir.name / qqc_out_dir.parent.name
 
-    summary_df = qqc_summary(qqc_out_dir)
+    summary_df, protocol_df, other_dfs = qqc_summary_detailed(qqc_out_dir)
+
+    # extract extra information
+    json_comp = qqc_out_dir / '04_json_comparison_log.csv'
+    json_comp_df = pd.read_csv(json_comp)
+    json_comp_df['num'] = json_comp_df.input_json.str.split(
+            '.json').str[0].str[-1]
 
     send_detail(
         'kevincho@bwh.harvard.edu',
-        ['kevincho@bwh.harvard.edu'],
-        'Quick QC Summary', f'{datetime.now(tz).date()}',
-        'Summary of files sent to NDA' + summary_df.to_html(),
-        'Each file in detail',
+        ['kc244@research.partners.org'],
+        f'{subject_name} - MRI QQC',
+        f'{subject_name} {session_name}',
+        f'<h2>Nifti data location</h2><br><code>{rawdata_dir}</code><br><br>'
+        f'<h2>Full Quick QC output location</h2><br><code>{qqc_out_dir}</code><br><br>'
+        '<h2>Basic QC</h2>' + summary_df.to_html() + '<br><br>'
+        '<h2>Number of different fields</h2>' + protocol_df.to_html() + '<br><br>',
+        '<h2>Each file in detail</h2>' + '<br><br>'.join([x.to_html() for x in other_dfs]),
         [''],
         'tmp version',
         test, mailx)
 
-        # 'Each file in detail' + s3_df_selected.to_html(),
-        # list_of_lines_from_tree,
-        # in_mail_footer,
-        # test, mailx)
-
-
-    # s3_log = Path(Lochness['phoenix_root']) / 's3_log.csv'
-    # if s3_log.is_file():
-        # s3_df = pd.read_csv(s3_log)
-        # s3_df['timestamp'] = pd.to_datetime(s3_df['timestamp'])
-        # s3_df['ctime'] = pd.to_datetime(s3_df['ctime']).apply(
-                # lambda x: x.replace(microsecond=0))
-
-        # # get the timestamp to check the dataflow from
-        # date_to_check_from = datetime.now(tz).date() - timedelta(days=days-1)
-        # timestamp_to_check_from = pd.Timestamp(date_to_check_from)
-
-        # s3_df_selected = s3_df[s3_df['timestamp'] > timestamp_to_check_from]
-
-        # s3_df_selected = s3_df_selected.fillna('_')
-
-        # s3_df_selected = s3_df_selected[~s3_df_selected.filename.str.contains(
-            # 'metadata.csv')][['timestamp', 'filename', 'protected', 'study',
-                              # 'processed', 'subject', 'datatypes', 'ctime']]
-
-        # s3_df_selected['date'] = s3_df_selected['timestamp'].apply(
-                # lambda x: x.date())
-        # count_df = s3_df_selected.groupby([
-            # 'date', 'protected', 'study',
-            # 'processed', 'subject', 'datatypes']).count()[['filename']]
-        # count_df.columns = ['file count']
-        # count_df = count_df.reset_index()
-        # s3_df_selected.drop('date', axis=1, inplace=True)
-
-    # else:
-        # s3_df_selected = pd.DataFrame()
-        # count_df = pd.DataFrame()
-
-    # list_of_lines_from_tree = ['']
-
-    # day_days = 'days' if days > 1 else 'day'
-
-    # if len(s3_df_selected) == 0:
-        # send_detail(
-            # Lochness,
-            # 'Lochness', f'Daily updates {datetime.now(tz).date()}',
-            # 'There is no update!', '',
-            # list_of_lines_from_tree,
-            # '',
-            # test, mailx)
-    # else:
-        # s3_df_selected.columns = ['Transfer time (UTC)', 'File name',
-                                  # 'Protected', 'Study', 'Processed', 'Subject',
-                                  # 'Datatype', 'Download time (UTC)']
-        # s3_df_selected.reset_index().drop('index', axis=1, inplace=True)
-
-        # # too many dicom file names -> remove
-        # subject_mri_gb = s3_df_selected[
-                # s3_df_selected.Datatype == 'mri'].groupby('subject')
-
-        # sample_mri_df = pd.DataFrame()
-        # for _, table in subject_mri_gb:
-            # subject_mri_sample = table.iloc[:2]  # select only two raws
-            # subject_mri_sample.iloc[1]['File name'] = '...'
-            # sample_mri_df = pd.concat([sample_mri_df, subject_mri_sample])
-
-        # s3_df_selected = pd.concat([
-            # s3_df_selected[s3_df_selected.Datatype != 'mri'],
-            # sample_mri_df]).sort_index()
-
-        # in_mail_footer = 'Note that only S3 transferred files are included.'
-
-        # send_detail(
-            # Lochness,
-            # 'Lochness', f'Daily updates {datetime.now(tz).date()} '
-                        # f'(for the past {days} {day_days})',
-            # 'Summary of files sent to NDA' + count_df.to_html(),
-            # 'Each file in detail' + s3_df_selected.to_html(),
-            # list_of_lines_from_tree,
-            # in_mail_footer,
-            # test, mailx)
 
 
 def attempts_error(Lochness, attempt):
