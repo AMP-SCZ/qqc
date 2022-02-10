@@ -51,11 +51,11 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
         if df.loc[title, colname] == 'Fail':
             if 'volume_slice' in df_loc.name:
                 df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
-            elif 'series_count' in df_loc.name:
-                print(df_tmp)
-                df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
-            elif 'scan_order' in df_loc.name:
-                df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_order.dropna().unique())
+            # elif 'series_count' in df_loc.name:
+                # print(df_tmp)
+                # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_num.dropna().unique())
+            # elif 'scan_order' in df_loc.name:
+                # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_order.dropna().unique())
             else:
                 pass
 
@@ -181,6 +181,10 @@ def qqc_summary_for_dpdash(qqc_out_dir: Path) -> None:
 
     header_df.columns = qqc_summary_df.columns
     qqc_summary_df = pd.concat([header_df, qqc_summary_df]).T
+
+    # remove spaces from column names
+    qqc_summary_df.columns = [re.sub(' ', '_', x) for x in
+                              qqc_summary_df.columns]
 
     qqc_summary_df.to_csv(qqc_out_dir / f'{site}-{subject_name}_{session_name}-mriqc-day1to1.csv', index=False)
 

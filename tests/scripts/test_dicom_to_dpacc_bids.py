@@ -204,6 +204,22 @@ def test_whole_flow_nl_example():
     dicom_to_bids_with_quick_qc(args)
 
 
+def test_whole_flow_me_example():
+    args = parse_args(['-i',
+            '/data/predict/kcho/flow_test/Prescient/PHOENIX/PROTECTED/PrescientME/raw/ME00005/mri/1.1.28 PRESCIENT',
+        '-s', 'ME00005',
+        '-ss', '202112081',
+        '-o', '/data/predict/kcho/flow_test/MRI_ROOT',
+        '-std',
+            '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            'ses-humanpilot',
+        '--dwipreproc', '--mriqc', '--fmriprep'])
+        # '--dwipreproc', '--mriqc', '--fmriprep'])
+
+    dicom_to_bids_with_quick_qc(args)
+
+
+        
 def test_within_phantom_qc():
     args = parse_args(['-i', str(raw_dicom_dir),
         '-s', 'whole_flow',

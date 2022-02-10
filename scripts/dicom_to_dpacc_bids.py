@@ -21,6 +21,7 @@ from phantom_check.qqc.figures import quick_figures
 from phantom_check.qqc.mriqc import run_mriqc_on_data
 from phantom_check.qqc.fmriprep import run_fmriprep_on_data
 from phantom_check.qqc.dwipreproc import run_quick_dwi_preproc_on_data
+from phantom_check.email import send_out_qqc_results
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
@@ -202,6 +203,9 @@ def dicom_to_bids_with_quick_qc(args) -> None:
 
         print('Summary function')
         qqc_summary(qc_out_dir)
+
+        print('Sending out email')
+        send_out_qqc_results(qc_out_dir, args.standard_dir)
 
 
     print('Creating summary figures')

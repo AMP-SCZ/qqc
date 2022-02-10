@@ -90,14 +90,19 @@ def send_detail(sender: str, recipients: List[str],
 
 
 def send_out_qqc_results(qqc_out_dir: Path,
+                         standard_dir: Path,
                          test: bool = False,
                          mailx: bool = True):
     '''Send Quick QC summary'''
     # get subject info
     session_name = qqc_out_dir.name.split('-')[1]
     subject_name = qqc_out_dir.parent.name.split('-')[1]
+
     rawdata_dir = qqc_out_dir.parent.parent.parent.parent / 'rawdata' / \
-        qqc_out_dir.name / qqc_out_dir.parent.name
+        qqc_out_dir.parent.name / qqc_out_dir.name
+
+    source_dir = qqc_out_dir.parent.parent.parent.parent / 'sourcedata' / \
+        subject_name / qqc_out_dir.name
 
     summary_df, protocol_df, other_dfs, titles = qqc_summary_detailed(qqc_out_dir)
 
@@ -111,14 +116,18 @@ def send_out_qqc_results(qqc_out_dir: Path,
         'kevincho@bwh.harvard.edu',
         ['kc244@research.partners.org'],
         f'{subject_name} - MRI QQC',
-        f'{subject_name} {session_name}',
+        f'Automatically created message for {subject_name} ({session_name})',
+        f'<h2>Dicom data location</h2><code>{source_dir}</code><br><br>'
         f'<h2>Nifti data location</h2><code>{rawdata_dir}</code><br><br>'
+        f'<h2>Standard BIDS session used to compare this data to</h2><code>{standard_dir}</code><br><br>'
         f'<h2>Full Quick QC output location</h2><code>{qqc_out_dir}</code><br><br>'
-        '<h2>Quick-QC Summary</h2>' + summary_df.to_html() + '<br><br>'
-        '<h2>Comparing series protocols to standard</h2>' + protocol_df.to_html() + '<br><br>',
-        '<h2>Each QC output in more detail</h2>' + '<br><br>'.join([f'<h3>{x}</h3>'+ y.to_html() for x, y in zip(titles, other_dfs)]),
+        '<h2>Quick-QC Summary</h2>' + summary_df.to_html(na_rep='', justify='center') + '<br><br>'
+        '<h2>Comparing series protocols to standard</h2>' + protocol_df.to_html(na_rep='', justify='center') + '<br><br>',
+        '<h2>Each QC output in more detail</h2>' + '<br><br>'.join([f'<h3>{x}</h3>'+ y.to_html(index=False, na_rep='', justify='center') for x, y in zip(titles, other_dfs)]),
         [''],
-        'tmp version',
+        f'<h4>QQC ran on </h2><code>{datetime.now(tz).date()}</code><br><br>'
+        f'<h4>QQC ran by </h2><code>{getpass.getuser()}</code><br><br>'
+        f'<h4>Command executed on</h2><code>{socket.gethostname()}</code><br><br>',
         test, mailx)
 
 
