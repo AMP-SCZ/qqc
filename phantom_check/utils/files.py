@@ -12,6 +12,7 @@ import json
 from sklearn.cluster import KMeans
 from sklearn import preprocessing
 import os
+import zipfile
 
 
 def get_all_files_walk(root_dir: str, extension: str) -> List[Path]:
@@ -230,3 +231,11 @@ def add_open_data_qc_measures(df: pd.DataFrame,
     df = pd.concat([df, df_open], axis=1)
 
     return df
+
+
+def unzip_to_temporary_dir(zip_file_loc: Path) -> Path:
+    '''Unzip a zip file to a temporary directory, and return the temp path'''
+    zf = zipfile.ZipFile('incoming.zip')
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        zf.extractall(tempdir)

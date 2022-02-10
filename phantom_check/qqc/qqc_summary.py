@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
+import json
 
 
 def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
@@ -36,7 +37,7 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
             non_anat_orident, shim_settings, bval:
         # clean up the name of each QC output
-        title = re.sub('\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
+        title = re.sub(r'\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
         title = re.sub(r'_', ' ', title)
         title = re.sub(r' log', '', title)
         title = title[0].upper() + title[1:]
@@ -115,11 +116,12 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
     subject_name = qqc_out_dir.parent.name
 
     # summarize each QC summaries
-    series = pd.Series(name=f'{subject_name}/{session_name} QC')
+    series = pd.Series(name=f'{subject_name}/{session_name} QC',
+                       dtype=pd.StringDtype()) 
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
             non_anat_orident, shim_settings, bval:
         # clean up the name of each QC output
-        title = re.sub('\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
+        title = re.sub(r'\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
         title = re.sub(r'_', ' ', title)
         title = re.sub(r' log', '', title)
         title = title[0].upper() + title[1:]
@@ -134,21 +136,40 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
     json_comp_df['num'] = json_comp_df.input_json.str.split(
             '.json').str[0].str[-1]
 
+    list_of_diff_nums = []
+    series['Protocol comparison to standard'] = 'Fail'
+
     if len(json_comp_df) == 0:
         series['Protocol comparison to standard'] = 'Pass'
     else:
-        gb = json_comp_df.groupby(['series_desc', 'series_num'])
+        gb = json_comp_df.groupby(['series_desc', 'series_num'], dropna=False)
         for (series_desc, series_num), table_upper in gb:
-            for loop_num, (num, table) in enumerate(
-                    table_upper.groupby('num')):
-                if loop_num > 0:
-                    series[f'Different fields in {series_desc} {loop_num}'] = \
-                            f'{len(table)}'
+            gb2 = table_upper.groupby('num', dropna=False)
+            for loop_num, (num, table) in enumerate(gb2, 1):
+                # skip any series which is not included in the standard scan
+                if table['standard_json'].str.contains('missing').any():
+                    continue
+
+                if table['input'].str.contains('missing').any():
+                    diff_num = 99
                 else:
-                    series[f'Different fields in {series_desc}'] = \
-                            f'{len(table)}'
+                    diff_num = len(table)
+                list_of_diff_nums.append(diff_num)
+
+                if len(table_upper['num'].unique()) > 1:
+                    name = f'Different fields in {series_desc} ({loop_num})'
+                else:
+                    name = f'Different fields in {series_desc}'
+
+                series[name] = diff_num
+
+    if any([x > 0 for x in list_of_diff_nums]):
+        series['Protocol comparison to standard'] = 'Fail'
+    else:
+        series['Protocol comparison to standard'] = 'Pass'
 
     df_all = pd.DataFrame(series)
+
     df_all.to_csv(qqc_out_dir / '00_qc_summary.csv')
     return df_all
 
@@ -161,23 +182,23 @@ def qqc_summary_for_dpdash(qqc_out_dir: Path) -> None:
     site = subject_name[:2]
 
     qqc_summary_df = qqc_summary(qqc_out_dir)
+
+    # Pass -> 1, Fail -> 0
     def relabel(val):
         if val == 'Pass':
             return 1
         elif val == 'Fail':
             return 0
         else:
-            return val
-        
+            return int(val)
+
     qqc_summary_df[qqc_summary_df.columns[0]] = qqc_summary_df[
             qqc_summary_df.columns[0]].apply(relabel)
-    print(qqc_summary_df)
 
-    header_df = pd.DataFrame({
-        'day': [1],
-        'reftime': '',
-        'timeofday': '',
-        'weekday': ''}).T
+    header_df = pd.DataFrame({'day': [1],
+                              'reftime': '',
+                              'timeofday': '',
+                              'weekday': ''}).T
 
     header_df.columns = qqc_summary_df.columns
     qqc_summary_df = pd.concat([header_df, qqc_summary_df]).T
@@ -186,7 +207,71 @@ def qqc_summary_for_dpdash(qqc_out_dir: Path) -> None:
     qqc_summary_df.columns = [re.sub(' ', '_', x) for x in
                               qqc_summary_df.columns]
 
-    qqc_summary_df.to_csv(qqc_out_dir / f'{site}-{subject_name}_{session_name}-mriqc-day1to1.csv', index=False)
+    # create dpdash settings
+    mriqc_pretty = create_dpdash_settings(qqc_summary_df)
+    with open('mriqc_pretty.json', 'w') as fp:
+        json.dump(mriqc_pretty, fp, indent=2)
+
+    out_file = qqc_out_dir / \
+            f'{site}-{subject_name}_{session_name}-mriqc-day1to1.csv'
+    qqc_summary_df.to_csv(out_file, index=False)
 
 
+
+def create_dpdash_settings(qqc_summary_df) -> dict:
+    '''Create dictionary for dpdash config'''
+
+    def update_default_dict(**kwargs):
+        default_dict = {
+            '_id': 0,
+            'analysis': 'mriqc',
+            'color': ['#fbb4ae', '#b3cde3', '#ccebc5', '#decbe4'],
+            'label': 'a',
+            'range': [0, 1],
+            'text': True,
+            'variable': 'a'}
+
+        for key, value in kwargs.items():
+            default_dict[key] = value
+
+        return default_dict
+
+    mriqc_pretty = {}
+    mriqc_pretty['name'] = 'mriqc'
+    mriqc_pretty['config'] = []
+
+    # subject head
+    mriqc_pretty['config'].append(
+        update_default_dict(
+            category='subject-id',
+            label='subject_id',
+            range=[0, '1'],
+            variable='subject_id'))
+
+    mriqc_pretty['config'].append(
+        update_default_dict(
+            category='subject-id',
+            label='session_id',
+            range=[0, '1'],
+            variable='session_id'))
+
+    # parameters
+    for param_name in [x for x in qqc_summary_df.columns
+            if re.search('[A-Z]', x[0])]:
+        if param_name.startswith('Different'):  # protocol diff count
+            mriqc_pretty['config'].append(
+                update_default_dict(
+                    category='AAHScout',
+                    label=re.sub('_', ' ', param_name),
+                    range=[0, 99],
+                    variable=param_name))
+        else:  # summary
+            mriqc_pretty['config'].append(
+                update_default_dict(
+                    category='Parameters',
+                    label=re.sub('_', ' ', param_name),
+                    color=['#f7fcb9', '#addd8e', '#31a354'],
+                    variable=param_name))
+
+    return mriqc_pretty
 

@@ -174,6 +174,19 @@ def test_whole_flow_example():
     dicom_to_bids_with_quick_qc(args)
 
 
+def test_whole_flow_example():
+    args = parse_args(['-i',
+            '/data/pnl/kcho/ha/20211117#C414_dicom',
+        '-s', 'SG00055',
+        '-ss', '202201191',
+        '-o', '/data/predict/kcho/flow_test/MRI_ROOT',
+        '-std',
+            '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            'ses-humanpilot'])
+
+    dicom_to_bids_with_quick_qc(args)
+
+
 def test_whole_flow_sf_example():
     args = parse_args(['-i',
             '/data/predict/kcho/flow_test/Pronet/PHOENIX/PROTECTED'

@@ -171,9 +171,12 @@ def test_compare_data_to_standard_all_json_new():
     rawdata_dir = root_dir / 'rawdata/sub-SF11111/ses-202201261'
     qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-SF11111/ses-202201261'
 
-    rawdata_dir = root_dir / 'rawdata/sub-NL00000/ses-202112071'
-    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-NL00000/ses-202112071'
+    # rawdata_dir = root_dir / 'rawdata/sub-NL00000/ses-202112071'
+    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-NL00000/ses-202112071'
 
+    # rawdata_dir = root_dir / 'rawdata/sub-BM00016/ses-202111171'
+    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-BM00016/ses-202111171'
+    
     within_phantom_qc(rawdata_dir, qqc_out_dir)
 
     compare_data_to_standard_all_jsons_new(

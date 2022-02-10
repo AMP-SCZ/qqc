@@ -265,10 +265,10 @@ def get_all_json_information_quick(data_dir):
 
     json_df = json_df.reset_index().drop('index', axis=1)
 
+    # adding distortion_map_before
     distortion_index = json_df[
             json_df.series_desc.str.contains(
                 'distortion', flags=re.IGNORECASE)].index
-
     for index, row in json_df.loc[distortion_index].iterrows():
         range_of_index = range(index, json_df.index[-1])
         for _, matching_row in json_df.loc[list(range_of_index)].iterrows():
@@ -334,6 +334,29 @@ def find_matching_files_between_BIDS_sessions(
                     json_df_all.loc[index, 'series_num_std'] = r2.series_num
                     diff_in_series_num = diff
 
+        # if there is any distortion map mismatched because of unmatching
+        # "distortion_map_before" information, due to missing series that 
+        # should have followed the distortion map, match them manually here
+        if pd.isnull(row.json_path_std) and \
+                'distort' in row.series_desc.lower():
+            # get dataframe of standard distortion maps in the same position
+            # eg.) distortion maps before T1w_MPR or rfMRI_REST
+            df_tmp = json_df_std[
+                (json_df_std.series_desc == row.series_desc) &
+                (json_df_std.run_num == row.run_num) &
+                (json_df_std.scout_num == row.scout_num)]
+
+            # find the standard distortion map with most close series number
+            diff_in_series_num = 100
+            for df_tmp_index, r2 in df_tmp.iterrows():
+                diff = row.series_num_input - r2.series_num
+                if np.absolute(diff) < diff_in_series_num:
+                    json_df_all.loc[index, 'json_path_std'] = r2.json_path
+                    json_df_all.loc[index, 'json_suffix_std'] = r2.json_suffix
+                    json_df_all.loc[index, 'series_num_std'] = r2.series_num
+                    diff_in_series_num = diff
+
+
         # scout
         if pd.isnull(row.json_path_std) and \
                 'aahscout' in row.series_desc.lower():
@@ -385,8 +408,8 @@ def find_matching_files_between_BIDS_sessions(
             ~json_df_std.json_suffix.isin(json_df_all.json_suffix_std)
                 ].iterrows(), 1):
         new_index = json_df_all.index[-1] + num
-        for var in ['image_type', 'series_num', 'run_num', 'num_num',
-                    'scout_num', 'distortion_map_before']:
+        for var in ['image_type', 'series_desc', 'series_num', 'run_num',
+                    'num_num', 'scout_num', 'distortion_map_before']:
             json_df_all.loc[new_index, var] = row[var]
 
         for var in ['json_path', 'json_suffix', 'series_num']:
@@ -561,11 +584,12 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
                                            qc_out_dir: Path,
                                            partial_rescan: bool):
 
-    json_df_all = find_matching_files_between_BIDS_sessions(
-            input_dir, standard_dir)
+    json_df_all = find_matching_files_between_BIDS_sessions(input_dir,
+                                                            standard_dir)
     json_df_all.to_csv(qc_out_dir / '99_input2std_matching_table.csv')
 
     df_diff = pd.DataFrame()
+    # for each set of matching json files
     for _, row in json_df_all.iterrows():
         if row.json_path_input is 'missing' or pd.isnull(row.json_path_input):
             df_row = pd.DataFrame({
@@ -588,9 +612,13 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
             df_row['input_json'] = row['json_path_input'].name
             df_row['standard_json'] = row['json_path_std'].name
 
+        # missing from input
+        if df_row['series_num'].isnull().all():
+            df_row['input'] = 'missing'
+
         df_row = df_row.reset_index().set_index(
-                ['series_desc', 'series_num', 'input_json',
-                 'standard_json', 'index'])
+            ['series_desc', 'series_num', 'input_json',
+             'standard_json', 'index'])
 
         if len(df_row) == 0:
             df_row.loc[(row['series_desc'],
@@ -599,9 +627,9 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
                         row['json_path_std'].name,
                         'no_diff'), 'input'] = 'No difference'
             df_row.loc[(row['series_desc'],
-                        row['series_num_input'], 
-                        row['json_path_input'].name, 
-                        row['json_path_std'].name, 
+                        row['series_num_input'],
+                        row['json_path_input'].name,
+                        row['json_path_std'].name,
                         'no_diff'), 'std'] = 'No difference'
 
 
