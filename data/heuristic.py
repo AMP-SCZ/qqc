@@ -112,22 +112,28 @@ def infotodict(seqinfo):
 
 
     for s in seqinfo:
-        if 'T1w' in s.protocol_name:
+        print('='*80)
+        print(s)
+        print('='*80)
+        if 't1w' in s.series_description.lower():
             if 'NORM' in s.image_type:  # exclude non motion corrected series
                 info[t1w_norm].append({'item': s.series_id})
             else:
                 info[t1w_nonnorm].append({'item': s.series_id})
 
-        if 'T2w' in s.protocol_name:
+        if 't2w' in s.series_description.lower():
             if ('NORM' in s.image_type):  # exclude non motion corrected series
                 info[t2w_norm].append({'item': s.series_id})
             else:
                 info[t2w_nonnorm].append({'item': s.series_id})
 
-        if 'dMRI' in s.protocol_name:
-            if '_dir' in s.series_description:
-                sbref = True if 'SBRef' in s.series_description else False
-                appa = 'AP' if '_AP' in s.series_description else 'PA'
+        if 'dmri' in s.series_description.lower():
+            print('-'*80)
+            print(s)
+            print('-'*80)
+            if '_dir' in s.series_description.lower():
+                sbref = True if 'sbref' in s.series_description.lower() else False
+                appa = 'AP' if '_ap' in s.series_description.lower() else 'PA'
                 dirnum = re.search(r'\d+', s.series_description).group(0)
                 if sbref:
                     info[dwi_sbref].append({
@@ -138,8 +144,8 @@ def infotodict(seqinfo):
                         'item': s.series_id, 'dirnum': dirnum,
                         'APPA': appa})
             else:
-                sbref = True if 'SBRef' in s.series_description else False
-                appa = 'AP' if '_AP' in s.series_description else 'PA'
+                sbref = True if 'sbref' in s.series_description.lower() else False
+                appa = 'AP' if '_ap' in s.series_description.lower() else 'PA'
                 if sbref:
                     info[dwi_b0_sbref].append({'item': s.series_id,
                                                'APPA': appa})
@@ -148,9 +154,9 @@ def infotodict(seqinfo):
                                                'APPA': appa})
 
 
-        if 'rfMRI' in s.protocol_name:
-            sbref = True if 'SBRef' in s.series_description else False
-            appa = True if '_AP' in s.series_description else False
+        if 'rfmri' in s.series_description.lower():
+            sbref = True if 'sbref' in s.series_description.lower() else False
+            appa = True if '_ap' in s.series_description.lower() else False
 
             if appa and sbref:
                 info[rest_ap_sbref].append({'item': s.series_id})
@@ -163,7 +169,7 @@ def infotodict(seqinfo):
 
 
         if 'distortion' in s.series_description.lower():
-            appa = 'AP' if '_AP' in s.series_description else 'PA'
+            appa = 'AP' if '_ap' in s.series_description.lower() else 'PA'
             series_num = int(re.search(r'\d+', s.series_id).group(0))
             tmp_dict = {'item': s.series_id,
                         'APPA': appa,
@@ -179,7 +185,8 @@ def infotodict(seqinfo):
             info[fmap].append(tmp_dict)
 
 
-        if 'localizer' in s.series_description.lower():
+        if 'localizer' in s.series_description.lower() or \
+           'calibration' in s.series_description.lower():
             if 'aligned' in s.series_description.lower():
                 tmp_dict = {'item': s.series_id,
                             'num': re.search(r'\d+', s.series_id).group(0)}
@@ -190,7 +197,8 @@ def infotodict(seqinfo):
                 info[localizer].append(tmp_dict)
 
 
-        if 'scout' in s.series_description.lower():
+        if 'scout' in s.series_description.lower() or \
+                'plane_loc' in s.series_description.lower():
             tmp_dict = {'item': s.series_id,
                         'num': re.search(r'\d+', s.series_id).group(0)}
             info[scout].append(tmp_dict)
