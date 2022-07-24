@@ -25,6 +25,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
 
     work_dir = Path(temp_dir) / 'mriqc' / subject_id / session_id
     work_dir.mkdir(exist_ok=True, parents=True)
+    mriqc_outdir_root.mkdir(exist_ok=True, parents=True)
 
     command = f'{singularity} run -e \
         -B {rawdata_dir}:/data:ro \
@@ -38,7 +39,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
         --nprocs 4 --mem 8G --omp-nthreads 2 \
         --no-sub \
         --verbose-reports'
-    
+
     if bsub:
         command = f'bsub -q pri_pnl \
                 -o {mriqc_outdir_root}/mriqc.out \

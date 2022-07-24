@@ -86,6 +86,7 @@ def get_nondmri_data(data_source: str,
         temp_dir.cleanup()
 
     elif dtype == 'nifti_prefix':
+        print(Path(data_source).with_suffix('.nii.gz'))
         data = nb.load(Path(data_source).with_suffix('.nii.gz')).get_fdata()
 
     elif dtype == 'nifti_dir':
@@ -235,7 +236,12 @@ def add_open_data_qc_measures(df: pd.DataFrame,
 
 def unzip_to_temporary_dir(zip_file_loc: Path) -> Path:
     '''Unzip a zip file to a temporary directory, and return the temp path'''
-    zf = zipfile.ZipFile('incoming.zip')
+    zf = zipfile.ZipFile(zip_file_loc)
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        zf.extractall(tempdir)
+    tf = tempfile.TemporaryDirectory()
+    print(tf.name)
+    print(dir(tf))
+    zf.extractall(tf.name)
+
+    print([x for x in Path(tf.name).glob('*')])
+    return tf.name

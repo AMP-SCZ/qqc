@@ -217,6 +217,23 @@ def test_whole_flow_nl_example():
     dicom_to_bids_with_quick_qc(args)
 
 
+def test_whole_flow_igor():
+    sourcedata_dir = '/data/predict/data_from_nda_dev/MRI_ROOT/sourcedata'
+    sourcedata = Path(sourcedata_dir) / 'JE00068/ses-202206282'
+    args = parse_args(['-i', str(sourcedata),
+        '-s', 'NL00000',
+        '-ss', '202112071',
+        '-o', '/data/predict/data_from_nda_dev/MRI_ROOT',
+        '--skip_dicom_rearrange', 
+        ])
+        # '-std',
+            # '/data/predict/phantom_human_pilot/rawdata/sub-ProNETUCLA/'
+            # 'ses-humanpilot',
+        # '--dwipreproc', '--mriqc', '--fmriprep'])
+
+    dicom_to_bids_with_quick_qc(args)
+
+
 def test_whole_flow_me_example():
     args = parse_args(['-i',
             '/data/predict/kcho/flow_test/Prescient/PHOENIX/PROTECTED/PrescientME/raw/ME00005/mri/1.1.28 PRESCIENT',
@@ -232,6 +249,16 @@ def test_whole_flow_me_example():
     dicom_to_bids_with_quick_qc(args)
 
 
+def test_whole_flow_GE_data():
+    args = parse_args(['-i',
+            '/data/predict/phantom_data/site_data/ProNET_Calgary_GE/human_pilot/dicom/second_transfer/AMP-SCZ_01/AMP-SCZ_01',
+        '-s', 'CG',
+        '-ss', '1',
+        '-o', '/data/predict/phantom_data/site_data/ProNET_Calgary_GE/human_pilot/dicom/second_transfer/MRI_ROOT2',
+        '--skip_heudiconv', '--skip_dicom_rearrange'])
+        # '--dwipreproc', '--mriqc', '--fmriprep'])
+
+    dicom_to_bids_with_quick_qc(args)
         
 def test_within_phantom_qc():
     args = parse_args(['-i', str(raw_dicom_dir),

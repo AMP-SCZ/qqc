@@ -245,7 +245,7 @@ def get_all_json_information_quick(data_dir):
 
             image_type = str(data['ImageType'])
             series_num = data['SeriesNumber']
-            series_desc = data['SeriesDescription']
+            series_desc = data['SeriesDescription'].lower()
 
         json_df_tmp = pd.DataFrame({
             'json_path': [json_path_input],
@@ -362,12 +362,14 @@ def find_matching_files_between_BIDS_sessions(
                 'aahscout' in row.series_desc.lower():
             # get dataframe of standard distortion maps in the same position
             # eg.) distortion maps before T1w_MPR or rfMRI_REST
-            series_tmp = json_df_std[
-                (json_df_std.series_desc == row.series_desc)].iloc[0]
+            if len(json_df_std[
+                (json_df_std.series_desc == row.series_desc)]) > 1:
+                series_tmp = json_df_std[
+                    (json_df_std.series_desc == row.series_desc)].iloc[0]
 
-            json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
-            json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
-            json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+                json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
+                json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
+                json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
         
         elif pd.isnull(row.json_path_std) and \
                 'scout' in row.series_desc.lower():
@@ -474,6 +476,8 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     Notes:
     '''
     json_paths_input = get_all_files_walk(session_dir, 'json')
+    print(session_dir)
+    print(json_paths_input)
 
     non_ignore_json_paths_input = [x for x in json_paths_input
                                  if (x.parent.name != 'ignore')]
@@ -504,7 +508,15 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
         csv_suffix = re.sub('[ ]+', '_', title)
 
         # label summary
-        summary_df = df_all.iloc[[0]].copy()
+        print('-'*70)
+        print(json_input)
+        print(specific_field)
+        print(df_all)
+        print('-'*70)
+        if len(df_all) > 1:
+            summary_df = df_all.iloc[[0]].copy()
+        else:
+            summary_df = pd.DataFrame()
         summary_df.index = pd.MultiIndex.from_tuples(
                 [('Summary', '', '')],
                 names=['series_number', 'series_name', 'index'])
@@ -520,12 +532,12 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
 
 
 def compare_data_to_standard(input_dir: str, standard_dir: str,
-                             qc_out_dir: Path, partial_rescan: bool) -> None:
+                             qc_out_dir: Path) -> None:
 
-    for func in compare_data_to_standard_all_jsons_new, \
+    for func in compare_jsons_to_std, \
                 compare_data_to_standard_all_bvals, \
                 compare_volume_to_standard_all_nifti:
-        func(input_dir, standard_dir, qc_out_dir, partial_rescan)
+        func(input_dir, standard_dir, qc_out_dir)
 
 
 def sort_json_paths_with_series_number(json_paths_input: List[Path]) -> list:
@@ -579,11 +591,9 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
     return df_tmp
 
 
-def compare_data_to_standard_all_jsons_new(input_dir: str,
-                                           standard_dir: str,
-                                           qc_out_dir: Path,
-                                           partial_rescan: bool):
-
+def compare_jsons_to_std(input_dir: str,
+                         standard_dir: str,
+                         qc_out_dir: Path):
     json_df_all = find_matching_files_between_BIDS_sessions(input_dir,
                                                             standard_dir)
     json_df_all.to_csv(qc_out_dir / '99_input2std_matching_table.csv')
@@ -638,81 +648,9 @@ def compare_data_to_standard_all_jsons_new(input_dir: str,
     df_diff.to_csv(qc_out_dir / '04_json_comparison_log.csv')
 
 
-def compare_data_to_standard_all_jsons(input_dir: str,
-                                       standard_dir: str,
-                                       qc_out_dir: Path,
-                                       partial_rescan: bool):
-    json_paths_input = get_all_files_walk(input_dir, 'json')
-    json_paths_std = get_all_files_walk(standard_dir, 'json')
-
-    df_path_order = sort_json_paths_with_series_number(json_paths_input)
-    json_paths_input = df_path_order.sort_values(
-            by='series_number').filepath.tolist()
-
-    name_dict = df_path_order.set_index('filepath')['series_name'].to_dict()
-    num_dict = df_path_order.set_index('filepath')['series_number']
-
-    fp = open(qc_out_dir / 'json_comparison_log.txt', 'w')
-    for json_path_input in json_paths_input:
-        series_name = name_dict[json_path_input]
-        series_number = num_dict[json_path_input]
-        _, _, json_suffix_input = \
-                get_naming_parts_bids(json_path_input.name)
-
-        with open(json_path_input, 'r') as json_file:
-            data = json.load(json_file)
-
-            image_type = data['ImageType']
-            series_num = data['SeriesNumber']
-            series_desc = data['SeriesDescription']
-
-
-        for json_path_std in json_paths_std:
-            _, _, json_suffix_std = \
-                    get_naming_parts_bids(json_path_std.name)
-
-            with open(json_path_std, 'r') as json_file:
-                data = json.load(json_file)
-                std_image_type = data['ImageType']
-                std_series_num = data['SeriesNumber']
-                std_series_desc = data['SeriesDescription']
-
-            if (series_desc == std_series_desc) & \
-                    (image_type == std_image_type):
-                # make sure the number of localizer and scout files are
-                # the same
-                if ('localizer' in series_desc.lower()) or \
-                        ('scout' in series_desc.lower()):
-                    if json_path_input.name[-6] != json_path_std.name[-6]:
-                        continue
-
-                fp.write(f'Comparing {series_number} {series_name}\n')
-                fp.write(f'- {json_path_input}\n')
-                fp.write(f'- {json_path_std}\n')
-                df_all_diff, df_all_shared = json_check(
-                        [json_path_input, json_path_std], False)
-
-                if partial_rescan:
-                    fp.write("* partial rescan - ignoring numbers "
-                             "following acq- and num-")
-                    if 'SeriesDescription' in df_all_diff.index:
-                        continue
-
-                if len(df_all_diff) > 0:
-                    dfAsString = df_all_diff.to_string()
-
-                    fp.write(dfAsString + '\n')
-                else:
-                    fp.write('*No difference\n')
-                fp.write('='*80)
-                fp.write('\n\n\n\n')
-    fp.close()
-
-
 def compare_data_to_standard_all_bvals(input_dir: str,
                                        standard_dir: str,
-                                       qc_out_dir: Path,
-                                       partial_rescan: bool):
+                                       qc_out_dir: Path):
     bval_paths_input = get_all_files_walk(input_dir, 'bval')
     bval_paths_std = get_all_files_walk(standard_dir, 'bval')
 
@@ -728,7 +666,10 @@ def compare_data_to_standard_all_bvals(input_dir: str,
                 bval_df_tmp['suffix'] = bval_suffix_input
                 bval_df = pd.concat([bval_df, bval_df_tmp.reset_index().set_index(['suffix', 'index'])])
 
-    if 'Fail' in bval_df['check']:
+    if 'check' not in bval_df.columns:
+        return
+
+    if (bval_df['check'] == False).any():
         bval_df = pd.concat([pd.DataFrame({'check': ['Fail'],
                                            'suffix': 'Summary',
                                            'index': ''}).set_index(

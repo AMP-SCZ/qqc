@@ -12,8 +12,7 @@ from phantom_check.utils.visualize import print_diff_shared
 
 def compare_volume_to_standard_all_nifti(input_dir: str,
                                          standard_dir: str,
-                                         qc_out_dir: Path,
-                                         partial_rescan: bool):
+                                         qc_out_dir: Path):
     nifti_paths_input = get_all_files_walk(input_dir, 'nii.gz')
     nifti_paths_std = get_all_files_walk(standard_dir, 'nii.gz')
 
@@ -34,12 +33,12 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
 
             image_type = data['ImageType']
             series_num = data['SeriesNumber']
-            series_desc = data['SeriesDescription']
+            series_desc = data['SeriesDescription'].lower()
 
+        print()
         for nifti_std in nifti_paths_std:
             _, _, nifti_suffix_std = \
                 get_naming_parts_bids(nifti_std.name)
-
             # if partial_rescan:
             std_json = nifti_std.parent / (
                     nifti_std.name.split('.')[0] + '.json')
@@ -47,11 +46,35 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                 data = json.load(json_file)
                 std_image_type = data['ImageType']
                 std_series_num = data['SeriesNumber']
-                std_series_desc = data['SeriesDescription']
+                std_series_desc = data['SeriesDescription'].lower()
+
+            print('----')
+            print('input')
+            print(series_desc)
+            print(image_type)
+            print('output')
+            print(std_series_desc)
+            print(std_image_type)
+            print('----')
+
+            # # for JE site, extracted image type is different
+            # if (series_desc == std_series_desc):
+                # pass
+                # # print(series_desc, std_series_desc)
+                # # print(image_type, std_image_type)
+
+            # for var_to_remove in 'RESAMPLED', 'FMRI', 'NONE', 'MOSAIC':
+                # if var_to_remove in image_type:
+                    # image_type.pop(image_type.index(var_to_remove))
+                # if var_to_remove in std_image_type:
+                    # std_image_type.pop(std_image_type.index(var_to_remove))
+
+            # ###
 
             if (series_desc == std_series_desc) & \
-                    (image_type == std_image_type):
-
+                    (all([x in std_image_type for x in image_type])):
+                # print(series_desc, std_series_desc)
+                # print(image_type, std_image_type)
                 # make sure the number of localizer and scout files are
                 # the same
                 if ('localizer' in series_desc.lower()) or \
@@ -76,6 +99,7 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
 
         num += 1
 
+    print(volume_comparison_df)
     volume_comparison_df['check'] = (volume_comparison_df['input shape'] ==
             volume_comparison_df['standard shape']).map(
                     {True: 'Pass', False: 'Fail'})

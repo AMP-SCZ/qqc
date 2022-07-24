@@ -22,7 +22,10 @@ def run_fmriprep_on_data(rawdata_dir: Path,
         temp_dir: location of fmriprep working directory
         bsub: bsub option, bool.
     '''
-    img_loc = '/data/predict/mg1050/singularity_images/fmriprep-20.2.6.sif'
+    # img_loc = '/data/predict/mg1050/singularity_images/fmriprep-20.2.6.sif'
+    # img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc0.simg'
+    # img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc2.simg'
+    img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc3.simg'
     singularity = '/apps/released/gcc-toolchain/gcc-4.x/singularity/' \
                   'singularity-3.7.0/bin/singularity'
 
@@ -43,7 +46,6 @@ def run_fmriprep_on_data(rawdata_dir: Path,
     with open(work_dir / 'filter.json', 'w') as fp:
         json.dump(filter_dict, fp, indent=1)
 
-
     command = f'{singularity} run -e \
         -B {rawdata_dir}:/data:ro \
         -B {work_dir}:/work \
@@ -54,18 +56,21 @@ def run_fmriprep_on_data(rawdata_dir: Path,
         {img_loc} \
         /data /out participant \
         -w /work --participant-label {subject_id} \
-        --nprocs 4 --mem 20G --omp-nthreads 2 \
+        --nprocs 8 --mem 20G --omp-nthreads 2 \
         --fs-subjects-dir /fsdir \
         --output-layout bids \
         --verbose \
         --skip_bids_validation \
+        --notrack \
         --bids-filter-file /filter.json'
+
+    print(command)
     
     if bsub:
         command = f'bsub -q pri_pnl \
                 -o {fmriprep_outdir_root}/fmriprep.out \
                 -e {fmriprep_outdir_root}/fmriprep.err \
-                -n 4 -J fmriprep_{subject_id}_{session_id} \
+                -n 8 -J fmriprep_{subject_id}_{session_id} \
                 {command}'
 
     command = re.sub(r'\s+', ' ', command)

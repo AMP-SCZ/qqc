@@ -16,22 +16,9 @@ import socket
 from phantom_check.qqc.qqc_summary import qqc_summary, qqc_summary_detailed
 tz = timezone('EST')
 
-__dir__ = os.path.dirname(__file__)
 
 def send(recipients, sender, subject, message, test, mailx, sender_pw):
     '''send an email'''
-    # email_template = os.path.join(__dir__, 'bootdey_template.html')
-    # with open(email_template, 'r') as fo:
-        # template = string.Template(fo.read())
-    # message = template.safe_substitute(message=str(message))
-    # msg = MIMEText(message, 'html')
-    # msg['Subject'] = subject
-    # msg['From'] = sender
-    # msg['To'] = ', '.join(recipients)
-    # s = smtplib.SMTP('localhost')
-    # s.sendmail(sender, recipients, msg.as_string())
-    # s.quit()
-
     msg = MIMEMultipart()
     msg['Subject'] = subject
     msg['From'] = sender
@@ -126,7 +113,7 @@ def send_detail(sender: str, recipients: List[str],
     '''
 
     # get template
-    env = Environment(loader=FileSystemLoader(str(__dir__)))
+    env = Environment(loader=FileSystemLoader(str(os.path.dirname(__file__))))
 
     # html form to be used for email
     email_template = env.get_template('bootdey_template_clean.html')
@@ -147,11 +134,12 @@ def send_detail(sender: str, recipients: List[str],
     # study level html
     study_template = env.get_template('bootdey_template_study.html')
     study_level_html = Path(qqc_out_dir).parent.parent / 'study_summary.html'
-    html_str = create_html_for_qqc_study(template, title, subtitle,
+    html_str = create_html_for_qqc_study(study_template, title, subtitle,
             first_message, second_message, code, in_mail_footer,
             qqc_html_list)
     with open(study_level_html, 'w') as fh:
         fh.write(html_str)
+
 
 def extract_info_for_qqc_report(qqc_out_dir: Path,
                                 standard_dir: Path,

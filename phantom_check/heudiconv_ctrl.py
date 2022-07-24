@@ -36,6 +36,17 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     heuristic_file = Path(phantom_check.__file__).parent.parent / 'data' / \
             'heuristic.py'
 
+    # os.environ['dcm2niix'] = \
+            # '/data/predict/phantom_data/softwares' \
+            # '/newest_dcm2niix_2022/dcm2niix'
+
+    # os.environ['dcm2niix'] = \
+            # '/data/predict/phantom_data/softwares/dcm2niix/dcm2niix'
+
+    os.environ['dcm2niix'] = \
+            '/data/predict/phantom_data/kcho/devel_soft/'\
+            'dcm2niix_devel_branch/dcm2niix/build/bin/dcm2niix'
+
     command = f'heudiconv \
         -d {dicom_input_root}' + '/{subject}/ses-{session}/*/* ' \
         f'-f {heuristic_file} ' \
@@ -46,6 +57,8 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     logger.info('Running heudiconv')
     logger.info('heudiconv command: %s' % command)
     output = os.popen(command).read()
+    print(command)
+    print(output)
 
     with open(qc_out_dir / '99_heudiconv_log.txt', 'a') as fp:
         fp.write(output)

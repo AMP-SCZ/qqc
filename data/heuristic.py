@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import time
+from pydicom import dcmread
 
 
 def create_key(template, outtype=('nii.gz',), annotation_classes=None):
@@ -94,8 +95,7 @@ def infotodict(seqinfo):
             'sub-{subject}/{session}/fmap/'
             'sub-{subject}_{session}_acq-{acq}_dir-{APPA}_run-{item}_epi')
 
-    info = {
-            t1w_norm: [], t1w_nonnorm: [],
+    info = {t1w_norm: [], t1w_nonnorm: [],
             t2w_norm: [], t2w_nonnorm: [],
             dwi: [],
             dwi_sbref: [],
@@ -114,15 +114,32 @@ def infotodict(seqinfo):
     for s in seqinfo:
         print('='*80)
         print(s)
+        print(s.example_dcm_file_path)
         print('='*80)
         if 't1w' in s.series_description.lower():
-            if 'NORM' in s.image_type:  # exclude non motion corrected series
+            try:
+                # JE site uses Siemens XA30, which stores normalization info
+                # in one of the private tag
+                ds = dcmread(s.example_dcm_file_path)
+                t1w_private_tag = ds[0x52009230][0][0x002111fe][0][0x00211175].value
+            except:
+                t1w_private_tag = ''
+
+            if 'NORM' in s.image_type or 'NORM' in t1w_private_tag:
                 info[t1w_norm].append({'item': s.series_id})
             else:
                 info[t1w_nonnorm].append({'item': s.series_id})
 
         if 't2w' in s.series_description.lower():
-            if ('NORM' in s.image_type):  # exclude non motion corrected series
+            try:
+                # JE site uses Siemens XA30, which stores normalization info
+                # in one of the private tag
+                ds = dcmread(s.example_dcm_file_path)
+                t2w_private_tag = ds[0x52009230][0][0x002111fe][0][0x00211175].value
+            except:
+                t2w_private_tag = ''
+
+            if 'NORM' in s.image_type or 'NORM' in t2w_private_tag:
                 info[t2w_norm].append({'item': s.series_id})
             else:
                 info[t2w_nonnorm].append({'item': s.series_id})

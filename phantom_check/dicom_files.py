@@ -68,7 +68,9 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
 
     num = 0
     for root, folders, files in os.walk(dicom_root):
+        print(root)
         for file in [x for x in files if not x.startswith('.')]:
+            print(file)
             file_lower = file.lower()
             # includes the logics to detect dicoms without dcm / ima extension
             # file with only digits in the filename
@@ -80,13 +82,16 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
                         or len(re.search('\d+', file).group(0)) == len(file):
                     dicom_paths.append(os.path.join(root, file))
                     num += 1
+
                 if one_file_for_series:  # to load a single file for each dir
-                    if len(max_number_of_dirs) == 1:
-                        continue
-                    else:
-                        break
+                    # if len(max_number_of_dirs) == 1:
+                    break
+                    # else:
+                        # break
             except:
                 logger.warning(f'There are non-dicom files {root}/{file}')
+
+    print('READING complete')
 
     if num == 0:
         logger.critical(f'No dicom files found under {dicom_root}')
@@ -106,10 +111,16 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     t = end - start
     logger.info(f'Time taken to dicomise dicom all paths: {t}')
 
+    print('READING complete 2')
+
     start = time.time()
     logger.info('Extracting information from pydicom objects')
-    df['norm'] = df.pydicom.apply(lambda x:
-            get_additional_info(x, '0008', '0008'))
+    try:
+        df['norm'] = df.pydicom.apply(lambda x:
+                get_additional_info(x, '0008', '0008'))
+    except:  #GE
+        df['norm'] = 'unknown'
+
     df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
 
     logger.info('Extracting information from pydicom objects')
@@ -198,7 +209,11 @@ def add_detailed_info_to_summary_df(df: pd.DataFrame,
 
 def get_csa_header(dicom: pydicom.dataset.FileDataset) -> pd.DataFrame:
     '''Clean up private information extracted'''
-    info = get_additional_info(dicom, '0029', '1020')
+    try:
+        info = get_additional_info(dicom, '0029', '1020')
+    except:
+        return pd.DataFrame({'var': ['unknown'], 'value': 'unknown'})
+
     extracted_text = info.decode(errors='ignore').split(
             '### ASCCONV')[1]
 
@@ -208,10 +223,18 @@ def get_csa_header(dicom: pydicom.dataset.FileDataset) -> pd.DataFrame:
                 or line.startswith('sSliceArray.asSlice[0].'):
             new_lines.append(line)
 
+
     df = pd.DataFrame({'raw_line': new_lines})
-    df['var'] = df.raw_line.str.extract(r'(\S+)\s+')
-    df['value'] = df.raw_line.str.extract(r'=\s+(\S+)')
-    df.drop('raw_line', axis=1, inplace=True)
+
+    if len(new_lines) == 0:
+        df['var'] = []
+        df['value'] = []
+        df.drop('raw_line', axis=1, inplace=True)
+
+    else:
+        df['var'] = df.raw_line.str.extract(r'(\S+)\s+')
+        df['value'] = df.raw_line.str.extract(r'=\s+(\S+)')
+        df.drop('raw_line', axis=1, inplace=True)
 
     return df
 
@@ -252,6 +275,7 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
              't2w'in row.series_desc.lower()  or \
              'distortion'in row.series_desc.lower():
             df_tmp = get_csa_header(row['pydicom'])
+
             df_tmp = df_tmp.set_index('var')
             df_tmp.columns = [f'{row.series_num}_{row.series_desc}']
             dfs.append(df_tmp)
@@ -293,3 +317,4 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
         series_dir_path.mkdir(exist_ok=True, parents=True)
         for _, row in table.iterrows():
             shutil.copy(row['file_path'], series_dir_path)
+            # os.chmod(series_dir_path, 665)

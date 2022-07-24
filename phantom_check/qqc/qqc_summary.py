@@ -1,31 +1,34 @@
 import pandas as pd
 from pathlib import Path
 import re
+from typing import Tuple
 import json
+import numpy as np
+import seaborn as sns
 
 
-def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
+def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     '''Summarize quick QC output into a single CSV file
 
     Key Arguments:
-        qqc_out_dir: quick QC location of the session data
+        qqc_ss_dir: quick QC location of the session data
 
     Returns:
         pd.DataFrame of quick QC summary
     '''
     # set up QC output file locations
-    scan_order = qqc_out_dir / '01_scan_order.csv'
-    scan_count = qqc_out_dir / '02_series_count.csv'
-    volume_shape = qqc_out_dir / '03_volume_slice_number_comparison_log.csv'
-    json_comp = qqc_out_dir / '04_json_comparison_log.csv'
-    anat_orient = qqc_out_dir / '05a_image_orientation_in_anat.csv'
-    non_anat_orident = qqc_out_dir / '05b_image_orientation_in_others.csv'
-    shim_settings = qqc_out_dir / '05c_shim_settings.csv'
-    bval = qqc_out_dir / '06_bval_comparison_log.csv'
+    scan_order = qqc_ss_dir / '01_scan_order.csv'
+    scan_count = qqc_ss_dir / '02_series_count.csv'
+    volume_shape = qqc_ss_dir / '03_volume_slice_number_comparison_log.csv'
+    json_comp = qqc_ss_dir / '04_json_comparison_log.csv'
+    anat_orient = qqc_ss_dir / '05a_image_orientation_in_anat.csv'
+    non_anat_orident = qqc_ss_dir / '05b_image_orientation_in_others.csv'
+    shim_settings = qqc_ss_dir / '05c_shim_settings.csv'
+    bval = qqc_ss_dir / '06_bval_comparison_log.csv'
 
     # get subject info
-    session_name = qqc_out_dir.name
-    subject_name = qqc_out_dir.parent.name
+    session_name = qqc_ss_dir.name
+    subject_name = qqc_ss_dir.parent.name
 
     # summarize each QC summaries
     colname = f'{subject_name}/{session_name} QC'
@@ -42,12 +45,19 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
         title = re.sub(r' log', '', title)
         title = title[0].upper() + title[1:]
 
-        df_tmp = pd.read_csv(df_loc)
+        if df_loc.is_file():
+            df_tmp = pd.read_csv(df_loc)
+        else:
+            df_tmp = pd.DataFrame()
+            
         other_dfs.append(df_tmp)
         titles.append(title)
 
         rename_all_pass = lambda x: 'Pass' if x == 'All Pass' else x
-        df.loc[title, colname] = rename_all_pass(df_tmp.iloc[0][-1])
+        if df_loc.is_file():
+            df.loc[title, colname] = rename_all_pass(df_tmp.iloc[0][-1])
+        else:
+            df.loc[title, colname] = 'Fail'
 
         if df.loc[title, colname] == 'Fail':
             if 'volume_slice' in df_loc.name:
@@ -92,32 +102,97 @@ def qqc_summary_detailed(qqc_out_dir: Path) -> pd.DataFrame:
 
     return df, df_2, other_dfs, titles
 
-def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
+
+def get_motion_tmp(dwipreproc_dir: Path) -> Tuple:
+    if (dwipreproc_dir / 'eddy_out.eddy_restricted_movement_rms').is_file():
+        arr = np.loadtxt(dwipreproc_dir /
+                'eddy_out.eddy_restricted_movement_rms')
+        avg_motions = arr.mean(axis=0)
+
+        outlier_file = dwipreproc_dir / 'eddy_out.eddy_outlier_map'
+        outliers_n = np.loadtxt(outlier_file, skiprows=1).sum()
+        return (avg_motions[0], avg_motions[1], outliers_n)
+    else:
+        return pd.NA, pd.NA, pd.NA
+
+
+def get_motion_fMRI(fmriprep: Path) -> Tuple:
+    df = pd.DataFrame()
+    if fmriprep.is_dir():
+        for tsv_file in fmriprep.glob('*tsv'):
+            print(tsv_file)
+            encoding_dir = tsv_file.name.split('-rest_dir-')[1][:2]
+            run_number = tsv_file.name.split('_run-')[1][0]
+            print(encoding_dir, run_number)
+            df_tmp = pd.read_csv(tsv_file, sep='\t')[
+                    ['dvars', 'framewise_displacement']].mean().T
+
+            df_tmp['encoding_dir'] = encoding_dir
+            df_tmp['run_number'] = run_number
+
+            df = pd.concat([df, df_tmp], axis=1)
+
+        df = df.T.reset_index(drop=True)
+        df.set_index(['encoding_dir', 'run_number'], inplace=True)
+
+    return df
+
+
+def get_anat_qc(mriqc_anat_dir: Path) -> Tuple:
+    df = pd.DataFrame()
+    if mriqc_anat_dir.is_dir():
+        for json_f in mriqc_anat_dir.glob('*rec-norm_run-1_T*w.json'):
+            with open(json_f, 'r') as fp:
+                data = json.load(fp)
+
+            df_tmp = pd.DataFrame({
+                'modality': [json_f.name.split('_')[-1][:3]],
+                'cjv': data['cjv'],
+                'cnr': data['cnr']})
+            df = pd.concat([df, df_tmp])
+
+        df.set_index(['modality'], inplace=True)
+    return df
+
+
+def qqc_summary(qqc_ss_dir: Path) -> pd.DataFrame:
     '''Summarize quick QC output into a single CSV file
 
     Key Arguments:
-        qqc_out_dir: quick QC location of the session data
+        qqc_ss_dir: quick QC location of the session data
 
     Returns:
         pd.DataFrame of quick QC summary
     '''
     # set up QC output file locations
-    scan_order = qqc_out_dir / '01_scan_order.csv'
-    scan_count = qqc_out_dir / '02_series_count.csv'
-    volume_shape = qqc_out_dir / '03_volume_slice_number_comparison_log.csv'
-    json_comp = qqc_out_dir / '04_json_comparison_log.csv'
-    anat_orient = qqc_out_dir / '05a_image_orientation_in_anat.csv'
-    non_anat_orident = qqc_out_dir / '05b_image_orientation_in_others.csv'
-    shim_settings = qqc_out_dir / '05c_shim_settings.csv'
-    bval = qqc_out_dir / '06_bval_comparison_log.csv'
+    scan_order = qqc_ss_dir / '01_scan_order.csv'
+    scan_count = qqc_ss_dir / '02_series_count.csv'
+    volume_shape = qqc_ss_dir / '03_volume_slice_number_comparison_log.csv'
+    json_comp = qqc_ss_dir / '04_json_comparison_log.csv'
+    anat_orient = qqc_ss_dir / '05a_image_orientation_in_anat.csv'
+    non_anat_orident = qqc_ss_dir / '05b_image_orientation_in_others.csv'
+    shim_settings = qqc_ss_dir / '05c_shim_settings.csv'
+    bval = qqc_ss_dir / '06_bval_comparison_log.csv'
 
     # get subject info
-    session_name = qqc_out_dir.name
-    subject_name = qqc_out_dir.parent.name
+    session_name = qqc_ss_dir.name
+    subject_name = qqc_ss_dir.parent.name
+
+    derivatives_root = qqc_ss_dir.parent.parent.parent
+    dwipreproc_dir = derivatives_root / 'dwipreproc' / \
+            subject_name / session_name
+    mriqc_dir = derivatives_root / 'mriqc' / \
+            subject_name / session_name / 'anat'
+    fmriprep_dir = derivatives_root / 'fmriprep' / \
+            subject_name / session_name / 'func'
+
+    abs_motion, rel_motion, outliers_n = get_motion_tmp(dwipreproc_dir)
+    fMRI_motion_df = get_motion_fMRI(fmriprep_dir)
+    mriqc_df = get_anat_qc(mriqc_dir)
 
     # summarize each QC summaries
     series = pd.Series(name=f'{subject_name}/{session_name} QC',
-                       dtype=pd.StringDtype()) 
+                       dtype=pd.StringDtype())
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
             non_anat_orident, shim_settings, bval:
         # clean up the name of each QC output
@@ -126,10 +201,14 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
         title = re.sub(r' log', '', title)
         title = title[0].upper() + title[1:]
 
-        df = pd.read_csv(df_loc)
-
         rename_all_pass = lambda x: 'Pass' if x == 'All Pass' else x
-        series[title] = rename_all_pass(df.iloc[0][-1])
+        if df_loc.is_file():
+            df = pd.read_csv(df_loc)
+            series[title] = rename_all_pass(df.iloc[0][-1])
+        else:
+            series[title] = 'Fail'
+
+
 
     # json comparison QC - add lines of difference
     json_comp_df = pd.read_csv(json_comp)
@@ -151,7 +230,7 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
                     continue
 
                 if table['input'].str.contains('missing').any():
-                    diff_num = 99
+                    diff_num = np.nan
                 else:
                     diff_num = len(table)
                 list_of_diff_nums.append(diff_num)
@@ -163,63 +242,143 @@ def qqc_summary(qqc_out_dir: Path) -> pd.DataFrame:
 
                 series[name] = diff_num
 
-    if any([x > 0 for x in list_of_diff_nums]):
+    if any(np.isnan(list_of_diff_nums)):
+        series['Protocol comparison to standard'] = 'Fail'
+    elif any([x > 0 for x in list_of_diff_nums]):
         series['Protocol comparison to standard'] = 'Fail'
     else:
         series['Protocol comparison to standard'] = 'Pass'
+    series.drop('Protocol comparison to standard', inplace=True)
+
+    # motion
+    series['Absolute_dwi_motion'] = abs_motion
+    series['Relative_dwi_motion'] = rel_motion
+    series['Outliers_dwi'] = outliers_n
+
+    # fmri motion
+    for encoding_dir in 'PA', 'AP':
+        for run_num in '1', '2':
+            try:
+                series[f'DVARS_fMRI_{encoding_dir}_{run_num}'] = \
+                        fMRI_motion_df.loc[(encoding_dir, run_num), 'dvars']
+            except:
+                pass
+
+    for encoding_dir in 'PA', 'AP':
+        for run_num in '1', '2':
+            try:
+                series[f'Framewise_displacement_fMRI_{encoding_dir} {run_num}'] = \
+                        fMRI_motion_df.loc[(encoding_dir, run_num), 'framewise_displacement']
+            except:
+                pass
+    # mriqc
+    for modality in 'T1w', 'T2w':
+        try:
+            series[f'CNR_{modality}'] = mriqc_df.loc[modality, 'cnr']
+        except:
+            pass
+
+    for modality in 'T1w', 'T2w':
+        try:
+            series[f'CJV_{modality}'] = mriqc_df.loc[modality, 'cjv']
+        except:
+            pass
 
     df_all = pd.DataFrame(series)
+    new_order = [x for x in df_all.index if not x.startswith('Diff')] + \
+            [x for x in df_all.index if x.startswith('Diff')]
+    df_all = df_all.loc[new_order]
 
-    df_all.to_csv(qqc_out_dir / '00_qc_summary.csv')
+    df_all.to_csv(qqc_ss_dir / '00_qc_summary.csv')
     return df_all
 
 
-def qqc_summary_for_dpdash(qqc_out_dir: Path) -> None:
-    '''Save quick QC output summary for DPDash'''
+def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
+    '''Save QQC session summary for DPDash'''
     # get subject info
-    session_name = qqc_out_dir.name.split('-')[1]
-    subject_name = qqc_out_dir.parent.name.split('-')[1]
+    session_name = qqc_ss_dir.name.split('-')[1]
+    subject_name = qqc_ss_dir.parent.name.split('-')[1]
     site = subject_name[:2]
 
-    qqc_summary_df = qqc_summary(qqc_out_dir)
+    # get QQC summary for the session
+    qqc_summary_df = qqc_summary(qqc_ss_dir)
 
     # Pass -> 1, Fail -> 0
     def relabel(val):
+        if pd.isna(val):
+            return val
+
         if val == 'Pass':
             return 1
         elif val == 'Fail':
             return 0
+
+        elif type(val) == float:
+            return round(val, 2)
         else:
             return int(val)
 
+    # replace 'Pass' to 1, 'Fail' to 0
     qqc_summary_df[qqc_summary_df.columns[0]] = qqc_summary_df[
             qqc_summary_df.columns[0]].apply(relabel)
 
+    # columns required by DPDash
     header_df = pd.DataFrame({'day': [1],
                               'reftime': '',
                               'timeofday': '',
                               'weekday': ''}).T
-
     header_df.columns = qqc_summary_df.columns
     qqc_summary_df = pd.concat([header_df, qqc_summary_df]).T
+
+    # DPDash requires day to start from 1
+    qqc_summary_df['day'] = 1
+
+    # remove scan order
+    qqc_summary_df.drop('Scan order', axis=1, inplace=True)
 
     # remove spaces from column names
     qqc_summary_df.columns = [re.sub(' ', '_', x) for x in
                               qqc_summary_df.columns]
 
-    # create dpdash settings
+    # create dpdash settings - update here later TODO
     mriqc_pretty = create_dpdash_settings(qqc_summary_df)
-    with open('mriqc_pretty.json', 'w') as fp:
+    with open('/data/predict/data_from_nda/MRI_ROOT/mriqc_pretty.json', 'w') as fp:
         json.dump(mriqc_pretty, fp, indent=2)
 
-    out_file = qqc_out_dir / \
-            f'{site}-{subject_name}_{session_name}-mriqc-day1to1.csv'
-    qqc_summary_df.to_csv(out_file, index=False)
 
+    # Save individual dpdash settings
+    # Session name has to be included as a column in the csv file for DPDash.
+    # Also, the file name has to follow XX-AMPSCZID-mriqc-day1toX.csv pattern.
+    qqc_summary_df['subject_id'] = subject_name
+    qqc_summary_df['session_id'] = session_name
+
+    out_file = qqc_ss_dir.parent.parent / \
+            f'{site}-{subject_name}-mriqc-day1to1.csv'
+
+    if out_file.is_file():
+        qqc_summary_df_exist = pd.read_csv(out_file)
+        if session_name in qqc_summary_df_exist.session_id.to_list():
+            return qqc_summary_df
+    else:
+        qqc_summary_df_exist = pd.DataFrame()
+
+    # qqc_summary_df['session'] = session_name
+    pd.concat([qqc_summary_df_exist,
+               qqc_summary_df]).to_csv(out_file, index=False)
+    # qqc_summary_df.to_csv(out_file, index=False)
+
+    return qqc_summary_df
 
 
 def create_dpdash_settings(qqc_summary_df) -> dict:
-    '''Create dictionary for dpdash config'''
+    '''Create dictionary for dpdash config
+
+    Key Arguments:
+        qqc_summary_df: qqc_summary df initiated by qqc_summary_for_dpdash
+
+    Return:
+        a dictionary with dpdash configuration
+    '''
 
     def update_default_dict(**kwargs):
         default_dict = {
@@ -242,36 +401,90 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
 
     # subject head
     mriqc_pretty['config'].append(
-        update_default_dict(
-            category='subject-id',
-            label='subject_id',
-            range=[0, '1'],
-            variable='subject_id'))
+        update_default_dict(category='subject-id',
+                            label='subject_id',
+                            range=[0, '1'],
+                            variable='subject_id'))
 
     mriqc_pretty['config'].append(
-        update_default_dict(
-            category='subject-id',
-            label='session_id',
-            range=[0, '1'],
-            variable='session_id'))
+        update_default_dict(category='subject-id',
+                            label='session_id',
+                            range=[0, '1'],
+                            variable='session_id'))
 
-    # parameters
-    for param_name in [x for x in qqc_summary_df.columns
-            if re.search('[A-Z]', x[0])]:
+    # For each columns
+    for param_name in [x for x in qqc_summary_df.columns if x not in
+            ['day', 'reftime', 'timeofday', 'weekday']]:
         if param_name.startswith('Different'):  # protocol diff count
-            mriqc_pretty['config'].append(
-                update_default_dict(
-                    category='AAHScout',
-                    label=re.sub('_', ' ', param_name),
-                    range=[0, 99],
-                    variable=param_name))
-        else:  # summary
-            mriqc_pretty['config'].append(
-                update_default_dict(
-                    category='Parameters',
-                    label=re.sub('_', ' ', param_name),
-                    color=['#f7fcb9', '#addd8e', '#31a354'],
-                    variable=param_name))
+            mriqc_pretty['config'].append(update_default_dict(
+                category='AAHScout',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 100],
+                color=sns.color_palette("Reds", 8).as_hex(),
+                variable=param_name))
+
+        # diffusion
+        elif 'Relative_dwi_motion' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='diffusion',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 1],
+                color=sns.color_palette("RdYlGn_r", 8).as_hex(),
+                variable=param_name))
+        elif 'Absolute_dwi_motion' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='diffusion',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 2],
+                color=sns.color_palette("RdYlGn_r", 8).as_hex(),
+                variable=param_name))
+        elif 'Outliers_dwi' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='diffusion',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 300],
+                color=sns.color_palette("RdYlGn_r", 8).as_hex(),
+                variable=param_name))
+
+        # mriqc
+        elif 'CJV' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='struct',
+                label=re.sub('_', ' ', param_name) + ' (lower better)',
+                range=[0, 1.5],
+                color=sns.color_palette("Blues", 8).as_hex(),
+                variable=param_name))
+        elif 'CNR' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='struct',
+                label=re.sub('_', ' ', param_name) + ' (higher better)',
+                range=[0, 4.5],
+                color=sns.color_palette("Blues_r", 8).as_hex(),
+                variable=param_name))
+
+        # fMRIPrep
+        elif 'DVARS' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='fmri',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 150],
+                color=sns.color_palette("Oranges", 8).as_hex(),
+                variable=param_name))
+
+        elif 'Framewise' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='fmri',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 1],
+                color=sns.color_palette("Oranges", 8).as_hex(),
+                variable=param_name))
+
+        else:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='Parameters',
+                label=re.sub('_', ' ', param_name),
+                color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
+                variable=param_name))
 
     return mriqc_pretty
 

@@ -1,6 +1,7 @@
 from phantom_check.qqc.json import jsons_from_bids_to_df
-from phantom_check.dicom_files import get_dicom_files_walk
-from phantom_check.qqc.dicom import check_num_of_series, check_order_of_series
+from phantom_check.dicom_files import get_dicom_files_walk, get_csa_header
+from phantom_check.qqc.dicom import check_num_of_series, \
+        check_order_of_series, save_csa
 import pandas as pd
 from pathlib import Path
 import socket
@@ -36,3 +37,47 @@ def test_cehck_num_order_of_series():
     print()
     print(num_check_df)
     print(order_check_df)
+
+
+def test_csa_headers():
+
+    # input_dicom_dir = Path(
+            # '/data/predict/phantom_human_pilot/sourcedata/'
+            # 'ProNET_UCSF_Prisma/ses-phantom'
+            # )
+    # df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    # save_csa(df_full_input, Path('UCSF_phantom'))
+
+    # input_dicom_dir = Path(
+            # '/data/predict/kcho/flow_test/MRI_ROOT/'
+            # 'sourcedata/SF11111/ses-202201261')
+    # df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    # save_csa(df_full_input, Path('SF11111'))
+
+
+    # input_dicom_dir = Path(
+            # '/data/predict/phantom_data/site_data/'
+            # 'ProNET_UCSF_Prisma/human_pilot/data/dicom')
+    # df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    # save_csa(df_full_input, Path('SF00003'))
+
+
+    import pydicom
+    dicom_root_path = Path('/data/predict/kcho/flow_test/MRI_ROOT/sourcedata/SF11111/ses-202201261')
+
+    for series_desc_path in dicom_root_path.glob('*'):
+        dicom_loc = list(series_desc_path.glob('*'))[0]
+        #'/data/predict/kcho/flow_test/MRI_ROOT/sourcedata/SF11111/ses-202201261/16_T2w_SPC/IM-0016-0001.dcm'
+        dicom_obj = pydicom.read_file(str(dicom_loc))
+        try:
+            df = get_csa_header(dicom_obj)
+            print(df)
+            print(series_desc_path)
+            # break
+        except:
+            print('*'*80)
+            print(series_desc_path)
+            print('no header')
+            print('*'*80)
+
+

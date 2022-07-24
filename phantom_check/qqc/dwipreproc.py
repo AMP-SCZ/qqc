@@ -24,15 +24,18 @@ def run_quick_dwi_preproc_on_data(rawdata_dir: Path,
 
     dwipreproc_bash_code = Path(os.path.realpath(__file__)).parent / \
                            'dwipreproc.sh'
+    dwipreproc_python_code = '/data/predict/kcho/ampscz_mri/scripts/' \
+                             'run_ampscz_mri_pipe.py'
 
-    command = f'bash {dwipreproc_bash_code} \
-            {bids_dwi_nifti_root} {dwipreproc_outdir_root}'
+    command = f'python {dwipreproc_python_code} \
+            --mri_root {rawdata_dir.parent} \
+            --ampscz_id {subject_id} --session {session_id}'
     
     if bsub:
         command = f'bsub -q pri_pnl \
                 -o {dwipreproc_outdir_root}/dwipreproc.out \
                 -e {dwipreproc_outdir_root}/dwipreproc.err \
-                -n 4 -J dwipreproc_{subject_id}_{session_id} \
+                -n 8 -J dwipreproc_{subject_id}_{session_id} \
                 {command}'
 
     command = re.sub('\s+', ' ', command)

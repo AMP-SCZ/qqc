@@ -62,6 +62,11 @@ def get_test_summary_df(get_test_dicom_df):
 
     return df
 
+def test_get_dicom_files_walk():
+    dicom_dir_loc = '/data/predict/phantom_human_pilot/sourcedata/ProNET_Cambridge_Prisma/ses-humanpilot'
+    df = get_dicom_files_walk(dicom_dir_loc, True)
+
+    return df
 
 def test_read_dicom_header(get_test_dicom_df):
     df = get_test_dicom_df
@@ -261,6 +266,14 @@ def test_manufacturer_model_name():
 
 
 
+
+def test_je_data():
+    dicom_root = '/data/predict/data_from_nda_dev/MRI_ROOT/sourcedata/JE00068/ses-202206282'
+    # df = get_dicom_files_walk(dicom_root)
+    # print(df)
+
+    df = get_dicom_files_walk(dicom_root, True)
+    print(df)
 
 
 

@@ -9,6 +9,7 @@ def save_csa(df_full: pd.DataFrame, qc_out_dir: Path) -> None:
     csa_df = pd.concat([csa_diff_df, csa_common_df],
                     sort=False).sort_index().T
     csa_df['series_num'] = csa_df.index.str.extract('(\d+)').astype(int).values
+    qc_out_dir.mkdir(exist_ok=True)
     csa_df.sort_values(by='series_num').drop(
             'series_num', axis=1).to_csv(qc_out_dir / '99_csa_headers.csv')
 
@@ -80,12 +81,16 @@ def check_order_of_series(df_full_input: pd.DataFrame,
     Returns:
         number of series in pd.DataFrame
     '''
-
     series_num_df = df_full_input[
             ['series_num', 'series_desc']].drop_duplicates()
     series_num_df.columns = ['series_num', 'series_order']
+    series_num_df = series_num_df[
+            ~series_num_df.series_order.str.contains('phoenix')]
     series_num_target_df = df_full_std[['series_num', 'series_desc']]
     series_num_target_df.columns = ['series_num', 'series_order_target']
+    series_num_target_df = series_num_target_df[
+            ~series_num_target_df.series_order_target.str.contains('phoenix')]
+
     series_order_df_all = pd.merge(
             series_num_target_df, series_num_df,
             on='series_num', how='outer').sort_values(by='series_num')
