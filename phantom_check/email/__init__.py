@@ -13,6 +13,7 @@ import subprocess
 import pandas as pd
 from pytz import timezone
 import socket
+import tempfile as tf
 from phantom_check.qqc.qqc_summary import qqc_summary, qqc_summary_detailed
 tz = timezone('EST')
 
@@ -123,11 +124,11 @@ def send_detail(sender: str, recipients: List[str],
     send(recipients, sender, title, html_str, test, mailx, sender_pw)
 
     # html form to be saved in the server
-    outloc = Path(qqc_out_dir) / 'qqc_summary.html'
-    template = env.get_template('bootdey_template.html')
-    html_str = create_html_for_qqc(template, title, subtitle,
-            first_message, second_message, code, in_mail_footer,
-            image_paths)
+    template= env.get_template('bootdey_template.html')
+    html_str= create_html_for_qqc(template, title, subtitle,
+            irst_message, second_message, code, in_mail_footer,
+            mage_paths)
+    outloc =Path(qqc_out_dir) / 'qqc_summary.html'
     with open(outloc, 'w') as fh:
         fh.write(html_str)
 
@@ -278,6 +279,36 @@ def send_out_qqc_results(qqc_out_dir: Path,
                 code, image_paths, qqc_html_list, in_mail_footer,
                 qqc_out_dir, test, mailx)
 
+
+def send_error(title, subtitle, top_message, second_message):
+    '''Send error message'''
+    user_id = getpass.getuser()
+    sender = 'kevincho@bwh.harvard.edu'
+    admin_recipient = 'kc244@research.partners.org'
+    recipients = [admin_recipient, f'{user_id}@research.partners.org']
+    mailx = True
+    test = False
+
+    code = []
+    image_paths = []
+    qqc_html_list = []
+
+    str_tmp = '<h4>{0} </h4><code>{1}</code><br><br>'
+    in_mail_footer = str_tmp.format('QQC ran on', datetime.now(tz).date())
+    in_mail_footer += str_tmp.format('QQC ran by', getpass.getuser())
+    in_mail_footer += str_tmp.format('QQC ran from', socket.gethostname())
+
+    temp_out_dir = tf.TemporaryDirectory().name
+
+    # get template
+    env = Environment(loader=FileSystemLoader(str(os.path.dirname(__file__))))
+
+    # html form to be used for email
+    email_template = env.get_template('bootdey_template_clean.html')
+    html_str = create_html_for_qqc(email_template, title, subtitle,
+            top_message, second_message, code, in_mail_footer,
+            image_paths)
+    send(recipients, sender, title, html_str, test, mailx, None)
 
 
 def attempts_error(Lochness, attempt):

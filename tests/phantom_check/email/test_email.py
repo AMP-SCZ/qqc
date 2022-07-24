@@ -1,4 +1,4 @@
-from phantom_check.email import send_out_qqc_results, send
+from phantom_check.email import send_out_qqc_results, send, send_error
 from pathlib import Path
 import pandas as pd
 import os
@@ -64,3 +64,6 @@ def test_send_out_qqc_results():
     send_out_qqc_results(qqc_out_dir, standard_dir, mailx=True)
 
     # send(['kevincho@bwh.harvard.edu'], 'kc244@research.partners.org', 'ha', 'ho')
+
+def test_send_error():
+    send_error('title', 'subtitle', 'top_message', 'second message')

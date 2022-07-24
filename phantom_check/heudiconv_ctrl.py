@@ -1,5 +1,6 @@
 import phantom_check
 import os
+import subprocess
 import logging
 from pathlib import Path
 logger = logging.getLogger(__name__)
@@ -56,14 +57,14 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
 
     logger.info('Running heudiconv')
     logger.info('heudiconv command: %s' % command)
-    output = os.popen(command).read()
-    print(command)
-    print(output)
+    try:
+        proc = subprocess.check_output(command, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        logger.error('heudiconv fails')
+        send_error(f'QQC - heudiconv failure {subject_name} {session_name}',
+                   'Heudiconv failure',
+                   'dicom input root: {dicom_input_root}',
+                   proc)
 
     with open(qc_out_dir / '99_heudiconv_log.txt', 'a') as fp:
-        fp.write(output)
-
-
-
-
-
+        fp.write(proc)

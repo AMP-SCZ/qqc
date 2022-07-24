@@ -17,7 +17,7 @@ from phantom_check.qqc.figures import quick_figures
 from phantom_check.qqc.mriqc import run_mriqc_on_data
 from phantom_check.qqc.fmriprep import run_fmriprep_on_data
 from phantom_check.qqc.dwipreproc import run_quick_dwi_preproc_on_data
-from phantom_check.email import send_out_qqc_results
+from phantom_check.email import send_out_qqc_results, send_error
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
@@ -71,6 +71,7 @@ def dicom_to_bids_QQC(args) -> None:
                 '*Run_sheet_mri*.csv'))
         except:
             print('No run sheet detected')
+
             run_sheet = Path('no_run_sheet')
 
     # str to path
@@ -220,6 +221,13 @@ def remove_repeated_scans(df_full: pd.DataFrame) -> pd.DataFrame:
 
     should_break = False
     df_full_excluded = []
+
+    if len(series_desc_num_dict) > 0:
+        send_error(f'QQC - repeated scans {subject_name} {session_name}',
+                   'There are repated scans. Please double check manually',
+                   'Number of each series',
+                   pd.DataFrame(series_desc_num_dict).to_html())
+
     for series_desc, num in series_desc_num_dict.items():
         if len(df_unique_series[
                 df_unique_series.series_desc == series_desc]) > num:
