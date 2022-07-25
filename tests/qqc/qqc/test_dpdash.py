@@ -1,10 +1,10 @@
-from phantom_check.utils.files import get_all_files_walk
-from phantom_check.qqc.json import jsons_from_bids_to_df, within_phantom_qc, \
+
+from qqc.utils.files import get_all_files_walk
+from qqc.qqc.json import jsons_from_bids_to_df, within_phantom_qc, \
         get_all_json_information_quick, json_check, \
-        find_matching_files_between_BIDS_sessions, \
-        compare_jsons_to_std, json_check_new
-from phantom_check.dicom_files import get_dicom_files_walk
-from phantom_check.qqc.dicom import check_num_of_series, check_order_of_series
+        find_matching_files_between_BIDS_sessions
+from qqc.dicom_files import get_dicom_files_walk
+from qqc.qqc.dicom import check_num_of_series, check_order_of_series
 import pandas as pd
 from pathlib import Path
 import socket
@@ -30,41 +30,41 @@ def test_json_check_for_a_session():
 
 
 
-# def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
-    # '''Compare list of json files and return dataframe
+def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
+    '''Compare list of json files and return dataframe
 
-    # Key Arguments:
-        # json_files: list of json files, list of Path.
-        # diff_only: return different values only
-    # '''
-    # to_drop_list = [
-        # 'AcquisitionTime', 'ImageOrientationPatientDicom',
-        # 'ImageOrientationPatientDICOM',
-        # 'SliceTiming',
-        # 'global', 'TxRefAmp',
-        # 'dcmmeta_affine', 'WipMemBlock',
-        # 'SAR', 'time']
+    Key Arguments:
+        json_files: list of json files, list of Path.
+        diff_only: return different values only
+    '''
+    to_drop_list = [
+        'AcquisitionTime', 'ImageOrientationPatientDicom',
+        'ImageOrientationPatientDICOM',
+        'SliceTiming',
+        'global', 'TxRefAmp',
+        'dcmmeta_affine', 'WipMemBlock',
+        'SAR', 'time']
 
-    # dicts = []
-    # cols = []
-    # series_desc_list = []
-    # for i in json_files:
-        # cols.append(i.name)
-        # with open(i, 'r') as f:
-            # single_dict = json.load(f)
-            # dicts.append(single_dict)
+    dicts = []
+    cols = []
+    series_desc_list = []
+    for i in json_files:
+        cols.append(i.name)
+        with open(i, 'r') as f:
+            single_dict = json.load(f)
+            dicts.append(single_dict)
 
-    # df_tmp = pd.DataFrame(dicts).T
-    # for i in to_drop_list:
-        # if i in df_tmp.index:
-            # df_tmp.drop(i, inplace=True)
+    df_tmp = pd.DataFrame(dicts).T
+    for i in to_drop_list:
+        if i in df_tmp.index:
+            df_tmp.drop(i, inplace=True)
 
-    # df_tmp.columns = cols
+    df_tmp.columns = cols
 
-    # if diff_only:
-        # df_tmp = df_tmp[(df_tmp[cols[0]] != df_tmp[cols[1]])]
+    if diff_only:
+        df_tmp = df_tmp[(df_tmp[cols[0]] != df_tmp[cols[1]])]
 
-    # return df_tmp
+    return df_tmp
 
 
 def test_find_matching_files_between_BIDS_sessions():
@@ -165,72 +165,3 @@ def test_find_matching_files_between_BIDS_sessions_missing_input():
 
     return json_df_all
 
-
-def test_compare_data_to_standard_all_json_new():
-    root_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
-    rawdata_dir = root_dir / 'rawdata/sub-SF11111/ses-202201261'
-    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-SF11111/ses-202201261'
-
-    # rawdata_dir = root_dir / 'rawdata/sub-NL00000/ses-202112071'
-    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-NL00000/ses-202112071'
-
-    # rawdata_dir = root_dir / 'rawdata/sub-BM00016/ses-202111171'
-    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-BM00016/ses-202111171'
-    
-    root_dir = Path('/data/predict/phantom_data/site_data/'
-                    'ProNET_Calgary_GE/human_pilot/dicom/second_transfer/MRI_ROOT2')
-    rawdata_dir = root_dir / 'rawdata/sub-CG/ses-1'
-    qqc_out_dir = root_dir / 'derivatives2/quick_qc/sub-CG/ses-1'
-
-    standard_dir = Path('/data/predict/phantom_human_pilot/rawdata/sub-PrescientAdelaideSkyra')
-    within_phantom_qc(rawdata_dir, qqc_out_dir)
-    compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
-
-def test_sub_CG():
-    df_diff = pd.DataFrame()
-
-    json_files = [
-        '/data/predict/phantom_data/site_data/ProNET_Calgary_GE'
-            '/human_pilot/dicom/test/rawdata/sub-CG/ses-1/dwi'
-            '/sub-CG_ses-1_acq-b0_dir-AP_run-1.json',
-        '/data/predict/phantom_human_pilot/rawdata/sub-PrescientAdelaideSkyra'
-        '/ses-humanpilot/dwi/sub-PrescientAdelaideSkyra_ses-humanpilot'
-        '_acq-b0_dir-AP_run-1_dwi.json'
-        ]
-
-    df_row = json_check_new([Path(x) for x in json_files])
-    df_row.columns = ['input', 'std']
-    df_row['series_desc'] = 'b0_AP'
-    df_row['series_num'] = 6
-    df_row['input_json'] = Path(json_files[0]).name
-    df_row['standard_json'] = Path(json_files[1]).name
-
-    df_row = df_row.reset_index().set_index(
-        ['series_desc', 'series_num', 'input_json',
-         'standard_json', 'index'])
-
-    df_diff = pd.concat([df_diff, df_row], axis=0)
-
-    json_files = [
-        '/data/predict/phantom_data/site_data/ProNET_Calgary_GE/human_pilot/'
-        'dicom/test/rawdata/sub-CG/ses-1/dwi/sub-CG_ses-1_acq-126_dir_PA_run-1_dwi.json',
-        '/data/predict/phantom_human_pilot/rawdata/sub-PrescientAdelaideSkyra'
-        '/ses-humanpilot/dwi/sub-PrescientAdelaideSkyra_ses-humanpilot_acq-126_dir-PA_run-1_dwi.json'
-        ]
-
-    df_row = json_check_new([Path(x) for x in json_files])
-    df_row.columns = ['input', 'std']
-    df_row['series_desc'] = 'dMRI_dir126_PA'
-    df_row['series_num'] = 8
-    df_row['input_json'] = Path(json_files[0]).name
-    df_row['standard_json'] = Path(json_files[1]).name
-
-    df_row = df_row.reset_index().set_index(
-        ['series_desc', 'series_num', 'input_json',
-         'standard_json', 'index'])
-
-    df_diff = pd.concat([df_diff, df_row], axis=0)
-    df_diff.to_csv('CG_ses_1_test.csv')
-
-    print(df_diff)
- 

@@ -14,7 +14,7 @@ import pandas as pd
 from pytz import timezone
 import socket
 import tempfile as tf
-from phantom_check.qqc.qqc_summary import qqc_summary, qqc_summary_detailed
+from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_detailed
 tz = timezone('EST')
 
 

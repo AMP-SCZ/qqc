@@ -2,7 +2,7 @@ import argparse
 import sys
 import pandas as pd
 
-from phantom_check.dicom_files import get_dicom_files_walk, \
+from qqc.dicom_files import get_dicom_files_walk, \
         get_diff_in_csa_for_all_measures
 
 def parse_args(argv):

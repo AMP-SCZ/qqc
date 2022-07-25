@@ -1,4 +1,4 @@
-phantom_check tutorial
+QQC tutorial
 =======================================
 
 Convert U24 MRI dicoms to BIDS format and run quick quality checks.

@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from pathlib import Path
-import phantom_check
+import qqc
 import os
 import pydicom
 from typing import Union
@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import re
 
-from phantom_check.dicom_files import get_dicom_files_walk, \
+from qqc.dicom_files import get_dicom_files_walk, \
         get_series_info, get_csa_header, rearange_dicoms, \
         get_diff_in_csa_for_all_measures, all_elements_to_extract, \
         get_additional_info, get_additional_info_by_elem, \
@@ -23,7 +23,7 @@ pd.set_option('max_columns', 10)
 @pytest.fixture
 def get_test_dicom_df() -> pd.DataFrame:
     '''Return test dicom path dataframe'''
-    script_root = Path(phantom_check.__file__).parent.parent
+    script_root = Path(qqc.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
     dicom_path_db = dicom_example_root / 'db.csv'
@@ -132,7 +132,7 @@ def test_with_seoul_data_dir():
     dicom_dir_loc = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
                     '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
 
-    script_root = Path(phantom_check.__file__).parent.parent
+    script_root = Path(qqc.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_dir_loc = doc_root / 'dicom_example'
 
@@ -154,7 +154,7 @@ def test_add_detailed_info_to_summary_df(get_test_summary_df):
 
 
 def test_whole_flow_with_heudiconv_2():
-    script_root = Path(phantom_check.__file__).parent.parent
+    script_root = Path(qqc.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
 
@@ -168,7 +168,7 @@ def test_whole_flow_with_heudiconv_2():
     # compare CSA
 
 def test_flow_with_multiseries_directory():
-    dicom_example_root = '/Users/kc244/phantom_check/tests/phantom_check/Alex_merged/new_dir'
+    dicom_example_root = '/Users/kc244/qqc/tests/qqc/Alex_merged/new_dir'
 
     df_full = get_dicom_files_walk(dicom_example_root)
     # df_full = get_dicom_files_walk(dicom_example_root, True)
@@ -183,7 +183,7 @@ def test_flow_with_multiseries_directory():
 
 
 def test_whole_flow_with_heudiconv():
-    script_root = Path(phantom_check.__file__).parent.parent
+    script_root = Path(qqc.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
 
@@ -199,7 +199,7 @@ def test_whole_flow_with_heudiconv():
 
     command = 'heudiconv \
     -d {subject}/*/*/*dcm \
-    -f /Users/kc244/phantom_check/data/heuristic.py \
+    -f /Users/kc244/qqc/data/heuristic.py \
     -s test_root -ss 001 -c dcm2niix --overwrite \
     -b \
     -o new_test_root_test'
@@ -207,8 +207,8 @@ def test_whole_flow_with_heudiconv():
     os.popen(command).read()
 
     # command = 'docker run -it --rm \
-            # -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root:/data:ro \
-            # -v /Users/kc244/phantom_check/tests/phantom_check/new_test_root/mriqc_out:/out \
+            # -v /Users/kc244/qqc/tests/qqc/new_test_root:/data:ro \
+            # -v /Users/kc244/qqc/tests/qqc/new_test_root/mriqc_out:/out \
             # poldracklab/mriqc:latest \
             # /data /out group \
             # --verbose-reports'
@@ -243,7 +243,7 @@ def test_whole_flow_with_heudiconv_seoul():
 
     command = 'heudiconv \
     -d {subject}/*/*/*[IiDd][MmCc][AaMm] \
-    -f /Users/kc244/phantom_check/data/heuristic.py \
+    -f /Users/kc244/qqc/data/heuristic.py \
     -s Alex -ss 001 -c dcm2niix --overwrite \
     -b \
     -o new_test_root'

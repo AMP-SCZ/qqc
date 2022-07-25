@@ -1,6 +1,6 @@
-# phantom_check
+# qqc
 
-**phantom_check** is a Python library for converting U24 MRI dicoms to BIDS 
+**qqc** is a Python library for converting U24 MRI dicoms to BIDS 
 format and running quick quality check (QC) pipelines. 
 
 Check out our [full documentation](https://phantom-check.readthedocs.io/en/latest/index.html)

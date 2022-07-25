@@ -1,4 +1,4 @@
-from phantom_check.email import send_out_qqc_results, send, send_error
+from qqc.email import send_out_qqc_results, send, send_error
 from pathlib import Path
 import pandas as pd
 import os
@@ -7,8 +7,8 @@ pd.set_option('max_rows', 5000)
 
 def test_format():
     from jinja2 import Environment, FileSystemLoader
-    import phantom_check
-    email_template_dir = os.path.join(Path(phantom_check.email.__dir__))
+    import qqc
+    email_template_dir = os.path.join(Path(qqc.email.__dir__))
     print(email_template_dir)
     from email.mime.text import MIMEText
     from email.mime.image import MIMEImage

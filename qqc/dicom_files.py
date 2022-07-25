@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-import phantom_check
+import qqc
 import os
 import pydicom
 from typing import Union

@@ -1,4 +1,4 @@
-from phantom_check.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash
+from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash
 from pathlib import Path
 
 

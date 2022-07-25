@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import sys
-from phantom_check import compare_bval_files
+from qqc import compare_bval_files
 
 def parse_args(argv):
     '''Parse inputs coming from the terminal'''

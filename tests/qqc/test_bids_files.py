@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from pathlib import Path
-import phantom_check
+import qqc
 import os
 import pydicom
 from typing import Union
@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import re
 
-from phantom_check.bids_files import jsons_from_bids_to_df
+from qqc.bids_files import jsons_from_bids_to_df
         
 scripts_path = Path(__file__).parent.parent.parent / 'scripts'
 import sys

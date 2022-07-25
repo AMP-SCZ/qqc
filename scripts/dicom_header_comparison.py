@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from phantom_check.utils.files import get_jsons_from_dicom_dirs
-from phantom_check import json_check, json_check_for_a_session
+from qqc.utils.files import get_jsons_from_dicom_dirs
+from qqc import json_check, json_check_for_a_session
 
 import sys
 import argparse

@@ -1,6 +1,6 @@
-from phantom_check.qqc.json import jsons_from_bids_to_df
-from phantom_check.dicom_files import get_dicom_files_walk, get_csa_header
-from phantom_check.qqc.dicom import check_num_of_series, \
+from qqc.qqc.json import jsons_from_bids_to_df
+from qqc.dicom_files import get_dicom_files_walk, get_csa_header
+from qqc.qqc.dicom import check_num_of_series, \
         check_order_of_series, save_csa
 import pandas as pd
 from pathlib import Path

@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-from phantom_check.dicom_files import get_diff_in_csa_for_all_measures
+from qqc.dicom_files import get_diff_in_csa_for_all_measures
 
 
 def save_csa(df_full: pd.DataFrame, qc_out_dir: Path) -> None:

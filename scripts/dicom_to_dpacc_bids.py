@@ -4,7 +4,7 @@ import sys
 import getpass
 import logging
 from argparse import RawTextHelpFormatter
-from phantom_check.pipeline import dicom_to_bids_QQC
+from qqc.pipeline import dicom_to_bids_QQC
 
 logger = logging.getLogger(__name__)
 logging.getLogger().addHandler(logging.StreamHandler())

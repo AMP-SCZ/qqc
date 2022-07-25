@@ -1,4 +1,4 @@
-from phantom_check.qqc.nifti import compare_volume_to_standard_all_nifti
+from qqc.qqc.nifti import compare_volume_to_standard_all_nifti
 import pandas as pd
 from pathlib import Path
 import socket

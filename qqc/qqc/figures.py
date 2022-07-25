@@ -1,7 +1,7 @@
 from pathlib import Path
-from phantom_check.utils.files import get_diffusion_data_from_nifti_prefix, \
+from qqc.utils.files import get_diffusion_data_from_nifti_prefix, \
         get_nondmri_data, load_data_bval
-from phantom_check.utils.visualize import create_b0_signal_figure, \
+from qqc.utils.visualize import create_b0_signal_figure, \
         create_image_signal_figure 
 import sys
 sys.path.append('/data/predict/phantom_data/softwares/nifti-snapshot')

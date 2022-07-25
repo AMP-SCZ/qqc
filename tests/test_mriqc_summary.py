@@ -1,15 +1,15 @@
-from phantom_check.utils.files import \
+from qqc.utils.files import \
         load_anat_json_from_mriqc, \
         load_and_filter_anat_qc_from_open_data, \
         load_anat_jsons_from_mriqc, \
         add_open_data_qc_measures
-from phantom_check.utils.visualize import \
+from qqc.utils.visualize import \
         plot_anat_jsons_from_mriqc, plot_anat_jsons_from_mriqc_with_opendata
 
 import sys
 from pathlib import Path
-import phantom_check
-scripts_dir = Path(phantom_check.__file__).parent.parent / 'scripts'
+import qqc
+scripts_dir = Path(qqc.__file__).parent.parent / 'scripts'
 sys.path.append(str(scripts_dir))
 
 from summarize_mriqc_measures import plot_with_open_data
@@ -20,7 +20,7 @@ import pytest
 @pytest.fixture
 def get_files():
     # alter here if you have to
-    open_data_root = Path(phantom_check.__file__).parent.parent / 'data'
+    open_data_root = Path(qqc.__file__).parent.parent / 'data'
     test_data_root = Path('/Users/kc244/phantom_mriqc_test/out')
 
     t1_csv_loc = open_data_root / 'T1w_demo.csv'

@@ -1,4 +1,4 @@
-import phantom_check
+import qqc
 from typing import List
 import tempfile
 import shutil
@@ -222,7 +222,7 @@ def add_open_data_qc_measures(df: pd.DataFrame,
     df.loc['source'] = 'mriqc'
 
     # add open data qc measures
-    open_data_csv = Path(phantom_check.__file__).parent.parent / \
+    open_data_csv = Path(qqc.__file__).parent.parent / \
             'data' / 'T1w_demo.csv'
     df_open = load_and_filter_anat_qc_from_open_data(open_data_csv)
     df_open['source'] = 'opendata'

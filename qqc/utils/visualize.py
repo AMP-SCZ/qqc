@@ -2,7 +2,7 @@ from typing import List
 import tempfile
 import shutil
 from pathlib import Path
-from phantom_check.utils.files import convert_to_img
+from qqc.utils.files import convert_to_img
 import nibabel as nb
 import numpy as np
 import math

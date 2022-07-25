@@ -1,9 +1,9 @@
-import phantom_check
+import qqc
 import os
 from pathlib import Path
 
 import sys
-lochness_root = Path(phantom_check.__path__[0]).parent
+lochness_root = Path(qqc.__path__[0]).parent
 scripts_dir = lochness_root / 'scripts'
 sys.path.append(str(scripts_dir))
 

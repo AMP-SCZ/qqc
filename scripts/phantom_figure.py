@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from phantom_check.utils.visualize import create_b0_signal_figure
-from phantom_check.utils.visualize import create_image_signal_figure
-from phantom_check.utils.files import get_diffusion_data_from_dicom_dir
-from phantom_check.utils.files import get_diffusion_data_from_nifti_prefix
-from phantom_check.utils.files import get_diffusion_data_from_nifti_dir
-from phantom_check.utils.files import get_nondmri_data
+from qqc.utils.visualize import create_b0_signal_figure
+from qqc.utils.visualize import create_image_signal_figure
+from qqc.utils.files import get_diffusion_data_from_dicom_dir
+from qqc.utils.files import get_diffusion_data_from_nifti_prefix
+from qqc.utils.files import get_diffusion_data_from_nifti_dir
+from qqc.utils.files import get_nondmri_data
 
 import argparse
 from pathlib import Path

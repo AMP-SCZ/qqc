@@ -1,5 +1,5 @@
 from pathlib import Path
-from phantom_check.qqc.dwipreproc import run_quick_dwi_preproc_on_data
+from qqc.qqc.mriqc import run_mriqc_on_data
 
 
 def test_run_preproc():
@@ -7,13 +7,13 @@ def test_run_preproc():
     rawdata_dir = root_dir / 'rawdata'
     subject_id = 'sub-NL00000'
     session_id = 'ses-202112071'
-    dwipreproc_outdir_root = root_dir / 'derivatives/dwipreproc'
+    mriqc_outdir_root = root_dir / 'derivatives/mriqc'
 
-    run_quick_dwi_preproc_on_data(
+    run_mriqc_on_data(
             rawdata_dir,
             subject_id,
             session_id,
-            dwipreproc_outdir_root,
+            mriqc_outdir_root,
             bsub=True)
 
 

@@ -1,4 +1,4 @@
-import phantom_check
+import qqc
 import os
 import subprocess
 import logging
@@ -32,9 +32,9 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
         None
 
     Note:
-        - Heudiconv will use the "phantom_check/data/heuristic.py"
+        - Heudiconv will use the "qqc/data/heuristic.py"
     '''
-    heuristic_file = Path(phantom_check.__file__).parent.parent / 'data' / \
+    heuristic_file = Path(qqc.__file__).parent.parent / 'data' / \
             'heuristic.py'
 
     # os.environ['dcm2niix'] = \

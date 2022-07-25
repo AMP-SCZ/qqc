@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 import re
 
-from phantom_check.utils.files import get_all_files_walk
-from phantom_check.utils.names import get_naming_parts_bids
-from phantom_check.utils.visualize import print_diff_shared
+from qqc.utils.files import get_all_files_walk
+from qqc.utils.names import get_naming_parts_bids
+from qqc.utils.visualize import print_diff_shared
 
 
 def compare_volume_to_standard_all_nifti(input_dir: str,

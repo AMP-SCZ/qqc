@@ -1,16 +1,16 @@
 import sys
-import phantom_check
+import qqc
 import os
 from pathlib import Path
 
-phantom_check_root = Path(phantom_check.__path__[0]).parent
-scripts_dir = phantom_check_root / 'scripts'
-test_dir = phantom_check_root / 'tests'
+qqc_root = Path(qqc.__path__[0]).parent
+scripts_dir = qqc_root / 'scripts'
+test_dir = qqc_root / 'tests'
 sys.path.append(str(scripts_dir))
 sys.path.append(str(test_dir))
 
 from dicom_header_comparison import parse_args, compare_jsons
-from phantom_check import json_check, json_check_for_a_session
+from qqc import json_check, json_check_for_a_session
 import pytest
 import pandas as pd
 import json

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from phantom_check.utils.files import \
+from qqc.utils.files import \
         load_and_filter_anat_qc_from_open_data, \
         load_anat_jsons_from_mriqc, \
         add_open_data_qc_measures
-from phantom_check.utils.visualize import \
+from qqc.utils.visualize import \
         plot_anat_jsons_from_mriqc_with_opendata
 
 import sys

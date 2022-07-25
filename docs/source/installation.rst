@@ -6,7 +6,7 @@ Installation
 Install dcm2niix
 ----------------
 
-To use phantom_check, first install
+To use qqc, first install
 `dcm2niix <https://github.com/rordenlab/dcm2niix>`_ and add it to PATH
 variable.
 
@@ -21,7 +21,7 @@ variable.
 Install heudiconv
 -----------------
 
-``heudiconv`` is also required to run ``phantom_check``. Install ``heudiconv``
+``heudiconv`` is also required to run ``qqc``. Install ``heudiconv``
 following the `instruction on their website <https://heudiconv.readthedocs.io/en/latest/installation.html>`_,
 and make sure you can access ``heudiconv`` from your console.
 
@@ -31,34 +31,34 @@ and make sure you can access ``heudiconv`` from your console.
 
 
 
-.. _install_phantom_check:
+.. _install_qqc:
 
-Install phantom_check
+Install qqc
 ---------------------
 
 Install from ``pip``
 
 .. code-block:: shell
 
-   pip install phantom_check
+   pip install qqc
 
 
 or install from github
 
 .. code-block:: shell
 
-   git clone https://github.com/AMP-SCZ/phantom_check
-   cd phantom_check
+   git clone https://github.com/AMP-SCZ/qqc
+   cd qqc
 
    pip install heudiconv[all]  #installing heudiconv
    pip install -r requirements.txt
 
 
 .. note::
-   if you used git to clone ``phantom_check``, add the script path to your
+   if you used git to clone ``qqc``, add the script path to your
    ``~/.bashrc``
 
    .. code-block:: shell
 
-       echo "export PATH=${PATH}:~/phantom_check/scripts" >> ~/.bashrc
+       echo "export PATH=${PATH}:~/qqc/scripts" >> ~/.bashrc
 

@@ -2,7 +2,7 @@
 
 # -- Project information
 
-project = 'phantom_check'
+project = 'QQC'
 copyright = '2021, kcho'
 author = 'kcho'
 

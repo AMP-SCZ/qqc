@@ -5,14 +5,14 @@ import re
 sys.path.append(str(scripts_path))
 
 from dicom_to_dpacc_bids import parse_args, dicom_to_bids_with_quick_qc
-from phantom_check.dicom_files import get_dicom_files_walk, \
+from qqc.dicom_files import get_dicom_files_walk, \
         get_diff_in_csa_for_all_measures
 
-from phantom_check.utils.files import get_diffusion_data_from_nifti_dir
-from phantom_check.utils.files import load_data_bval
-from phantom_check.utils.visualize import create_b0_signal_figure, \
+from qqc.utils.files import get_diffusion_data_from_nifti_dir
+from qqc.utils.files import load_data_bval
+from qqc.utils.visualize import create_b0_signal_figure, \
         create_image_signal_figure
-from phantom_check.utils.files import get_nondmri_data
+from qqc.utils.files import get_nondmri_data
 import pandas as pd
 import socket
 import numpy as np

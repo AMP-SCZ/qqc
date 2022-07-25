@@ -18,7 +18,7 @@ dicom files are dumped under a single directory.
 2. Dicom to BIDS using ``heudiconv``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- The U24 specific heuristic config file ``phantom_check/data/heuristic.py`` 
+- The U24 specific heuristic config file ``qqc/data/heuristic.py`` 
 is used. Output nifti files are saved under ``${output_dir}/rawdata/${subject}/ses-${session}``.
 - List of modality directories are
 

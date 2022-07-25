@@ -6,18 +6,18 @@ import tempfile
 import pandas as pd
 from pathlib import Path
 from typing import List, Tuple
-from phantom_check.run_sheet import get_run_sheet
-from phantom_check.dicom_files import get_dicom_files_walk, rearange_dicoms
-from phantom_check.heudiconv_ctrl import run_heudiconv
-from phantom_check.qqc.json import jsons_from_bids_to_df
-from phantom_check.qqc.dicom import check_num_order_of_series, save_csa
-from phantom_check.qqc.json import within_phantom_qc, compare_data_to_standard
-from phantom_check.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash
-from phantom_check.qqc.figures import quick_figures
-from phantom_check.qqc.mriqc import run_mriqc_on_data
-from phantom_check.qqc.fmriprep import run_fmriprep_on_data
-from phantom_check.qqc.dwipreproc import run_quick_dwi_preproc_on_data
-from phantom_check.email import send_out_qqc_results, send_error
+from qqc.run_sheet import get_run_sheet
+from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms
+from qqc.heudiconv_ctrl import run_heudiconv
+from qqc.qqc.json import jsons_from_bids_to_df
+from qqc.qqc.dicom import check_num_order_of_series, save_csa
+from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
+from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash
+from qqc.qqc.figures import quick_figures
+from qqc.qqc.mriqc import run_mriqc_on_data
+from qqc.qqc.fmriprep import run_fmriprep_on_data
+from qqc.qqc.dwipreproc import run_quick_dwi_preproc_on_data
+from qqc.email import send_out_qqc_results, send_error
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
