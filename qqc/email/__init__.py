@@ -124,11 +124,12 @@ def send_detail(sender: str, recipients: List[str],
     send(recipients, sender, title, html_str, test, mailx, sender_pw)
 
     # html form to be saved in the server
-    template= env.get_template('bootdey_template.html')
-    html_str= create_html_for_qqc(template, title, subtitle,
-            irst_message, second_message, code, in_mail_footer,
-            mage_paths)
-    outloc =Path(qqc_out_dir) / 'qqc_summary.html'
+    template = env.get_template('bootdey_template.html')
+    html_str = create_html_for_qqc(
+            template, title, subtitle,
+            first_message, second_message, code, in_mail_footer,
+            image_paths)
+    outloc = Path(qqc_out_dir) / 'qqc_summary.html'
     with open(outloc, 'w') as fh:
         fh.write(html_str)
 

@@ -53,13 +53,13 @@ def dicom_to_bids_QQC(args) -> None:
     # Variable settings
     # ----------------------------------------------------------------------
     if args.dpacc_input:
-        input = Path(args.dpacc_input)
+        qqc_input = Path(args.dpacc_input)
         session_name = args.input.name
         subject_name = args.input.parent.parent.name
         output_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
         run_sheet = next(args.input.parent.glob('*Run_sheet_mri*.csv'))
     else:
-        input = Path(args.input)
+        qqc_input = Path(args.input)
         # session name cannot have "-" or "_"
         session_name = 'ses-' + re.sub('[_-]', '', args.session_name)
 
@@ -82,7 +82,7 @@ def dicom_to_bids_QQC(args) -> None:
     if args.qc_subdir:
         qc_out_dir = Path(args.qc_subdir)
     else:
-        qc_out_dir = deriv_p / 'quick_qc' / subject_dir.name / session_dir.name
+        qc_out_dir = deriv_p / 'quick_qc' / subject_name / session_name
     qc_out_dir.mkdir(exist_ok=True, parents=True)
 
     # standard dir
@@ -90,13 +90,16 @@ def dicom_to_bids_QQC(args) -> None:
 
     # subject_dir
     # BIDS_root / rawdata / sub-${subject} / ses-${session}
-    subject_dir = bids_rawdata_path / subject_name
+    subject_dir = output_dir / 'rawdata' / subject_name
     session_dir = subject_dir / session_name  # raw nifti path
     # ----------------------------------------------------------------------
 
+    # ----------------------------------------------------------------------
+    # Copy the data
+    # ----------------------------------------------------------------------
     # if the input is a zip file, decompress it to a temporary directory
-    if input.nameendswith('.zip'):
-        input = unzip_and_update_input(input)
+    if qqc_input.name.endswith('.zip'):
+        qqc_input = unzip_and_update_input(qqc_input)
 
     if args.nifti_dir:  # if nifti directory is given
         df_full = get_information_from_rawdata(args.nifti_dir)
@@ -105,18 +108,20 @@ def dicom_to_bids_QQC(args) -> None:
         logger.info('Running dicom_to_bids to sort and convert dicom files')
         # raw dicom -> cleaned up dicom structure
         dicom_clearned_up_output = output_dir / 'sourcedata'
-        df_full = get_dicom_df(input, args.skip_dicom_rearrange)
+        df_full = get_dicom_df(qqc_input, args.skip_dicom_rearrange)
 
         logger.info('Arranging dicoms')
         rearange_dicoms(df_full, dicom_clearned_up_output,
-                        subject_name, session_name)
+                        subject_name.split('-')[1], session_name.split('-')[1])
         # cleaned up dicom structure -> BIDS
         bids_rawdata_dir = output_dir / 'rawdata'
         if not args.skip_heudiconv:
             logger.info('Run heudiconv')
             qc_out_dir.mkdir(exist_ok=True, parents=True)
-            run_heudiconv(dicom_clearned_up_output, subject_name,
-                          session_name, bids_rawdata_dir, qc_out_dir)
+            run_heudiconv(dicom_clearned_up_output,
+                          subject_name.split('-')[1],
+                          session_name.split('-')[1],
+                          bids_rawdata_dir, qc_out_dir)
 
     # run sheet
     if run_sheet.is_file():
@@ -129,7 +134,14 @@ def dicom_to_bids_QQC(args) -> None:
     # Run QQC
     # ----------------------------------------------------------------------
     if not args.skip_qc:
-        run_qqc(qc_out_dir, session_dir, qc_out_dir, standard_dir)
+        run_qqc(qc_out_dir, session_dir, df_full, standard_dir)
+
+    # ----------------------------------------------------------------------
+    # Email
+    # ----------------------------------------------------------------------
+    if args.standard_dir:
+        logger.info('Sending out email')
+        send_out_qqc_results(qc_out_dir, standard_dir, run_sheet_df)
 
     # ----------------------------------------------------------------------
     # Run Figure extraction
@@ -142,13 +154,6 @@ def dicom_to_bids_QQC(args) -> None:
             logger.info('Error in creating figures')
         except OSError:
             logger.info('OSError in creating figures')
-
-    # ----------------------------------------------------------------------
-    # Email
-    # ----------------------------------------------------------------------
-    if args.standard_dir:
-        logger.info('Sending out email')
-        send_out_qqc_results(qc_out_dir, standard_dir, run_sheet_df)
 
     # ----------------------------------------------------------------------
     # AMPSCZ pipeline
@@ -222,8 +227,10 @@ def remove_repeated_scans(df_full: pd.DataFrame) -> pd.DataFrame:
     should_break = False
     df_full_excluded = []
 
+    # TODO
     if len(series_desc_num_dict) > 0:
-        send_error(f'QQC - repeated scans {subject_name} {session_name}',
+        # send_error(f'QQC - repeated scans {subject_name} {session_name}',
+        send_error(f'QQC - repeated scans ',
                    'There are repated scans. Please double check manually',
                    'Number of each series',
                    pd.DataFrame(series_desc_num_dict).to_html())
@@ -281,7 +288,7 @@ def get_dicom_df(dicom_input_dir: Path,
         df_full = get_dicom_files_walk(dicom_input_dir)
 
         # remove repeated scans
-        df_full = remove_repeated_scans(df_full)
+        # df_full = remove_repeated_scans(df_full)
 
     return df_full
 
@@ -296,8 +303,8 @@ def unzip_and_update_input(input: str) -> str:
     return tf.name
 
 
-def run_qqc(qc_out_dir: Path, nifti_session_dir: Path, df_full: pd.DataFrame,
-            standard_dir: Path, run_sheet_df: pd.DataFrame) -> None:
+def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
+            df_full: pd.DataFrame, standard_dir: Path) -> None:
     '''Run QQC
 
     Key Argument
@@ -315,8 +322,9 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path, df_full: pd.DataFrame,
     within_phantom_qc(nifti_session_dir, qc_out_dir)
 
     logger.info('CSA extraction')
-    df_with_one_series = pd.concat([
-        x[1].iloc[0] for x in df_full.groupby('series_num')], axis=1).T
+    df_with_one_series = pd.concat(
+        [x[1].iloc[0] for x in df_full.groupby('series_num')],
+        axis=1).T
     save_csa(df_with_one_series, qc_out_dir)
 
     # load json information from the user givin standard BIDS directory

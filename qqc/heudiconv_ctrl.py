@@ -36,6 +36,7 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     '''
     heuristic_file = Path(qqc.__file__).parent.parent / 'data' / \
             'heuristic.py'
+    print(heuristic_file)
 
     # os.environ['dcm2niix'] = \
             # '/data/predict/phantom_data/softwares' \
@@ -44,9 +45,13 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     # os.environ['dcm2niix'] = \
             # '/data/predict/phantom_data/softwares/dcm2niix/dcm2niix'
 
+    # os.environ['dcm2niix'] = \
+            # '/data/predict/phantom_data/kcho/devel_soft/'\
+            # 'dcm2niix_devel_branch/dcm2niix/build/bin/dcm2niix'
+
     os.environ['dcm2niix'] = \
-            '/data/predict/phantom_data/kcho/devel_soft/'\
-            'dcm2niix_devel_branch/dcm2niix/build/bin/dcm2niix'
+            '/data/predict/phantom_data/softwares/dcm2niix_bb3a6c3/' \
+            'build/bin/dcm2niix'
 
     command = f'heudiconv \
         -d {dicom_input_root}' + '/{subject}/ses-{session}/*/* ' \
@@ -57,14 +62,16 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
 
     logger.info('Running heudiconv')
     logger.info('heudiconv command: %s' % command)
-    try:
-        proc = subprocess.check_output(command, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError:
-        logger.error('heudiconv fails')
-        send_error(f'QQC - heudiconv failure {subject_name} {session_name}',
-                   'Heudiconv failure',
-                   'dicom input root: {dicom_input_root}',
-                   proc)
+    print(os.popen(command).read())
 
-    with open(qc_out_dir / '99_heudiconv_log.txt', 'a') as fp:
-        fp.write(proc)
+    # try:
+        # proc = subprocess.check_output(command, stderr=subprocess.STDOUT)
+    # except subprocess.CalledProcessError:
+        # logger.error('heudiconv fails')
+        # send_error(f'QQC - heudiconv failure {subject_name} {session_name}',
+                   # 'Heudiconv failure',
+                   # 'dicom input root: {dicom_input_root}',
+                   # proc)
+
+    # with open(qc_out_dir / '99_heudiconv_log.txt', 'a') as fp:
+        # fp.write(proc)

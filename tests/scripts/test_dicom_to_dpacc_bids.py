@@ -4,7 +4,8 @@ import sys
 import re
 sys.path.append(str(scripts_path))
 
-from dicom_to_dpacc_bids import parse_args, dicom_to_bids_with_quick_qc
+from dicom_to_dpacc_bids import parse_args
+from qqc.pipeline import dicom_to_bids_QQC
 from qqc.dicom_files import get_dicom_files_walk, \
         get_diff_in_csa_for_all_measures
 
@@ -418,3 +419,15 @@ def test_check_number_of_series():
 
     check_num_order_of_series(df_full, Path('.'))
 
+
+def test_jena_with_new_dcm2niix():
+    args = parse_args([
+        '-i', '/data/predict/data_from_nda_dev/MRI_ROOT/sourcedata/JE00068/ses-202206282',
+        '-s', 'JE00068',
+        '-ss', '202206282',
+        '-o', 'testroot',
+        '-std', '/data/predict/phantom_human_pilot/rawdata/sub-ProNETYalePrismafit/ses-phantom',
+        ])
+
+    print(args)
+    dicom_to_bids_QQC(args)

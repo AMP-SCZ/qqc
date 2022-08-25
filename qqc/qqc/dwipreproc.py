@@ -27,7 +27,7 @@ def run_quick_dwi_preproc_on_data(rawdata_dir: Path,
     dwipreproc_python_code = '/data/predict/kcho/ampscz_mri/scripts/' \
                              'run_ampscz_mri_pipe.py'
 
-    command = f'python {dwipreproc_python_code} \
+    command = f'/data/pnl/kcho/anaconda3/bin/python {dwipreproc_python_code} \
             --mri_root {rawdata_dir.parent} \
             --ampscz_id {subject_id} --session {session_id}'
     

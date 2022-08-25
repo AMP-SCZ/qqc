@@ -68,9 +68,7 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
 
     num = 0
     for root, folders, files in os.walk(dicom_root):
-        print(root)
         for file in [x for x in files if not x.startswith('.')]:
-            print(file)
             file_lower = file.lower()
             # includes the logics to detect dicoms without dcm / ima extension
             # file with only digits in the filename
@@ -105,6 +103,8 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     logger.info('Convert dicom information to pandas dataframe')
     df = pd.DataFrame({'file_path': dicom_paths})
     start = time.time()
+
+    print('Read dicoms into pydicom object')
     df['pydicom'] = df.file_path.apply(lambda x: pydicom.read_file(x,
         force=True))
     end = time.time()

@@ -204,10 +204,15 @@ def qqc_summary(qqc_ss_dir: Path) -> pd.DataFrame:
         rename_all_pass = lambda x: 'Pass' if x == 'All Pass' else x
         if df_loc.is_file():
             df = pd.read_csv(df_loc)
-            series[title] = rename_all_pass(df.iloc[0][-1])
+
+            if 'shim' in title.lower():
+                shim_label = lambda x: 'Pass' if x == 'Pass' else 'Warning'
+                series[title] = shim_label(df.iloc[0][-1])
+            else:
+                series[title] = rename_all_pass(df.iloc[0][-1])
+
         else:
             series[title] = 'Fail'
-
 
 
     # json comparison QC - add lines of difference
@@ -312,6 +317,8 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
             return 1
         elif val == 'Fail':
             return 0
+        elif val == 'Warning':
+            return 2
 
         elif type(val) == float:
             return round(val, 2)
@@ -336,6 +343,8 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
     # remove scan order
     qqc_summary_df.drop('Scan order', axis=1, inplace=True)
 
+    # ignore shim settings
+
     # remove spaces from column names
     qqc_summary_df.columns = [re.sub(' ', '_', x) for x in
                               qqc_summary_df.columns]
@@ -352,12 +361,13 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
     qqc_summary_df['subject_id'] = subject_name
     qqc_summary_df['session_id'] = session_name
 
-    out_file = qqc_ss_dir.parent.parent / \
+    out_file = qqc_ss_dir.parent / \
             f'{site}-{subject_name}-mriqc-day1to1.csv'
 
     if out_file.is_file():
         qqc_summary_df_exist = pd.read_csv(out_file)
-        if session_name in qqc_summary_df_exist.session_id.to_list():
+        if session_name in qqc_summary_df_exist.session_id.astype(
+                str).to_list():
             return qqc_summary_df
     else:
         qqc_summary_df_exist = pd.DataFrame()
@@ -365,7 +375,6 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
     # qqc_summary_df['session'] = session_name
     pd.concat([qqc_summary_df_exist,
                qqc_summary_df]).to_csv(out_file, index=False)
-    # qqc_summary_df.to_csv(out_file, index=False)
 
     return qqc_summary_df
 
@@ -412,6 +421,27 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                             range=[0, '1'],
                             variable='session_id'))
 
+
+    for label, variable in {
+            'MRI Scanner (Prisma=1)': 'chrmri_scanner',
+            'T1w MPR Quality Check (good=1)': 'chrmri_t1_qc',
+            'T2w SPC quality check (good=1)': 'chrmri_t2_qc',
+            'T2w SPC quality check (good=1)': 'chrmri_t2_qc',
+            'rsfMRI rest AP quality check (good=1)': 'chrmri_fmriap_qc',
+            'rsfMRI rest PA quality check (good=1)': 'chrmri_fmripa_qc',
+            'dMRI_b0_AP quality check (good=1)': 'chrmri_dmri_b0_qc',
+            'dMRI dir176 PA quality check (good=1)': 'chrmri_dmri176_qc',
+            'dMRI b0 AP quality check (good=1)': 'chrmri_dmri_b0_qc_2'}.items():
+
+        mriqc_pretty['config'].append(
+            update_default_dict(analysis='form_mri_run_sheet',
+                                category='forms',
+                                label=label,
+                                range=[0, 6],
+                                color=sns.color_palette("RdYlGn", 8).as_hex(),
+                                variable=variable))
+        
+
     # For each columns
     for param_name in [x for x in qqc_summary_df.columns if x not in
             ['day', 'reftime', 'timeofday', 'weekday']]:
@@ -422,7 +452,7 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 100],
                 color=sns.color_palette("Reds", 8).as_hex(),
                 variable=param_name))
-
+        
         # diffusion
         elif 'Relative_dwi_motion' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
@@ -431,6 +461,7 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 1],
                 color=sns.color_palette("RdYlGn_r", 8).as_hex(),
                 variable=param_name))
+
         elif 'Absolute_dwi_motion' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
                 category='diffusion',
@@ -445,7 +476,6 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 300],
                 color=sns.color_palette("RdYlGn_r", 8).as_hex(),
                 variable=param_name))
-
         # mriqc
         elif 'CJV' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
@@ -454,6 +484,7 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 1.5],
                 color=sns.color_palette("Blues", 8).as_hex(),
                 variable=param_name))
+
         elif 'CNR' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
                 category='struct',
@@ -478,6 +509,15 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 1],
                 color=sns.color_palette("Oranges", 8).as_hex(),
                 variable=param_name))
+        # shim settings
+        elif 'Shim' in param_name:
+            mriqc_pretty['config'].append(update_default_dict(
+                category='Parameters',
+                label=re.sub('_', ' ', param_name),
+                range=[0, 3],
+                color=sns.xkcd_palette(['black', 'pale red', 'green', 'denim blue']
+                    ).as_hex(),
+                variable=param_name))
 
         else:
             mriqc_pretty['config'].append(update_default_dict(
@@ -485,6 +525,12 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 label=re.sub('_', ' ', param_name),
                 color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
                 variable=param_name))
+
+            # mriqc_pretty['config'].append(update_default_dict(
+                # category='Parameters',
+                # label=re.sub('_', ' ', param_name),
+                # color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
+                # variable=param_name))
 
     return mriqc_pretty
 

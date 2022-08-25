@@ -117,6 +117,10 @@ def infotodict(seqinfo):
         print(s.example_dcm_file_path)
         print('='*80)
         if 't1w' in s.series_description.lower():
+            print('='*80)
+            print('Here is s variable')
+            print(s)
+            print('='*80)
             try:
                 # JE site uses Siemens XA30, which stores normalization info
                 # in one of the private tag
@@ -124,8 +128,10 @@ def infotodict(seqinfo):
                 t1w_private_tag = ds[0x52009230][0][0x002111fe][0][0x00211175].value
             except:
                 t1w_private_tag = ''
+            
+            print(t1w_private_tag)
 
-            if 'NORM' in s.image_type or 'NORM' in t1w_private_tag:
+            if 'NORM' in s.image_type or 'NORM' in t1w_private_tag:# or 'NORM' in s.ImageTypeText:
                 info[t1w_norm].append({'item': s.series_id})
             else:
                 info[t1w_nonnorm].append({'item': s.series_id})
@@ -139,7 +145,8 @@ def infotodict(seqinfo):
             except:
                 t2w_private_tag = ''
 
-            if 'NORM' in s.image_type or 'NORM' in t2w_private_tag:
+            # "ImageTypeText": ["ORIGINAL", "PRIMARY", "M", "NORM", "DIS2D"],
+            if 'NORM' in s.image_type or 'NORM' in t2w_private_tag:# or 'NORM' in s.ImageTypeText:
                 info[t2w_norm].append({'item': s.series_id})
             else:
                 info[t2w_nonnorm].append({'item': s.series_id})
