@@ -205,7 +205,7 @@ def json_check(json_files: List[str],
             'global', 'TxRefAmp',
             'dcmmeta_affine', 'WipMemBlock',
             'SAR', 'time',
-            'ShimSetting']
+            'ShimSetting', 'ImageOrientationText']
 
         # Include to detect different machine
         # 'InstitutionAddress', 'InstitutionName',
