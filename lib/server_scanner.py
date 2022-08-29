@@ -8,7 +8,7 @@ import os
 '''
 
 def grep_all_paths() -> list:
-    #this will grab all paths through the files level, 
+    #this will grab all paths through the files level,
     # right now the output is just the survey/.json because that is the only example file we have in there
     '''Grab all Pronet json paths and return them as a list of Path objects
     
@@ -16,7 +16,10 @@ def grep_all_paths() -> list:
         - right now the output is just the survey/.json because that is the
           only example file we have in there
     '''
-    subject_directories_under_phoenix = Path('/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED').glob('*/*/*/*/*')
+    phoenix_dir = Path('/data/predict/kcho/software/asana_pipeline/kevin') / \
+            'asana_project/tests/lib/test_PHOENIX'
+    protected_dir = phoenix_dir / 'PROTECTED'
+    subject_directories_under_phoenix = protected_dir.glob('*/*/*/*/*')
     for subject_id in subject_directories_under_phoenix:
         print(subject_id)
     return list(subject_directories_under_phoenix)
