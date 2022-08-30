@@ -1,6 +1,37 @@
 import re
 from subprocess import PIPE, Popen
 from pathlib import Path
+import json
+import os
+
+
+def remove_DataSetTrailingPadding_from_json_files(
+        rawdata_dir: Path,
+        subject_id: str,
+        session_id: str) -> None:
+    '''Remove DataSetTrailingPadding from the existing json files'''
+    session_path = rawdata_dir / subject_id / session_id
+    json_files = list(Path(session_path).glob('*/*json'))
+    for json_file in json_files:
+        with open(json_file, 'r') as fp:
+            data = json.load(fp)
+        if 'global' in data.keys():
+            # anat
+            if 'DataSetTrailingPadding' in data['global']['slices'].keys():
+                data['global']['slices']['DataSetTrailingPadding'] = 'removed'
+                os.chmod(json_file, 0o744)
+                with open(json_file, 'w') as fp:
+                    json.dump(data, fp, indent=1)
+                os.chmod(json_file, 0o444)
+
+        if 'time' in data.keys():
+            # fmri
+            if 'DataSetTrailingPadding' in data['time']['samples'].keys():
+                data['time']['samples']['DataSetTrailingPadding'] = 'removed'
+                os.chmod(json_file, 0o744)
+                with open(json_file, 'w') as fp:
+                    json.dump(data, fp, indent=1)
+                os.chmod(json_file, 0o444)
 
 
 def run_mriqc_on_data(rawdata_dir: Path,
