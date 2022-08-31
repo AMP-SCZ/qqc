@@ -27,23 +27,23 @@ def grep_all_paths() -> list:
 
 def grep_subject_files() -> list:
     #this will have the last directory as the subject id we want to grab
-    subject_directories_under_phoenix = Path('/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED').glob('*/*/*')
+    subject_directories_under_phoenix = list(Path('/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED').glob('*/*/*'))
+    basename_lines = []
     for subject_id in subject_directories_under_phoenix:
-        print(subject_id)
-    return list(subject_directories_under_phoenix)
+        basename_lines.append(grep_id_basename(subject_id))
+    return basename_lines
 
 
-def grep_id_basename() -> str:
-    id_path = '/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED/PronetDC/raw/DC80354'
+def grep_id_basename(id_path: Path) -> str:
+    #id_path = '/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED/PronetDC/raw/DC80354'
     basename_id = os.path.basename(id_path)
-    return(basename_id)
+    return basename_id
 
 
 def send_to_caselist(subject_id: str) -> str:
     #This function will take in subject_name and returns a list of subjects
 
     caselist = '/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/pheonix_caselist.txt'
-    subject_id = grep_id_basename()
 
     with open(caselist, 'r') as fp:
         subject_lines_with_strip = fp.readlines()
@@ -62,4 +62,13 @@ def send_to_caselist(subject_id: str) -> str:
             fp.write(subject_id+'\n')
         return subject_id
 
-caselist = '/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/pheonix_caselist.txt'
+
+if __name__ == '__main__':
+    print('Beginning of the Simone pipeline')
+    subject_files_list = grep_subject_files()
+
+    for subject_id in subject_files_list:
+        potential_subject = send_to_caselist(subject_id)
+        print(potential_subject)
+
+    print("Completed")
