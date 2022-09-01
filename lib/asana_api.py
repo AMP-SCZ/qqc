@@ -1,4 +1,4 @@
-import asana 
+import asana
 
 
 def read_token() -> str:
@@ -31,10 +31,6 @@ def update_task_list():
     return tasks_list
 
 
-
-#update_task_list()
-
-
 '''def create_new_subtask():
     new_subtask = {'name': 'MRI',
     'note': 'MRI data for subject_id has arrived, please do QC!',
@@ -48,3 +44,5 @@ if __name__ == '__main__':
     client = asana.Client.access_token(token)
     amp_scz = client.projects.get_project('1202669181415152')
     amp_scz_gid = amp_scz['gid']
+    #update_task_list()
+
