@@ -43,9 +43,8 @@ def update_task_list():
     'dependents': [update_task_list()[0]['gid']]}'''
 '''hahah'''
 
-token = read_token()
-client = asana.Client.access_token(token)
-amp_scz = client.projects.get_project('1202669181415152')
-amp_scz_gid = amp_scz['gid']
-
-
+if __name__ == '__main__':
+    token = read_token()
+    client = asana.Client.access_token(token)
+    amp_scz = client.projects.get_project('1202669181415152')
+    amp_scz_gid = amp_scz['gid']
