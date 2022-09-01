@@ -11,7 +11,7 @@ def read_token() -> str:
 
 
 def create_new_task(potential_subject: str):
-    #Creates new task to send to AMP SCZ project in Asana
+    '''Creates new task to send to AMP SCZ project in Asana'''
     new_task = {
         'name': potential_subject,
         'note': 'New Data has been uploaded for ' + potential_subject,
