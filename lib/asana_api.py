@@ -1,8 +1,10 @@
 import asana 
 
 client = asana.Client.access_token('1/1202709400692234:9c229828742b80e4a8ba5c76d8222b8a')
-
 amp_scz = client.projects.get_project('1202669181415152')
+
+
+
 
 amp_scz_gid = amp_scz['gid']
 
