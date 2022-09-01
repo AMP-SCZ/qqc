@@ -1,6 +1,5 @@
 import asana
 
-
 def read_token() -> str:
     '''Read Asana credentials'''
     token_loc = '/data/predict/kcho/software/asana_pipeline/data/.asana_token'
