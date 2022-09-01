@@ -1,12 +1,13 @@
 import asana 
 
-client = asana.Client.access_token('1/1202709400692234:9c229828742b80e4a8ba5c76d8222b8a')
-amp_scz = client.projects.get_project('1202669181415152')
 
+def read_token() -> str:
+    '''Read Asana credentials'''
+    token_loc = '/data/predict/kcho/software/asana_pipeline/data/.asana_token'
+    with open(token_loc, 'r') as fp:
+        token = fp.read().strip()
 
-
-
-amp_scz_gid = amp_scz['gid']
+    return token
 
 
 def create_new_task(potential_subject: str):
@@ -39,3 +40,10 @@ def update_task_list():
 	'projects': [amp_scz_gid],
 	'dependents': [update_task_list()[0]['gid']]}'''
 '''hahah'''
+
+token = read_token()
+client = asana.Client.access_token(token)
+amp_scz = client.projects.get_project('1202669181415152')
+amp_scz_gid = amp_scz['gid']
+
+
