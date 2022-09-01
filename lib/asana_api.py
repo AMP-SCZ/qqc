@@ -12,17 +12,19 @@ def read_token() -> str:
 
 def create_new_task(potential_subject: str):
     #Creates new task to send to AMP SCZ project in Asana
-    new_task = {'name': potential_subject, 
+    new_task = {
+        'name': potential_subject,
         'note': 'New Data has been uploaded for ' + potential_subject,
         'assignee': 'kevincho@bwh.harvard.edu',
         'projects': [amp_scz_gid]}
 
-    created_task = client.tasks.create_in_workspace('958915379528887', new_task)
-    
+    created_task = client.tasks.create_in_workspace(
+            '958915379528887', new_task)
+
     return created_task
 
 
-def update_task_list(): 
+def update_task_list():
     tasks = client.tasks.get_tasks_for_project(amp_scz_gid)
     tasks_list = list(tasks)
     print('Returning updated list of all tasks in AMP SCZ project')
