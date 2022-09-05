@@ -1,5 +1,6 @@
 import asana
 
+
 def read_token() -> str:
     '''Read Asana credentials'''
     token_loc = '/data/predict/kcho/software/asana_pipeline/data/.asana_token'
@@ -9,22 +10,23 @@ def read_token() -> str:
     return token
 
 
-def create_new_task(potential_subject: str):
+def create_new_task(potential_subject: str,
+                    ws_gid: str,
+                    proj_gid: str) -> 'asana.task':
     '''Creates new task to send to AMP SCZ project in Asana'''
     new_task = {
         'name': potential_subject,
         'note': 'New Data has been uploaded for ' + potential_subject,
         'assignee': 'kevincho@bwh.harvard.edu',
-        'projects': [amp_scz_gid]}
+        'projects': [proj_gid]}
 
-    created_task = client.tasks.create_in_workspace(
-            '958915379528887', new_task)
+    created_task = client.tasks.create_in_workspace(ws_gid, new_task)
 
     return created_task
 
 
-def update_task_list():
-    tasks = client.tasks.get_tasks_for_project(amp_scz_gid)
+def update_task_list(proj_gid):
+    tasks = client.tasks.get_tasks_for_project(proj_gid)
     tasks_list = list(tasks)
     print('Returning updated list of all tasks in AMP SCZ project')
     return tasks_list
@@ -41,7 +43,15 @@ def update_task_list():
 if __name__ == '__main__':
     token = read_token()
     client = asana.Client.access_token(token)
-    amp_scz = client.projects.get_project('1202669181415152')
-    amp_scz_gid = amp_scz['gid']
-    #update_task_list()
 
+    workspace_gid = next(client.workspaces.get_workspaces())['gid']
+    projects = client.projects.get_projects_for_workspace(workspace_gid)
+    for project in projects:
+        if project['name'] == 'AMP SCZ':
+            project_gid = project['gid']
+
+    create_new_task('test', workspace_gid, project_gid)
+
+    # amp_scz = client.projects.get_project(project_gid)
+    # amp_scz_gid = amp_scz['gid']
+    #update_task_list())['gid']
