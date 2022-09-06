@@ -25,7 +25,7 @@ def grep_all_paths(phoenix_dir: Path) -> list:
 
 def grep_subject_files(phoenix_dir: Path) -> list:
     #this will have the last directory as the subject id we want to grab
-     subject_directories_under_phoenix = list((phoenix_dir / 'PROTECTED').glob('*/*/*'))
+    subject_directories_under_phoenix = list((phoenix_dir / 'PROTECTED').glob('*/*/*'))
     basename_lines = []
     for subject_id in subject_directories_under_phoenix:
         basename_lines.append(grep_id_basename(subject_id))
