@@ -10,7 +10,8 @@ def read_token() -> str:
     return token
 
 
-def create_new_task(potential_subject: str,
+def create_new_task(client: asana.client,
+                    potential_subject: str,
                     ws_gid: str,
                     proj_gid: str) -> 'asana.task':
     '''Creates new task to send to AMP SCZ project in Asana'''
@@ -40,7 +41,7 @@ def update_task_list(proj_gid):
     'dependents': [update_task_list()[0]['gid']]}'''
 '''hahah'''
 
-if __name__ == '__main__':
+def get_asana_ready() -> tuple:
     token = read_token()
     client = asana.Client.access_token(token)
 
@@ -50,6 +51,11 @@ if __name__ == '__main__':
         if project['name'] == 'AMP SCZ':
             project_gid = project['gid']
 
+    return client, workspace_gid, project_gid
+
+if __name__ == '__main__':
+
+    client, workspace_gid, project_gid = get_asana_ready()
     create_new_task('test', workspace_gid, project_gid)
 
     # amp_scz = client.projects.get_project(project_gid)
