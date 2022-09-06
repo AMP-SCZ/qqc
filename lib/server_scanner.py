@@ -7,7 +7,7 @@ import os
 #example caselist
 '''
 
-def grep_all_paths() -> list:
+def grep_all_paths(phoenix_dir: Path) -> list:
     #this will grab all paths through the files level,
     # right now the output is just the survey/.json because that is the only example file we have in there
     '''Grab all Pronet json paths and return them as a list of Path objects
@@ -16,8 +16,6 @@ def grep_all_paths() -> list:
         - right now the output is just the survey/.json because that is the
           only example file we have in there
     '''
-    phoenix_dir = Path('/data/predict/kcho/software/asana_pipeline/kevin') / \
-            'asana_project/tests/lib/test_PHOENIX'
     protected_dir = phoenix_dir / 'PROTECTED'
     subject_directories_under_phoenix = protected_dir.glob('*/*/*/*/*')
     for subject_id in subject_directories_under_phoenix:
@@ -25,9 +23,9 @@ def grep_all_paths() -> list:
     return list(subject_directories_under_phoenix)
 
 
-def grep_subject_files() -> list:
+def grep_subject_files(phoenix_dir: Path) -> list:
     #this will have the last directory as the subject id we want to grab
-    subject_directories_under_phoenix = list(Path('/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED').glob('*/*/*'))
+     subject_directories_under_phoenix = list((phoenix_dir / 'PROTECTED').glob('*/*/*'))
     basename_lines = []
     for subject_id in subject_directories_under_phoenix:
         basename_lines.append(grep_id_basename(subject_id))
@@ -35,17 +33,14 @@ def grep_subject_files() -> list:
 
 
 def grep_id_basename(id_path: Path) -> str:
-    #id_path = '/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/test_PHOENIX/PROTECTED/PronetDC/raw/DC80354'
     basename_id = os.path.basename(id_path)
     return basename_id
 
 
-def send_to_caselist(subject_id: str) -> str:
+def send_to_caselist(subject_id: str, phoenix_database: str) -> str:
     #This function will take in subject_name and returns a list of subjects
 
-    caselist = '/data/predict/kcho/software/asana_pipeline/kevin/asana_project/tests/lib/pheonix_caselist.txt'
-
-    with open(caselist, 'r') as fp:
+    with open(phoenix_database, 'r') as fp:
         subject_lines_with_strip = fp.readlines()
         subject_lines = []
         for subject_line in subject_lines_with_strip:
@@ -58,7 +53,7 @@ def send_to_caselist(subject_id: str) -> str:
     else:
         print('this subject is new. it  will be backed up.')
         subject_lines.append(subject_id)
-        with open (caselist, 'a') as fp:
+        with open (phoenix_database, 'a') as fp:
             fp.write(subject_id+'\n')
         return subject_id
 
