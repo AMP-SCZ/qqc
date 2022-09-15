@@ -59,6 +59,15 @@ def send_to_caselist(subject_id: str, phoenix_database: str) -> str:
         return subject_id
 
 
+def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
+        site = ampscz_id[:2]
+        json_file_path = phoenix_root / 'PROTECTED' / f'Pronet{site}' / 'raw' / ampscz_id / 'surveys' / f'{ampscz_id}.Pronet.json'
+        with open(json_file_path, 'r') as fp:
+                json_data = json.load(fp)
+        consent_date = json_data[0]['chric_consent_date']
+        return consent_date
+
+
 if __name__ == '__main__':
     print('Beginning of the Simone pipeline')
     subject_files_list = grep_subject_files()
@@ -73,10 +82,3 @@ if __name__ == '__main__':
 #json.load() accepts file object, parses the JSON data, populates a Python dictionary with the data and returns it back to you
                 #for consent_date in json_data['chric_consent_date']:
 
-def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
-        site = ampscz_id[:2]
-        json_file_path = phoenix_root / 'PROTECTED' / f'Pronet{site}' / 'raw' / ampscz_id / 'surveys' / f'{ampscz_id}.Pronet.json'
-        with open(json_file_path, 'r') as fp:
-                json_data = json.load(fp)
-        consent_date = json_data[0]['chric_consent_date']
-        return consent_date
