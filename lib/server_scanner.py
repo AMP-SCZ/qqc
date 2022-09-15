@@ -60,12 +60,14 @@ def send_to_caselist(subject_id: str, phoenix_database: str) -> str:
 
 
 def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
-        site = ampscz_id[:2]
-        json_file_path = phoenix_root / 'PROTECTED' / f'Pronet{site}' / 'raw' / ampscz_id / 'surveys' / f'{ampscz_id}.Pronet.json'
-        with open(json_file_path, 'r') as fp:
-                json_data = json.load(fp)
-        consent_date = json_data[0]['chric_consent_date']
-        return consent_date
+    '''Get consent date string for a given Pronet AMP-SCZ subject'''
+    site = ampscz_id[:2]
+    json_file_path = phoenix_root / 'PROTECTED' / f'Pronet{site}' / \
+            'raw' / ampscz_id / 'surveys' / f'{ampscz_id}.Pronet.json'
+    with open(json_file_path, 'r') as fp:
+        json_data = json.load(fp)
+    consent_date = json_data[0]['chric_consent_date']
+    return consent_date
 
 
 if __name__ == '__main__':
