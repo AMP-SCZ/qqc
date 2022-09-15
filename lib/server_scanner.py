@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import json
+import pandas as pd 
 
 '''
 #this is a prototype of a function built to grab subject IDs from pheonix and send to asana
@@ -68,6 +69,21 @@ def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
         json_data = json.load(fp)
     consent_date = json_data[0]['chric_consent_date']
     return consent_date
+
+
+def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
+    '''Get consent date string for a given Prescient AMP-SCZ subject'''
+    site = ampscz_id[:2]
+    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \ 
+        'raw' / ampscz_id / 'surveys' / \
+        f'{ampscz_id}_informed_consent_run_sheet.csv'
+    df = pd.read_csv(csv_file_path)
+    
+    assert len(df) == 1  # make sure there is only one row in the consent csv file
+    consent_date = df['chric_consent_date'].iloc[0]
+
+    return consent_date
+
 
 
 if __name__ == '__main__':
