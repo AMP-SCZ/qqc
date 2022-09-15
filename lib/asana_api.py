@@ -5,7 +5,7 @@ from pathlib import Path
 def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str: 
     site = ampscz_id[:2] 
     csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \ 
-    'raw' / ampscz_id / 'surveys' / f'{ampscz_id}_informed_consent_run_sheet.csv' 
+        'raw' / ampscz_id / 'surveys' / f'{ampscz_id}_informed_consent_run_sheet.csv' 
     df = pd.read_csv(csv_file_path) 
     consent_date = df['chric_consent_date'].iloc[0] 
 
