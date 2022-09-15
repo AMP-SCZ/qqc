@@ -1,4 +1,17 @@
 import asana
+import pandas as pd 
+from pathlib import Path
+
+def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
+    site = ampscz_id[:2]
+    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \ 
+        'raw' / ampscz_id / 'surveys' / f'{ampscz_id}_informed_consent_run_sheet.csv'
+    df = pd.read_csv(csv_file_path)
+    
+    assert len(df) == 1  # make sure there is only one row in the consent csv file
+    consent_date = df['chric_consent_date'].iloc[0]
+
+    return consent_date
 
 
 def read_token() -> str:
