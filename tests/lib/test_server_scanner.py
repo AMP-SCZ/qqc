@@ -15,7 +15,7 @@ ASANA_ROOT = TEST_ROOT_PATH.parent
 sys.path.append(str(ASANA_ROOT))
 
 from lib.server_scanner import grep_all_paths, grep_subject_files, \
-        grep_id_basename, send_to_caselist
+        grep_id_basename, send_to_caselist, consent_date_extraction
 
 
 def return_json_loc_pronet(ampscz_id: str) -> Path:
@@ -49,8 +49,8 @@ def create_subject(ampscz_id: str, network: str, mode=1) -> Path:
         fake_json_loc.parent.mkdir(exist_ok=True, parents=True)
         if mode == 1:
             fake_dict_list = [
-                {"chric_ampscz_id": ampscz_id},
-                {"chric_consent_date": datetime.today().strftime('%Y-%m-%d')}
+                {"chric_ampscz_id": ampscz_id,
+                 "chric_consent_date": datetime.today().strftime('%Y-%m-%d')}
                     ]
         elif mode == 2:
             return fake_json_loc
@@ -101,10 +101,12 @@ def run_tree():
 class FakeSubject:
     def __init__(self, network):
         subject_id = get_random_ampscz_id()
+        self.subject_id = subject_id
         if network == 'pronet':
             fake_json_loc = create_subject(subject_id, network='pronet')
         else:
             fake_json_loc = create_subject(subject_id, network='prescient')
+        self.phoenix_root = Path('test_PHOENIX')
 
 
 @pytest.fixture
@@ -119,3 +121,10 @@ def get_prescient_fake_subject():
 
 def test_fixtures(get_pronet_fake_subject, get_prescient_fake_subject):
     pass
+
+
+def test_consent_date_extraction(get_pronet_fake_subject):
+    ampscz_id = get_pronet_fake_subject.subject_id
+    phoenix_root = get_pronet_fake_subject.phoenix_root
+    assert datetime.today().strftime('%Y-%m-%d') == \
+            consent_date_extraction(ampscz_id, phoenix_root)
