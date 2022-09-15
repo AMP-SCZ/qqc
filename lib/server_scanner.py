@@ -79,8 +79,3 @@ if __name__ == '__main__':
         print(potential_subject)
 
     print("Completed")
-
-
-#json.load() accepts file object, parses the JSON data, populates a Python dictionary with the data and returns it back to you
-                #for consent_date in json_data['chric_consent_date']:
-
