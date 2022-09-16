@@ -13,6 +13,7 @@ from sklearn.cluster import KMeans
 from sklearn import preprocessing
 import os
 import zipfile
+import re
 
 
 def get_all_files_walk(root_dir: str, extension: str) -> List[Path]:
@@ -245,3 +246,62 @@ def unzip_to_temporary_dir(zip_file_loc: Path) -> Path:
 
     print([x for x in Path(tf.name).glob('*')])
     return tf.name
+
+
+def get_files_from_json(json_files: list,
+                        series_name: str,
+                        extension: str = False,
+                        encoding_dir: str = False):
+    '''Find matching files based on the SeriesDescription in the json file
+
+    Assuming that other files have the same name prefix as the json file
+
+    Key arguments:
+        josn_files: list of json files to base the search from, str.
+        series_name: SeriesDescription in interest, str.
+        extension: extension in interest, str. This will be used to replace
+                   a.json to a.{extension}
+        encoding_dir: AP or PA in interest. Leave empty as 'json' if 
+                      specification is not needed
+
+    Examples:
+        json_files = ['a.json', 'b.json', 'c.json', 'd.json']
+
+        series_name = 'b0'
+        extension = 'bval'
+        encoding_dir = 'AP'
+        get_files_from_json(json_files, series_name, extension, encoding_dir)
+
+        series_name = 'dmri'
+        extension = 'bval'
+        encoding_dir = 'PA'
+        get_files_from_json(json_files, series_name, extension, encoding_dir)
+
+        series_name = 't1w'
+        get_files_from_json(json_files, series_name)
+
+        series_name = 't1w'
+        get_files_from_json(json_files, series_name)
+    '''
+    matched_files = []
+    for json_file in json_files:
+        json_file = Path(json_file)
+        with open(json_file, 'r') as fp:
+            data = json.load(fp)
+            name = data['SeriesDescription']
+            print(name)
+
+        if re.search(series_name, name, re.IGNORECASE):
+            if encoding_dir:
+                if not encoding_dir.lower() in name.lower():
+                    continue
+
+            if extension:
+                matching_file = Path(json_file).parent / \
+                    f"{json_file.name.split('.json')[0]}.{extension}"
+                matched_files.append(matching_file)
+            else:
+                matched_files.append(json_file)
+
+    return matched_files
+

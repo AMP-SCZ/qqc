@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
+import os
 from typing import Tuple
 import json
 import numpy as np
@@ -298,12 +299,89 @@ def qqc_summary(qqc_ss_dir: Path) -> pd.DataFrame:
     return df_all
 
 
-def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
+def extract_consent_date(subject_name: str, phoenix_dir: Path):
+    '''Extract consent date of the subject under a phoenix dir'''
+    site = subject_name[:2]
+    metadata_paths = phoenix_dir.glob(
+            f'GENERAL/*{site}/*{site}_metadata.csv')
+
+    for metadata_path in metadata_paths:
+        df_tmp = pd.read_csv(metadata_path)[['Subject ID', 'Consent']]
+        if subject_name in df_tmp['Subject ID'].to_list():
+            consent_date = df_tmp[
+                    df_tmp['Subject ID'] == subject_name].iloc[0]['Consent']
+            return consent_date
+
+    raise ValueError(f'No matching AMPSCZ-ID ({subject_name}) in metadata')
+
+
+def get_load_days_from_consent(qqc_subject_dir: Path):
+    '''Extract consent date from the PHOENIX metadata csv'''
+    nda_root_dir = qqc_subject_dir.parent.parent.parent.parent
+    subject_name = qqc_subject_dir.name.split('-')[1]
+    phoenix_paths = nda_root_dir.glob('*/PHOENIX')
+    for phoenix_path in phoenix_paths:
+        try:
+            consent_date = extract_consent_date(subject_name, phoenix_path)
+            return consent_date
+        except ValueError:
+            pass
+
+    raise ValueError(
+            f'No matching AMPSCZ-ID ({subject_name}) under {nda_root_dir}')
+
+
+def refresh_qqc_summary_for_subject(qqc_subject_dir: Path) -> None:
+    '''Save QQC summary for DPDash for subject with multiple sessions'''
+    session_paths = [x for x in qqc_subject_dir.glob('ses-20*') if x.is_dir()]
+
+    if len(session_paths) == 0:
+        return
+
+    subject_name = qqc_subject_dir.name.split('-')[1]
+    site = subject_name[:2]
+
+    # get consent date
+    consent_date = get_load_days_from_consent(qqc_subject_dir)
+
+    # most_recent_session
+    most_recent_session = pd.to_datetime('2000-01-01')
+    for session_path in session_paths:
+        session_date = pd.to_datetime(session_path.name.split('-')[1][:-1])
+        if most_recent_session < session_date:
+            most_recent_session = session_date
+
+    # days from consent for most recent scan
+    days_from_consent = most_recent_session - pd.to_datetime(consent_date)
+    days_from_consent = days_from_consent.days
+
+    # delete previous csv file
+    previous_qqc_dpdash_csvs = qqc_subject_dir.glob(
+            f'{site}-{subject_name}-mriqc-day1to*.csv')
+
+    for i in previous_qqc_dpdash_csvs:
+        os.remove(i)
+
+    df_to_return = []
+    for session_path in session_paths:
+        df_tmp = qqc_summary_for_dpdash(session_path, days_from_consent)
+        df_to_return.append(df_tmp)
+
+    return df_to_return
+
+
+def qqc_summary_for_dpdash(qqc_ss_dir: Path, dayto: int) -> None:
     '''Save QQC session summary for DPDash'''
     # get subject info
     session_name = qqc_ss_dir.name.split('-')[1]
     subject_name = qqc_ss_dir.parent.name.split('-')[1]
     site = subject_name[:2]
+
+    # get consent date
+    consent_date = get_load_days_from_consent(qqc_ss_dir.parent)
+    session_date = pd.to_datetime(session_name[:-1])
+    days_from_consent = session_date - pd.to_datetime(consent_date)
+    days_from_consent = days_from_consent.days
 
     # get QQC summary for the session
     qqc_summary_df = qqc_summary(qqc_ss_dir)
@@ -330,7 +408,7 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
             qqc_summary_df.columns[0]].apply(relabel)
 
     # columns required by DPDash
-    header_df = pd.DataFrame({'day': [1],
+    header_df = pd.DataFrame({'day': [days_from_consent],
                               'reftime': '',
                               'timeofday': '',
                               'weekday': ''}).T
@@ -338,7 +416,7 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
     qqc_summary_df = pd.concat([header_df, qqc_summary_df]).T
 
     # DPDash requires day to start from 1
-    qqc_summary_df['day'] = 1
+    # qqc_summary_df['day'] = 1
 
     # remove scan order
     qqc_summary_df.drop('Scan order', axis=1, inplace=True)
@@ -354,15 +432,16 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
     with open('/data/predict/data_from_nda/MRI_ROOT/mriqc_pretty.json', 'w') as fp:
         json.dump(mriqc_pretty, fp, indent=2)
 
-
     # Save individual dpdash settings
     # Session name has to be included as a column in the csv file for DPDash.
     # Also, the file name has to follow XX-AMPSCZID-mriqc-day1toX.csv pattern.
     qqc_summary_df['subject_id'] = subject_name
     qqc_summary_df['session_id'] = session_name
 
+    qqc_summary_df = qqc_summary_add_forms(qqc_summary_df, qqc_ss_dir)
+
     out_file = qqc_ss_dir.parent / \
-            f'{site}-{subject_name}-mriqc-day1to1.csv'
+            f'{site}-{subject_name}-mriqc-day1to{dayto}.csv'
 
     if out_file.is_file():
         qqc_summary_df_exist = pd.read_csv(out_file)
@@ -377,6 +456,65 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path) -> None:
                qqc_summary_df]).to_csv(out_file, index=False)
 
     return qqc_summary_df
+
+
+def qqc_summary_add_forms(qqc_summary_df: Path, qqc_ss_dir) -> None:
+    '''Adds forms data to the QQC csv file TODO: clearn up'''
+    # get subject info
+    session_name = qqc_summary_df.iloc[0]['session_id']
+    subject_name = qqc_summary_df.iloc[0]['subject_id']
+    scan_date = pd.to_datetime(
+            session_name[:4] + '-' +
+            session_name[4:6]  + '-' +
+            session_name[6:8])
+    site = subject_name[:2]
+
+    # set formsqc location
+    if '_dev' in str(qqc_ss_dir):
+        forms_qc_path = Path('/data/predict/data_from_nda_dev/formqc')
+    else:
+        forms_qc_path = Path('/data/predict/data_from_nda/formqc')
+        
+    # get forms qc df
+    matching_csvs = list(forms_qc_path.glob(
+        f'*-{subject_name}-form_mri_run_sheet-day1to*.csv'))
+
+    if len(matching_csvs) == 0:
+        print('No maching MRI run sheet table')
+        return qqc_summary_df
+    elif len(matching_csvs) > 1:
+        print(matching_csvs)
+        print('More than one matching MRI run sheet table')
+        return qqc_summary_df
+    
+    df = pd.read_csv(matching_csvs[0])
+    cols_to_extract = \
+        ['subjectid'] + \
+        [x for x in df.columns if 'chrmri_session_' in x] + \
+        ['chrmri_scanner'] + \
+        [x for x in df.columns if '_qc' in x]
+    df_to_add = df[cols_to_extract]
+
+    # get the correct db for the session
+    df_to_add['date_in_form'] = \
+            df_to_add['chrmri_session_year'].astype(str) + '-' + \
+            df_to_add['chrmri_session_month'].astype(str) + '-' + \
+            df_to_add['chrmri_session_day'].astype(str)
+
+    df_to_add['date_in_form'] = pd.to_datetime(df_to_add['date_in_form'])
+    df_to_add['date_diff'] = (df_to_add['date_in_form'] - scan_date).abs()
+
+    try:
+        df_to_select = df_to_add.loc[[df_to_add.date_diff.idxmin()]]
+    except:
+        print('No data')
+        return qqc_summary_df
+
+    df_merged = pd.merge(qqc_summary_df, df_to_select,
+            left_on ='subject_id',
+            right_on ='subjectid')
+
+    return df_merged
 
 
 def create_dpdash_settings(qqc_summary_df) -> dict:
@@ -421,26 +559,32 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                             range=[0, '1'],
                             variable='session_id'))
 
-
-    for label, variable in {
-            'MRI Scanner (Prisma=1)': 'chrmri_scanner',
-            'T1w MPR Quality Check (good=1)': 'chrmri_t1_qc',
-            'T2w SPC quality check (good=1)': 'chrmri_t2_qc',
-            'T2w SPC quality check (good=1)': 'chrmri_t2_qc',
-            'rsfMRI rest AP quality check (good=1)': 'chrmri_fmriap_qc',
-            'rsfMRI rest PA quality check (good=1)': 'chrmri_fmripa_qc',
-            'dMRI_b0_AP quality check (good=1)': 'chrmri_dmri_b0_qc',
-            'dMRI dir176 PA quality check (good=1)': 'chrmri_dmri176_qc',
-            'dMRI b0 AP quality check (good=1)': 'chrmri_dmri_b0_qc_2'}.items():
-
+    # mri-form
+    for varname, var in {
+        'MRI Scanner (Prisma=1)': 'chrmri_scanner',
+        'Distortion map AP 1 Quality Check (good=1)': 'chrmri_dmap_qc',
+        'Distortion map PA 2 Quality Check (good=1)': 'chrmri_dmpa_qc',
+        'T1w MPR Quality Check (good=1)': 'chrmri_t1_qc',
+        'T2w SPC Quality Check (good=1)': 'chrmri_t2_qc',
+        'Distortion map AP 2 Quality Check (good=1)': 'chrmri_dmap_qc_2',
+        'Distortion map PA 2 Quality Check (good=1)': 'chrmri_dmpa_qc_2',
+        'rsfMRI rest AP 1 Quality Check (good=1)': 'chrmri_rfmriap_qc',
+        'rsfMRI rest PA 1 Quality Check (good=1)': 'chrmri_rfmripa_qc',
+        'dMRI b0 AP Quality Check (good=1)': 'chrmri_dmri_b0_qc',
+        'dMRI b0 AP Quality Check (good=1)': 'chrmri_dmri_b0_qc_2',
+        'dMRI dir 176 PA Quality Check (good=1)': 'chrmri_dmri176_qc',
+        'dMRI dir 126 PA Quality Check (good=1)': 'chrmri_dmri126_qc',
+        'Distortion map AP 3 Quality Check (good=1)': 'chrmri_dmap_qc_3',
+        'Distortion map PA 3 Quality Check (good=1)': 'chrmri_dmpa_qc_3',
+        'rsfMRI rest AP 2 Quality Check (good=1)': 'chrmri_rfmriap2_qc',
+        'rsfMRI rest PA 2 Quality Check (good=1)': 'chrmri_rfmripa2_qc'
+        }.items():
         mriqc_pretty['config'].append(
-            update_default_dict(analysis='form_mri_run_sheet',
-                                category='forms',
-                                label=label,
-                                range=[0, 6],
-                                color=sns.color_palette("RdYlGn", 8).as_hex(),
-                                variable=variable))
-        
+            update_default_dict(
+                category='mri',
+                label=varname,
+                color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
+                variable=var))
 
     # For each columns
     for param_name in [x for x in qqc_summary_df.columns if x not in
@@ -452,7 +596,7 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 100],
                 color=sns.color_palette("Reds", 8).as_hex(),
                 variable=param_name))
-        
+
         # diffusion
         elif 'Relative_dwi_motion' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
@@ -461,7 +605,6 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 1],
                 color=sns.color_palette("RdYlGn_r", 8).as_hex(),
                 variable=param_name))
-
         elif 'Absolute_dwi_motion' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
                 category='diffusion',
@@ -476,6 +619,7 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 300],
                 color=sns.color_palette("RdYlGn_r", 8).as_hex(),
                 variable=param_name))
+
         # mriqc
         elif 'CJV' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
@@ -509,6 +653,7 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 range=[0, 1],
                 color=sns.color_palette("Oranges", 8).as_hex(),
                 variable=param_name))
+
         # shim settings
         elif 'Shim' in param_name:
             mriqc_pretty['config'].append(update_default_dict(
@@ -526,11 +671,11 @@ def create_dpdash_settings(qqc_summary_df) -> dict:
                 color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
                 variable=param_name))
 
-            # mriqc_pretty['config'].append(update_default_dict(
-                # category='Parameters',
-                # label=re.sub('_', ' ', param_name),
-                # color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
-                # variable=param_name))
+            mriqc_pretty['config'].append(update_default_dict(
+                category='Parameters',
+                label=re.sub('_', ' ', param_name),
+                color=sns.xkcd_palette(['pale red', 'green']).as_hex(),
+                variable=param_name))
 
     return mriqc_pretty
 

@@ -58,6 +58,9 @@ def run_mriqc_on_data(rawdata_dir: Path,
     work_dir.mkdir(exist_ok=True, parents=True)
     mriqc_outdir_root.mkdir(exist_ok=True, parents=True)
 
+    remove_DataSetTrailingPadding_from_json_files(
+            rawdata_dir, subject_id, session_id)
+
     command = f'{singularity} run -e \
         -B {rawdata_dir}:/data:ro \
         -B {work_dir}:/work \

@@ -2,6 +2,7 @@ import re
 from subprocess import PIPE, Popen
 from pathlib import Path
 import json
+from qqc.qqc.mriqc import remove_DataSetTrailingPadding_from_json_files
 
 
 def run_fmriprep_on_data(rawdata_dir: Path,
@@ -25,12 +26,15 @@ def run_fmriprep_on_data(rawdata_dir: Path,
     # img_loc = '/data/predict/mg1050/singularity_images/fmriprep-20.2.6.sif'
     # img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc0.simg'
     # img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc2.simg'
-    img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc3.simg'
+    img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0.simg'
     singularity = '/apps/released/gcc-toolchain/gcc-4.x/singularity/' \
                   'singularity-3.7.0/bin/singularity'
 
     work_dir = Path(temp_dir) / 'fmriprep' / subject_id / session_id
     work_dir.mkdir(exist_ok=True, parents=True)
+
+    remove_DataSetTrailingPadding_from_json_files(
+            rawdata_dir, subject_id, session_id)
 
     for datadir in fmriprep_outdir_root, fs_outdir_root:
         if not datadir.is_dir():

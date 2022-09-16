@@ -229,6 +229,85 @@ def json_check(json_files: List[str],
     return (df_all_diff, df_all_shared)
 
 
+def json_check_tmp(json_files: List[str],
+               print_diff: bool = True,
+               print_shared: bool = False,
+               **kwargs):
+    '''Iteratively compare between MR protocol json files and print outputs'''
+    dicts = []
+    for i in json_files:
+        with open(i, 'r') as f:
+            single_dict = json.load(f)
+            dicts.append(single_dict)
+
+    names = list(itertools.combinations(json_files, 2))
+    sets = list(itertools.combinations(dicts, 2))
+
+    df_all_diff = pd.DataFrame()
+    df_all_shared = pd.DataFrame()
+    for (name_1, name_2), (first_dict, second_dict) in zip(names, sets):
+        diff_items = {k: first_dict[k] for k in first_dict
+                      if k in second_dict and first_dict[k] != second_dict[k] \
+                              or k == 'SeriesDescription'}
+        shared_items = {k: first_dict[k] for k in first_dict
+                        if k in second_dict and
+                        first_dict[k] == second_dict[k]}
+
+        df_diff = pd.DataFrame.from_dict(
+                dict((x, str(y)) for x, y in diff_items.items()),
+                orient='index',
+                columns=[f'{Path(name_1).name} (vs {Path(name_2).name})'])
+
+        df_shared = pd.DataFrame.from_dict(
+                dict((x, str(y)) for x, y in shared_items.items()),
+                orient='index',
+                columns=[f'{Path(name_1).name} (vs {Path(name_2).name})'])
+
+        df_all_diff = pd.concat([df_all_diff, df_diff], axis=1, sort=True)
+        df_all_shared = pd.concat([df_all_shared, df_shared], axis=1, sort=True)
+
+
+    # drop unnecessary indices
+    for df_tmp in df_all_diff, df_all_shared:
+        to_drop_list = [
+            'AcquisitionTime', 'ImageOrientationPatientDicom',
+            'ImageOrientationPatientDICOM',
+            'SliceTiming',
+            'global', 'TxRefAmp',
+            'dcmmeta_affine', 'WipMemBlock',
+            'SAR', 'time',
+            'ShimSetting', 'ImageOrientationText']
+
+        # Include to detect different machine
+        # 'InstitutionAddress', 'InstitutionName',
+        # 'InstitutionalDepartmentName', 'ManufacturersModelName',
+        # 'ProcedureStepDescription', 'StationName', 
+        # 'DeviceSerialNumber'
+        for i in to_drop_list:
+            try:
+                df_tmp.drop(i, inplace=True)
+            except:
+                pass
+
+
+    if print_diff:
+        # print(df_all_diff.index)
+        for (name_1, name_2), (first_dict, second_dict) in zip(names, sets):
+            df_tmp_tmp = pd.concat([
+                  pd.DataFrame.from_dict(first_dict, orient='index'),
+                  pd.DataFrame.from_dict(second_dict, orient='index')],
+                  axis=1)
+            df_diff_to_print = df_tmp_tmp.loc[df_all_diff.index]
+            df_diff_to_print.columns = [name_1, name_2]
+            return df_diff_to_print
+
+    if print_shared:
+        print_diff_shared('The same items included in both each comparison',
+                          df_all_shared)
+
+    return (df_all_diff, df_all_shared)
+
+
 def get_all_json_information_quick(data_dir):
     json_paths = get_all_files_walk(data_dir, 'json')
     df_path_order = sort_json_paths_with_series_number(json_paths)

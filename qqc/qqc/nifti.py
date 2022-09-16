@@ -48,14 +48,15 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                 std_series_num = data['SeriesNumber']
                 std_series_desc = data['SeriesDescription'].lower()
 
-            print('----')
+            print('===='*20)
             print('input')
             print(series_desc)
             print(image_type)
+            print('------')
             print('output')
             print(std_series_desc)
             print(std_image_type)
-            print('----')
+            print('===='*20)
 
             # # for JE site, extracted image type is different
             # if (series_desc == std_series_desc):
@@ -71,6 +72,8 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
 
             # ###
 
+            # if (series_desc == std_series_desc) & \
+                    # (all([x in std_image_type for x in image_type])):
             if (series_desc == std_series_desc) & \
                     (all([x in std_image_type for x in image_type])):
                 # print(series_desc, std_series_desc)
@@ -95,11 +98,17 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                     break
 
                 except:
+                    print('hahahah*')
                     pass
+
 
         num += 1
 
     print(volume_comparison_df)
+    if len(volume_comparison_df) == 0:
+        print('No matching series name - GE data')
+        return
+
     volume_comparison_df['check'] = (volume_comparison_df['input shape'] ==
             volume_comparison_df['standard shape']).map(
                     {True: 'Pass', False: 'Fail'})
@@ -125,6 +134,79 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                                       volume_comparison_df.sort_index()])
 
     volume_comparison_df.to_csv(
+            qc_out_dir / '03_volume_slice_number_comparison_log.csv')
+
+
+
+def compare_volume_to_standard_all_nifti_test(input_dir: str,
+                                         standard_dir: str,
+                                         qc_out_dir: Path):
+    nifti_paths_input = get_all_files_walk(input_dir, 'nii.gz')
+    nifti_paths_std = get_all_files_walk(standard_dir, 'nii.gz')
+
+    volume_comparison_log = qc_out_dir / \
+            'volume_slice_number_comparison_log.txt'
+
+    volume_comparison_df = pd.DataFrame()
+    num = 0
+
+    for nifti_input in nifti_paths_input:
+        try:
+            _, _, nifti_suffix_input = \
+                get_naming_parts_bids(nifti_input.name)
+        except:
+            nifti_suffix_input = nifti_input.name[:-7]
+
+        input_json = nifti_input.parent / (
+                nifti_input.name[:-7] + '.json')
+        with open(input_json, 'r') as json_file:
+            data = json.load(json_file)
+
+            image_type = data['ImageType']
+            series_num = data['SeriesNumber']
+            series_desc = data['SeriesDescription'].lower()
+
+        img_shape_input = nb.load(nifti_input).shape
+        volume_comparison_df.loc[num, 'template'] = False
+        volume_comparison_df.loc[num, 'series_num'] = series_num
+        volume_comparison_df.loc[num, 'series_desc'] = series_desc
+        volume_comparison_df.loc[num, 'nifti_suffix'] = nifti_suffix_input
+        volume_comparison_df.loc[num, 'input shape'] = str(img_shape_input)
+        num += 1
+
+    for nifti_std in nifti_paths_std:
+        try:
+            _, _, nifti_suffix_std = get_naming_parts_bids(
+                    nifti_std.name)
+        except:
+            nifti_suffix_std = nifti_std.name.split('.')[:-7]
+
+        # if partial_rescan:
+        std_json = nifti_std.parent / (nifti_std.name[:-7] + '.json')
+        with open(std_json, 'r') as json_file:
+            data = json.load(json_file)
+            std_image_type = data['ImageType']
+            std_series_num = data['SeriesNumber']
+            std_series_desc = data['SeriesDescription'].lower()
+
+        img_shape_std = nb.load(nifti_std).shape
+        volume_comparison_df.loc[num, 'template'] = True
+        volume_comparison_df.loc[num, 'series_num'] = series_num
+        volume_comparison_df.loc[num, 'series_desc_std'] = std_series_desc
+        volume_comparison_df.loc[num, 'nifti_suffix_std'] = nifti_suffix_std
+        volume_comparison_df.loc[num, 'standard shape'] = str(img_shape_std)
+        num += 1
+
+    if len(volume_comparison_df) == 0:
+        print('No matching series name - GE data')
+        return
+
+    volume_comparison_df.series_num = \
+            volume_comparison_df.series_num.astype(int)
+
+    volume_comparison_df.set_index('series_num', inplace=True)
+    volume_comparison_df.sort_values([
+        'template', 'series_num']).to_csv(
             qc_out_dir / '03_volume_slice_number_comparison_log.csv')
 
 

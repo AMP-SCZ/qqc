@@ -4,6 +4,7 @@ import logging
 import zipfile
 import tempfile
 import pandas as pd
+import shutil
 from pathlib import Path
 from typing import List, Tuple
 from qqc.run_sheet import get_run_sheet
@@ -12,7 +13,8 @@ from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
 from qqc.qqc.dicom import check_num_order_of_series, save_csa
 from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
-from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash
+from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash, \
+        refresh_qqc_summary_for_subject
 from qqc.qqc.figures import quick_figures
 from qqc.qqc.mriqc import run_mriqc_on_data
 from qqc.qqc.fmriprep import run_fmriprep_on_data
@@ -98,7 +100,7 @@ def dicom_to_bids_QQC(args) -> None:
     # Copy the data
     # ----------------------------------------------------------------------
     # if the input is a zip file, decompress it to a temporary directory
-    if qqc_input.name.endswith('.zip'):
+    if qqc_input.name.endswith('.zip') or qqc_input.name.endswith('.ZIP'):
         qqc_input = unzip_and_update_input(qqc_input)
 
     if args.nifti_dir:  # if nifti directory is given
@@ -122,6 +124,11 @@ def dicom_to_bids_QQC(args) -> None:
                           subject_name.split('-')[1],
                           session_name.split('-')[1],
                           bids_rawdata_dir, qc_out_dir)
+
+            # remove temporary directory
+            if qqc_input.name.endswith('.zip') or \
+                    qqc_input.name.endswith('.ZIP'):
+                shutil.rmtree(qqc_input)
 
     # run sheet
     if run_sheet.is_file():
@@ -297,10 +304,11 @@ def unzip_and_update_input(input: str) -> str:
     '''Unzip the MRI files to a temporary dir and return the path'''
     logger.info('Input is a zip file. Extracting it to a temp directory')
     zf = zipfile.ZipFile(input)
-    tf = tempfile.TemporaryDirectory()
-    zf.extractall(tf.name)
+    tf = tempfile.mkdtemp(
+            prefix='/data/predict/kcho/tmp/zip_tempdir/')
+    zf.extractall(tf)
 
-    return tf.name
+    return tf
 
 
 def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
@@ -340,4 +348,5 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     compare_data_to_standard(nifti_session_dir, standard_dir, qc_out_dir)
 
     logger.info('Summary function & DPdash')
-    qqc_summary_for_dpdash(qc_out_dir)
+    # qqc_summary_for_dpdash(qc_out_dir)
+    refresh_qqc_summary_for_subject(qc_out_dir.parent)

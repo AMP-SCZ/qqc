@@ -234,3 +234,34 @@ def test_sub_CG():
 
     print(df_diff)
  
+
+def test_compare_philips_and_GE_KCL_GA():
+    root_dir = Path('/data/predict/kcho/philips/new_unzip/Philips_Copenhagen_20220908_test/BIDS')
+    rawdata_dir = root_dir / 'rawdata/sub-cp/ses-20220908'
+    qqc_out_dir = root_dir
+
+    # within_phantom_qc(rawdata_dir, qqc_out_dir)
+    within_phantom_qc(
+            Path('/data/predict/phantom_data/kcho/GE_experiment/GA/dcm2niix_output'),
+            Path('/data/predict/phantom_data/kcho/GE_experiment/GA/dcm2niix_output'))
+
+    within_phantom_qc(
+            Path('/data/predict/phantom_data/kcho/GE_experiment/KCL/dcm2niix_output'),
+            Path('/data/predict/phantom_data/kcho/GE_experiment/KCL/dcm2niix_output'))
+    
+
+
+    standard_dir = Path('/data/predict/data_from_nda/MRI_ROOT/rawdata/sub-YA01508/ses-202208261')
+    # compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
+
+def test_compare_philips_within_phantom():
+    rawdata_dir = Path(
+            '/data/predict/kcho/philips/new_unzip/'
+            'Philips_Copenhagen_20220908_test/BIDS/'
+            'rawdata/sub-cp/ses-20220908')
+    within_phantom_qc(
+            rawdata_dir,
+            Path('/data/predict/kcho/philips/new_unzip/Philips_Copenhagen_20220908_test/BIDS'))
+    qqc_out_dir = Path('/data/predict/kcho/philips/new_unzip/Philips_Copenhagen_20220908_test/BIDS')
+    standard_dir = Path('/data/predict/data_from_nda_dev/MRI_ROOT/rawdata/sub-AD00001/ses-202109061')
+    compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)

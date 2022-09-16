@@ -431,3 +431,73 @@ def test_jena_with_new_dcm2niix():
 
     print(args)
     dicom_to_bids_QQC(args)
+
+
+def test_yale_followup():
+    args = parse_args([
+        '-i', '/data/predict/data_from_nda/Pronet/PHOENIX/PROTECTED/PronetYA/raw/YA01508/mri/YA01508_MR_2022_08_26_1',
+        '-s', 'YA01508',
+        '-ss', '202208261',
+        '-o', '/data/predict/data_from_nda/MRI_ROOT',
+        '-std', '/data/predict/data_from_nda/MRI_ROOT/rawdata/sub-YA01508/ses-202206231',
+        ])
+
+    print(args)
+    dicom_to_bids_QQC(args)
+
+
+def test_yale_followup_pipeline():
+    args = parse_args([
+        '-i', '/data/predict/data_from_nda/Pronet/PHOENIX/PROTECTED/PronetYA/raw/YA01508/mri/YA01508_MR_2022_08_26_1',
+        '-s', 'YA01508',
+        '-ss', '202208261',
+        '-o', '/data/predict/data_from_nda/MRI_ROOT',
+        '-std', '/data/predict/data_from_nda/MRI_ROOT/rawdata/sub-YA01508/ses-202206231',
+        '-dwipreproc',
+        ])
+        # '-mriqc', '-fmriprep', '-dwipreproc',
+
+    print(args)
+    dicom_to_bids_QQC(args)
+
+
+def test_sept_GE():
+    args = parse_args([
+        '-i', '/data/predict/phantom_data/kcho/GE_experiment/GE_Sept/dicoms',
+        '-s', 'GE',
+        '-ss', 'sept',
+        '-o', '/data/predict/phantom_data/kcho/GE_experiment/GE_Sept/BIDS',
+        '-std', '/data/predict/data_from_nda_dev/MRI_ROOT/rawdata/sub-AD00001/ses-202109061',
+        ])
+        # '-mriqc', '-fmriprep', '-dwipreproc',
+
+    print(args)
+    dicom_to_bids_QQC(args)
+
+
+def test_prev_calgary():
+    args = parse_args([
+        '-i', '/data/predict/phantom_human_pilot/sourcedata/ProNET_Calgary_GE/ses-humanpilot',
+        '-s', 'GE',
+        '-ss', 'calgary',
+        '-o', '/data/predict/phantom_data/kcho/GE_experiment/GE_Sept/BIDS',
+        '-std', '/data/predict/data_from_nda_dev/MRI_ROOT/rawdata/sub-AD00001/ses-202109061',
+        ])
+        # '-mriqc', '-fmriprep', '-dwipreproc',
+
+    print(args)
+    dicom_to_bids_QQC(args)
+
+
+def test_prev_calgary_phantom():
+    args = parse_args([
+        '-i', '/data/predict/phantom_human_pilot/sourcedata/ProNET_Calgary_GE/ses-phantom',
+        '-s', 'GE',
+        '-ss', 'calgary_phantom',
+        '-o', '/data/predict/phantom_data/kcho/GE_experiment/GE_Sept/BIDS',
+        '-std', '/data/predict/data_from_nda_dev/MRI_ROOT/rawdata/sub-AD00001/ses-202109061',
+        ])
+        # '-mriqc', '-fmriprep', '-dwipreproc',
+
+    print(args)
+    dicom_to_bids_QQC(args)
