@@ -1,17 +1,5 @@
 import asana
-import pandas as pd 
 from pathlib import Path
-
-def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
-    site = ampscz_id[:2]
-    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \ 
-        'raw' / ampscz_id / 'surveys' / f'{ampscz_id}_informed_consent_run_sheet.csv'
-    df = pd.read_csv(csv_file_path)
-    
-    assert len(df) == 1  # make sure there is only one row in the consent csv file
-    consent_date = df['chric_consent_date'].iloc[0]
-
-    return consent_date
 
 
 def read_token() -> str:
@@ -25,16 +13,22 @@ def read_token() -> str:
 
 def create_new_task(client: asana.client,
                     potential_subject: str,
+                    subject_info_dict: dict,
                     ws_gid: str,
                     proj_gid: str) -> 'asana.task':
-    '''Creates new task to send to AMP SCZ project in Asana'''
+    '''Creates new task to send to AMP SCZ project in Asana
+
+    Note:
+        subject_info_dict = {'consent_date': 'YYYY-MM-DD'}
+
+    '''
     new_task = {
         'name': potential_subject,
         'note': 'New Data has been uploaded for ' + potential_subject,
         'assignee': 'kevincho@bwh.harvard.edu',
         'projects': [proj_gid]}
 
-    created_task = client.tasks.create_in_workspace(ws_gid, new_task)
+    created_task = client.tasks.create_in_workspace(ws_gid, new_task)'consent_date': 'YYYY-MM-DD'}
 
     return created_task
 
