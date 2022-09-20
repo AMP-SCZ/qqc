@@ -11,12 +11,13 @@ def get_RA_for_QC(qc_database: Path = 'ra_qc_order.csv') -> dict:
         df = pd.read_csv(qc_database, index_col=0)
     else:
         df = pd.DataFrame({
-            'RA_name':['Omar', 'Nastia', 'Nick', 'Elana'],
+            'RA_name':['Omar', 'Simone', 'Nastia', 'Nick', 'Elana'],
             'RA_email_address': ['ojohn@bwh.harvard.edu',
+                                 'sveale1@bwh.harvard.edu',
                                  'AHAIDAR@PARTNERS.ORG',
                                  'NKIM14@mgh.harvard.edu',
                                  'EKOTLER@mgh.harvard.edu'],
-            'last_QCed': [False, False, False, True]})
+            'last_QCed': [False, False, False, False, True]})
 
     ra_qced_last = df[df.last_QCed]
     get_index = lambda x: -1 if x == 3 else x
