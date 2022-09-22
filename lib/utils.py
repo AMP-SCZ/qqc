@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
 
 def test_get_RA_for_QC():
     ra_dict = get_RA_for_QC()
@@ -31,6 +32,11 @@ def get_RA_for_QC(qc_database: Path = 'ra_qc_order.csv') -> dict:
 
     return ra_to_qc.to_dict()
 
+
+def convert_AU_to_US_date(au_time: str) -> str:
+    return datetime.strptime(au_time,
+            '%d/%m/%Y %I:%M:%S %p').strftime(
+            '%Y-%m-%d')
 
 if __name__ == '__main__':
     test_get_RA_for_QC()
