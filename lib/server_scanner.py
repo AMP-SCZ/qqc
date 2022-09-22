@@ -74,7 +74,7 @@ def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
 def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
     '''Get consent date string for a given Prescient AMP-SCZ subject'''
     site = ampscz_id[:2]
-    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \ 
+    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \
         'raw' / ampscz_id / 'surveys' / \
         f'{ampscz_id}_informed_consent_run_sheet.csv'
     df = pd.read_csv(csv_file_path)
