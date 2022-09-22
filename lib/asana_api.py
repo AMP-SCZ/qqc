@@ -16,18 +16,18 @@ def create_new_task(client: asana.client,
                     subject_info_dict: dict,
                     ws_gid: str,
                     project_gid: str) -> 'asana.task':
-    '''Creates new task to send to AMP-SCZ project in Asana and represents a new subject added to the server 
+    '''Creates new task and represents a new subject added to the server 
 
     Note:
         subject_info_dict = {'consent_date': 'YYYY-MM-DD'}
-
     '''
     new_task = {
         'name': potential_subject,
         'note': 'New Data has been uploaded for ' + potential_subject,
         'assignee': 'kevincho@bwh.harvard.edu',
         'projects': [project_gid],
-        'start_on': subject_info_dict['consent_date']}
+        'start_on': subject_info_dict['consent_date'],
+        'due_on': subject_info_dict['end_date']}
 
     created_task = client.tasks.create_in_workspace(ws_gid, new_task)
 
@@ -35,7 +35,7 @@ def create_new_task(client: asana.client,
 
 
 '''def update_task_list(project_gid):
-    tasks = client.tasks.get_tasks_for_project(project_gid)
+    tasks = client.tasks.ampscz_id(project_gid)
     tasks_list = list(tasks)
     print('Returning updated list of all tasks in AMP SCZ project')
     return tasks_list'''
@@ -45,31 +45,44 @@ def create_new_eeg_subtask(client: asana.client,
                            potential_subject: str,
                            ws_gid: str,
                            project_gid: str,
-                           eeg_arrival_date: str):
-    '''Creates new eeg subtask to send to AMP-SCZ project in Asana and links it to its parent task'''
+                           eeg_arrival_date: str,
+                           eeg_due_date: str) -> 'asana.subtask':
+    '''Creates new eeg subtask and links it to its parent task'''
 
-    tasks = client.tasks.get_tasks_for_project(project_id)
+    tasks = client.tasks.get_tasks_for_project(project_gid)
     tasks_list = list(tasks)
     for i in tasks_list:
         if i['name'] == potential_subject:
             parent_gid = i['gid']
-    '''loops through all tasks in AMP-SCZ project and assigns the correct subject gid to be linked to the new eeg data'''
+    # loops through all tasks in AMP-SCZ project and assigns the correct
+    # subject gid to be linked to the new eeg data
 
+    # 'assignee': person responsible for doing EEG QC 
     new_eeg_subtask = {
-            'name': 'EEG',
-            'note': 'EEG data for ' + potential_subject ' has arrived, please do QC!',
-            'assignee': 'ojohn@bwh.harvard.edu', #person responsible for doing EEG QC 
-            'projects': [project_gid],
-            'start_on': eeg_arrival_date,
-            'parent': [parent_gid]}
+        'name': 'EEG',
+        'note': f'EEG data for {potential_subject} has arrived, please do QC!',
+        'assignee': 'ojohn@bwh.harvard.edu',
+        'projects': [project_gid],
+        'start_on': eeg_arrival_date,
+        'due_on': eeg_due_date,
+        'parent': parent_gid}
 
     eeg_subtask = client.tasks.create_in_workspace(ws_gid, new_eeg_subtask)
     '''creates the subtask in asana'''
-    eeg_subtask_section = client.sections.add_task_for_section('1202669181415155', {'task': eeg_subtask['gid']})
-    '''moves the subtask to Data QC section in AMP-SCZ project'''
-    eeg_subtask_dependent = client.tasks.add_dependents_for_task(parent_gid, {'dependents': eeg_subtask['gid']})
-    '''links the eeg subtask to its parent task as a dependent'''
+
+    qc_section_number = '1202669181415155'
+    eeg_subtask_section = client.sections.add_task_for_section(
+            qc_section_number,
+            {'task': eeg_subtask['gid']})
+    # moves the subtask to Data QC section in AMP-SCZ project'''
+
+    eeg_subtask_dependent = client.tasks.add_dependents_for_task(
+            parent_gid,
+            {'dependents': eeg_subtask['gid']})
+    # links the eeg subtask to its parent task as a dependent
+
     return eeg_subtask
+
 
 def get_asana_ready() -> tuple:
     token = read_token()
