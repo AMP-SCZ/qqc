@@ -132,7 +132,8 @@ def test_create_new_task(get_pronet_fake_subject):
     subject_info_dict = {}
     subject_info_dict['consent_date'] = consent_date
     subject_info_dict['end_date'] = (datetime.strptime(
-            consent_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+            consent_date, '%Y-%m-%d') + timedelta(days=1)
+            ).strftime('%Y-%m-%d')
     create_new_task(client,
                     ampscz_id, subject_info_dict,
                     workspace_gid, project_gid)

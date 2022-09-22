@@ -38,6 +38,12 @@ def convert_AU_to_US_date(au_time: str) -> str:
             '%d/%m/%Y %I:%M:%S %p').strftime(
             '%Y-%m-%d')
 
+def add_days_to_str_date(date_str: str, days: int) -> str:
+    return (datetime.strptime(
+            date_str, '%Y-%m-%d') + timedelta(days=days)).strftime('%Y-%m-%d')
+
+
+
 if __name__ == '__main__':
     test_get_RA_for_QC()
 
