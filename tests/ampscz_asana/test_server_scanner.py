@@ -14,11 +14,9 @@ TEST_ROOT_PATH = TEST_LIB_PATH.parent
 ASANA_ROOT = TEST_ROOT_PATH.parent
 sys.path.append(str(ASANA_ROOT))
 
-from lib.server_scanner import grep_subject_files, \
-        send_to_caselist, consent_date_extraction, \
-        consent_date_extraction_csv
-from lib.asana_api import get_asana_ready, create_new_task, \
-        create_new_eeg_subtask
+from ampscz_asana.server_scanner import grep_all_paths, grep_subject_files, \
+        grep_id_basename, send_to_caselist, consent_date_extraction
+
 
 def return_json_loc_pronet(ampscz_id: str) -> Path:
     '''Return pronet json loch'''
@@ -121,45 +119,12 @@ def get_prescient_fake_subject():
     return FakeSubject('prescient')
 
 
-def test_create_new_task(get_pronet_fake_subject):
+def test_fixtures(get_pronet_fake_subject, get_prescient_fake_subject):
+    pass
+
+
+def test_consent_date_extraction(get_pronet_fake_subject):
     ampscz_id = get_pronet_fake_subject.subject_id
     phoenix_root = get_pronet_fake_subject.phoenix_root
-    client, workspace_gid, project_gid = get_asana_ready()
-
-    # if pronet
-    consent_date = consent_date_extraction(ampscz_id,
-                                           phoenix_root)
-    subject_info_dict = {}
-    subject_info_dict['consent_date'] = consent_date
-    subject_info_dict['end_date'] = (datetime.strptime(
-            consent_date, '%Y-%m-%d') + timedelta(days=1)
-            ).strftime('%Y-%m-%d')
-    create_new_task(client,
-                    ampscz_id, subject_info_dict,
-                    workspace_gid, project_gid)
-
-
-def test_create_new_eeg_subtask(get_pronet_fake_subject):
-    ampscz_id = get_pronet_fake_subject.subject_id
-    phoenix_root = get_pronet_fake_subject.phoenix_root
-    client, workspace_gid, project_gid = get_asana_ready()
-
-    # if pronet
-    consent_date = consent_date_extraction(ampscz_id,
-                                           phoenix_root)
-    subject_info_dict = {}
-    subject_info_dict['consent_date'] = consent_date
-    subject_info_dict['end_date'] = (datetime.strptime(
-            consent_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
-    create_new_task(client,
-                    ampscz_id, subject_info_dict,
-                    workspace_gid, project_gid)
-
-    # if pronet
-    create_new_eeg_subtask(client,
-                           ampscz_id,
-                           workspace_gid,
-                           project_gid,
-                           '2022-09-22',
-                           '2022-09-23')
-
+    assert datetime.today().strftime('%Y-%m-%d') == \
+            consent_date_extraction(ampscz_id, phoenix_root)
