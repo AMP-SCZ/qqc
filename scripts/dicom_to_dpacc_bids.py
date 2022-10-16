@@ -18,6 +18,7 @@ def get_standard_dir(site: str) -> str:
     config = configparser.RawConfigParser()
     config.read('/data/predict/data_from_nda/MRI_ROOT/standard_templates.cfg')
 
+
 def parse_args(argv):
     '''Parse inputs coming from the terminal'''
     parser = argparse.ArgumentParser(
@@ -53,21 +54,21 @@ def parse_args(argv):
     parser.add_argument('--standard_dir', '-std', type=str,
                         default='/data/predict/phantom_human_pilot/rawdata/'
                                 'sub-ProNETUCLA/ses-humanpilot',
-                        help='Root of a standard dataset to compare to')
+                        help='Root of a standard dataset to compare to.')
 
     parser.add_argument('--config', '-c', type=str,
                         default='/data/predict/data_from_nda/MRI_ROOT/'
                                 'standard_templates.cfg',
-                        help='configuration file for standard tempates')
+                        help='configuration file for standard tempates.')
 
     parser.add_argument('--mriqc', '-mriqc', action='store_true',
-                        help='Run MRIQC following conversion')
+                        help='Run MRIQC following conversion.')
 
     parser.add_argument('--fmriprep', '-fmriprep', action='store_true',
-                        help='Run FMRIPREP following conversion')
+                        help='Run FMRIPREP following conversion.')
 
     parser.add_argument('--dwipreproc', '-dwipreproc', action='store_true',
-                        help='Run DWI preprocessing following conversion')
+                        help='Run DWI preprocessing following conversion.')
 
     parser.add_argument('--nifti_dir', '-nd', type=str, default=False,
                         help='Nifti root directory. If --nifti_dir is given, '
@@ -78,9 +79,18 @@ def parse_args(argv):
                         action='store_true', default=False,
                         help='Skip dicom rearrange step.')
 
+    parser.add_argument('--force_copy_dicom_to_source', '-fc', default=False,
+                        action='store_true',
+                        help='Force copy dicom files to sourcedata.')
+
+
     parser.add_argument('--skip_heudiconv', '-sh', default=False,
                         action='store_true',
                         help='Skip heudiconv step.')
+
+    parser.add_argument('--force_heudiconv', '-fh', default=False,
+                        action='store_true',
+                        help='Force re-running heudiconv step.')
 
     parser.add_argument('--skip_qc', '-sq', default=False,
                         action='store_true',
@@ -89,11 +99,11 @@ def parse_args(argv):
     parser.add_argument('--additional_recipients', '-ar',
                         nargs='+',
                         type=str, default=[],
-                        help='List of recipients')
+                        help='List of recipients.')
 
     parser.add_argument('--run_all', '-ra', default=False,
                         action='store_true',
-                        help='Run all sessions')
+                        help='Run all sessions.')
 
 
     # extra options

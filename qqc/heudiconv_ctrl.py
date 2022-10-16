@@ -11,7 +11,8 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
                   subject_name: str,
                   session_name: str,
                   nifti_root_dir:Union[Path, str],
-                  qc_out_dir: Path) -> None:
+                  qc_out_dir: Path,
+                  overwrite: bool = False) -> None:
     '''Run heudiconv on specified subjects to create nifti structure in BIDS
     
     Key Arguments:
@@ -57,9 +58,11 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
         -d {dicom_input_root}' + '/{subject}/ses-{session}/*/* ' \
         f'-f {heuristic_file} ' \
         f'-s {subject_name} -ss {session_name} -c dcm2niix \
-        --overwrite \
         -b \
         -o {nifti_root_dir}'
+
+    if overwrite:
+        command += ' --overwrite'
 
     logger.info('Running heudiconv')
     logger.info('heudiconv command: %s' % command)

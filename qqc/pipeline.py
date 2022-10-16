@@ -70,7 +70,7 @@ def dicom_to_bids_QQC(args) -> None:
         subject_name = 'sub-' + re.sub('[_-]', '', args.subject_name)
 
         try:
-            # TODO: need to have a function that grabs the correct run sheet
+            #TODO: need to have a function that grabs the correct run sheet
             run_sheet = next(Path(args.input).parent.glob(
                 '*Run_sheet_mri*.csv'))
         except:
@@ -111,7 +111,9 @@ def dicom_to_bids_QQC(args) -> None:
         logger.info('Arranging dicoms')
         rearange_dicoms(df_full, dicom_clearned_up_output,
                         subject_name.split('-')[1],
-                        session_name.split('-')[1])
+                        session_name.split('-')[1],
+                        args.force_copy_dicom_to_source)
+
         # cleaned up dicom structure -> BIDS
         bids_rawdata_dir = bids_root / 'rawdata'
         if not args.skip_heudiconv:
@@ -120,7 +122,9 @@ def dicom_to_bids_QQC(args) -> None:
             run_heudiconv(dicom_clearned_up_output,
                           subject_name.split('-')[1],
                           session_name.split('-')[1],
-                          bids_rawdata_dir, qc_out_dir)
+                          bids_rawdata_dir,
+                          qc_out_dir,
+                          args.force_heudiconv)
 
             # remove temporary directory
             if Path(qqc_input).name.endswith('.zip') or \
