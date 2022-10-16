@@ -7,7 +7,7 @@ import pandas as pd
 import shutil
 from pathlib import Path
 from typing import List, Tuple
-from qqc.run_sheet import get_run_sheet
+from qqc.run_sheet import get_run_sheet, get_matching_run_sheet_path
 from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms
 from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
@@ -69,16 +69,10 @@ def dicom_to_bids_QQC(args) -> None:
         # For BIDS format, subject name cannot have "-" or "_"
         subject_name = 'sub-' + re.sub('[_-]', '', args.subject_name)
 
-        try:
-            #TODO: need to have a function that grabs the correct run sheet
-            run_sheet = next(Path(args.input).parent.glob(
-                '*Run_sheet_mri*.csv'))
-        except:
-            print('No run sheet detected')
-
-            run_sheet = Path('no_run_sheet')
-
-    # str to path
+        # find the matching run sheet
+        run_sheet = get_matching_run_sheet_path(args.input, args.session_name)
+            
+    # str variables to Path
     bids_root = Path(args.bids_root)
     deriv_p = bids_root / 'derivatives'
     if args.qc_subdir:
