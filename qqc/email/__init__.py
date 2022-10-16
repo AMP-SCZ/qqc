@@ -214,7 +214,10 @@ def extract_info_for_qqc_report(qqc_out_dir: Path,
     sender = 'kevincho@bwh.harvard.edu'
     admin_recipient = 'kc244@research.partners.org'
     user_id = getpass.getuser()
-    recipients = [admin_recipient, f'{user_id}@research.partners.org']
+    recipients = [
+            admin_recipient,
+            f'{user_id}@research.partners.org',
+            ]
     title = f'{subject_name} - MRI QQC'
     subtitle = 'Automatically created message ' \
                f'for {subject_name} ({session_name})'
@@ -269,6 +272,7 @@ def extract_info_for_qqc_report(qqc_out_dir: Path,
 def send_out_qqc_results(qqc_out_dir: Path,
                          standard_dir: Path,
                          run_sheet_df: pd.DataFrame,
+                         additional_recipients: list,
                          test: bool = False,
                          mailx: bool = True):
     '''Send Quick QC summary'''
@@ -276,6 +280,10 @@ def send_out_qqc_results(qqc_out_dir: Path,
                 code, image_paths, qqc_html_list, in_mail_footer = \
         extract_info_for_qqc_report(qqc_out_dir, standard_dir, run_sheet_df)
 
+    admin_recipient = 'kc244@research.partners.org'
+    user_id = getpass.getuser()
+    recipients = list(set(
+        [f'{user_id}@research.partners.org'] + additional_recipients))
     send_detail(sender, recipients, title, subtitle, top_message, qc_detail,
                 code, image_paths, qqc_html_list, in_mail_footer,
                 qqc_out_dir, test, mailx)

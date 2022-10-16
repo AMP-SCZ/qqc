@@ -31,23 +31,24 @@ def dicom_to_bids_QQC(args) -> None:
     '''Sort dicoms, convert to BIDS nifti structure and run quick QC.
 
     Key arguments:
-        args: Argparse parsed arguments.
-            - Must have following attributes
-              - subject_name: name of the subject, str.
-              - session_name: name of the session, str.
-              - input: raw dicom root directory, str.
-              - output_dir: output BIDS raw directory, str.
+        args: Argparse parsed arguments. It must have following attributes.
+          - subject_name: name of the subject, str.
+          - session_name: name of the session, str.
+          - input: raw dicom root directory, str.
+          - bids_root: output BIDS raw directory, str.
 
-            - Optional attributes
-              - standard_dir: root of a standard dataset to compare the input
-                              data to, str.
-              - nifti_dir: if the input is BIDS nifti directory, bool.
+        - Optional attributes
+          - standard_dir: root of a standard dataset to compare the input
+                          data to, str.
+          - nifti_dir: if the input is BIDS nifti directory, bool.
 
     Returns:
         None
 
     Notes:
-        1. run dicom to dicom BIDS
+        1. Sort dicoms according to a clean structure.
+        2. Run heudiconv to convert dicoms into nifti files in BIDS format.
+        3. Run QQC (Quick-QC)
     '''
     logger.info('Setting up subject, session, and output variables')
 
@@ -58,17 +59,18 @@ def dicom_to_bids_QQC(args) -> None:
         qqc_input = Path(args.dpacc_input)
         session_name = args.input.name
         subject_name = args.input.parent.parent.name
-        output_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
+        bids_root = Path('/data/predict/kcho/flow_test/MRI_ROOT')
         run_sheet = next(args.input.parent.glob('*Run_sheet_mri*.csv'))
     else:
         qqc_input = Path(args.input)
-        # session name cannot have "-" or "_"
+        # For BIDS format, session name cannot have "-" or "_"
         session_name = 'ses-' + re.sub('[_-]', '', args.session_name)
 
-        # subject name cannot have "-" or "_"
+        # For BIDS format, subject name cannot have "-" or "_"
         subject_name = 'sub-' + re.sub('[_-]', '', args.subject_name)
 
         try:
+            # TODO: need to have a function that grabs the correct run sheet
             run_sheet = next(Path(args.input).parent.glob(
                 '*Run_sheet_mri*.csv'))
         except:
@@ -77,24 +79,17 @@ def dicom_to_bids_QQC(args) -> None:
             run_sheet = Path('no_run_sheet')
 
     # str to path
-    output_dir = Path(args.output_dir)
-
-    # QC output
-    deriv_p = output_dir / 'derivatives'
+    bids_root = Path(args.bids_root)
+    deriv_p = bids_root / 'derivatives'
     if args.qc_subdir:
         qc_out_dir = Path(args.qc_subdir)
     else:
         qc_out_dir = deriv_p / 'quick_qc' / subject_name / session_name
     qc_out_dir.mkdir(exist_ok=True, parents=True)
-
-    # standard dir
     standard_dir = Path(args.standard_dir)
-
-    # subject_dir
     # BIDS_root / rawdata / sub-${subject} / ses-${session}
-    subject_dir = output_dir / 'rawdata' / subject_name
+    subject_dir = bids_root / 'rawdata' / subject_name
     session_dir = subject_dir / session_name  # raw nifti path
-    # ----------------------------------------------------------------------
 
     # ----------------------------------------------------------------------
     # Copy the data
@@ -108,15 +103,17 @@ def dicom_to_bids_QQC(args) -> None:
         session_dir = Path(args.nifti_dir)  # update session_dir
     else:  # if the input given is a dicom directory or dicom zip
         logger.info('Running dicom_to_bids to sort and convert dicom files')
+
         # raw dicom -> cleaned up dicom structure
-        dicom_clearned_up_output = output_dir / 'sourcedata'
+        dicom_clearned_up_output = bids_root / 'sourcedata'
         df_full = get_dicom_df(qqc_input, args.skip_dicom_rearrange)
 
         logger.info('Arranging dicoms')
         rearange_dicoms(df_full, dicom_clearned_up_output,
-                        subject_name.split('-')[1], session_name.split('-')[1])
+                        subject_name.split('-')[1],
+                        session_name.split('-')[1])
         # cleaned up dicom structure -> BIDS
-        bids_rawdata_dir = output_dir / 'rawdata'
+        bids_rawdata_dir = bids_root / 'rawdata'
         if not args.skip_heudiconv:
             logger.info('Run heudiconv')
             qc_out_dir.mkdir(exist_ok=True, parents=True)
@@ -126,8 +123,8 @@ def dicom_to_bids_QQC(args) -> None:
                           bids_rawdata_dir, qc_out_dir)
 
             # remove temporary directory
-            if qqc_input.name.endswith('.zip') or \
-                    qqc_input.name.endswith('.ZIP'):
+            if Path(qqc_input).name.endswith('.zip') or \
+                    Path(qqc_input).name.endswith('.ZIP'):
                 shutil.rmtree(qqc_input)
 
     # run sheet
@@ -148,7 +145,40 @@ def dicom_to_bids_QQC(args) -> None:
     # ----------------------------------------------------------------------
     if args.standard_dir:
         logger.info('Sending out email')
-        send_out_qqc_results(qc_out_dir, standard_dir, run_sheet_df)
+        send_out_qqc_results(qc_out_dir, standard_dir,
+                             run_sheet_df, args.additional_recipients)
+
+    # ----------------------------------------------------------------------
+    # AMPSCZ pipeline
+    # ----------------------------------------------------------------------
+    if args.dwipreproc:
+        # quick dwi preprocessing
+        dwipreproc_outdir_root = deriv_p / 'dwipreproc'
+        run_quick_dwi_preproc_on_data(
+            bids_root / 'rawdata',
+            subject_dir.name,
+            session_dir.name,
+            dwipreproc_outdir_root)
+
+    if args.mriqc:
+        # mriqc
+        mriqc_outdir_root = deriv_p / 'mriqc'
+        run_mriqc_on_data(
+            bids_root / 'rawdata',
+            subject_dir.name,
+            session_dir.name,
+            mriqc_outdir_root)
+
+    if args.fmriprep:
+        # fmriprep
+        fmriprep_outdir_root = deriv_p / 'fmriprep'
+        fs_outdir_root = deriv_p / 'freesurfer'
+        run_fmriprep_on_data(
+            bids_root / 'rawdata',
+            subject_dir.name,
+            session_dir.name,
+            fmriprep_outdir_root,
+            fs_outdir_root)
 
     # ----------------------------------------------------------------------
     # Run Figure extraction
@@ -162,37 +192,6 @@ def dicom_to_bids_QQC(args) -> None:
         except OSError:
             logger.info('OSError in creating figures')
 
-    # ----------------------------------------------------------------------
-    # AMPSCZ pipeline
-    # ----------------------------------------------------------------------
-    if args.dwipreproc:
-        # quick dwi preprocessing
-        dwipreproc_outdir_root = deriv_p / 'dwipreproc'
-        run_quick_dwi_preproc_on_data(
-            output_dir / 'rawdata',
-            subject_dir.name,
-            session_dir.name,
-            dwipreproc_outdir_root)
-
-    if args.mriqc:
-        # mriqc
-        mriqc_outdir_root = deriv_p / 'mriqc'
-        run_mriqc_on_data(
-            output_dir / 'rawdata',
-            subject_dir.name,
-            session_dir.name,
-            mriqc_outdir_root)
-
-    if args.fmriprep:
-        # fmriprep
-        fmriprep_outdir_root = deriv_p / 'fmriprep'
-        fs_outdir_root = deriv_p / 'freesurfer'
-        run_fmriprep_on_data(
-            output_dir / 'rawdata',
-            subject_dir.name,
-            session_dir.name,
-            fmriprep_outdir_root,
-            fs_outdir_root)
 
 
 def get_information_from_rawdata(nifti_dir: Path):
@@ -333,7 +332,7 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     df_with_one_series = pd.concat(
         [x[1].iloc[0] for x in df_full.groupby('series_num')],
         axis=1).T
-    save_csa(df_with_one_series, qc_out_dir)
+    save_csa(df_with_one_series, qc_out_dir, standard_dir)
 
     # load json information from the user givin standard BIDS directory
     df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
@@ -349,4 +348,8 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
 
     logger.info('Summary function & DPdash')
     # qqc_summary_for_dpdash(qc_out_dir)
-    refresh_qqc_summary_for_subject(qc_out_dir.parent)
+    try:
+        # this requires formsqc to be processed
+        refresh_qqc_summary_for_subject(qc_out_dir.parent)
+    except:
+        pass

@@ -9,7 +9,8 @@ from typing import List, Tuple
 import logging
 
 from qqc.qqc.nifti import compare_volume_to_standard_all_nifti
-from qqc.utils.files import get_all_files_walk
+from qqc.utils.files import get_all_files_walk, loop_through_two_lists, \
+        get_files_from_json
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
 
@@ -210,13 +211,14 @@ def json_check(json_files: List[str],
         # Include to detect different machine
         # 'InstitutionAddress', 'InstitutionName',
         # 'InstitutionalDepartmentName', 'ManufacturersModelName',
-        # 'ProcedureStepDescription', 'StationName', 
+        # 'ProcedureStepDescription', 'StationName',
         # 'DeviceSerialNumber'
         for i in to_drop_list:
-            try:
-                df_tmp.drop(i, inplace=True)
-            except:
-                pass
+            # try:
+            print(df_tmp)
+            df_tmp.drop(i, inplace=True)
+            # except:
+                # pass
 
 
     if print_diff:
@@ -465,6 +467,7 @@ def find_matching_files_between_BIDS_sessions(
         # localizers
         elif pd.isnull(row.json_path_std) and \
             'localizer' in row.series_desc.lower():
+            print(json_df_std)
             series_tmp = json_df_std[
                 (json_df_std.series_desc.str.lower() == row.series_desc.lower()) &
                 (json_df_std.scout_num == row.scout_num)].iloc[0]
@@ -645,7 +648,7 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
         'global', 'TxRefAmp',
         'dcmmeta_affine', 'WipMemBlock',
         'SAR', 'time',
-        'ShimSetting', 'SeriesNumber']
+        'ShimSetting', 'SeriesNumber', 'ImageOrientationText']
 
     dicts = []
     cols = []
@@ -764,3 +767,28 @@ def compare_data_to_standard_all_bvals(input_dir: str,
     bval_df[['input', 'std', 'check']].to_csv(
             qc_out_dir / '06_bval_comparison_log.csv')
 
+
+def compare_jsons_input_standard(modality_name: str,
+                                 json_files_input: List[Path],
+                                 json_files_standard: List[Path],
+                                 outdir: Path = '.',
+                                 encoding_dir = None,
+                                 include_str: str = 'json') -> None:
+
+    out_dir = Path(outdir) / modality_name
+    zip_matching_json_list = loop_through_two_lists(
+        get_files_from_json(
+            json_files_input, modality_name, 'json', include_str),
+        get_files_from_json(
+            json_files_standard, modality_name, 'json', include_str))
+
+    for input_json, matching_json in zip_matching_json_list:
+        print(input_json, matching_json)
+        df_tmp = json_check_tmp([input_json, matching_json])
+        out_dir.mkdir(parents=True, exist_ok=True)
+        output_csv_name = f'{input_json.name.split(".json")[0]}' \
+                 '_VS_' \
+                 f'{matching_json.name.split(".json")[0]}.csv'
+        df_tmp.to_csv(out_dir / output_csv_name)
+
+    return

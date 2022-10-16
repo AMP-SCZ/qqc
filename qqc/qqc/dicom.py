@@ -3,7 +3,47 @@ from pathlib import Path
 from qqc.dicom_files import get_diff_in_csa_for_all_measures
 
 
-def save_csa(df_full: pd.DataFrame, qc_out_dir: Path) -> None:
+def check_image_fov_pos_ori_csa(csa_df_loc: pd.DataFrame,
+                                standard_dir: Path) -> None:
+    # TODO
+    csa_df = pd.read_csv(csa_df_loc)
+    std_session = standard_dir.name
+    std_subject = standard_dir.parent.name
+    standard_dir_qc_dir = standard_dir.parent.parent.parent / 'derivatives' / \
+            'quick_qc' / std_subject / std_session 
+
+    standard_csa_df = pd.read_csv(standard_dir_qc_dir / '99_csa_headers.csv')
+    # standard_csa_df['modality'] = standard_csa_df['Unnamed: 0']
+
+    for df in csa_df, standard_csa_df:
+        df['modality'] = df['Unnamed: 0'].str.extract('\d+_(\S+)')
+        modalities_seen = []
+        for index, row in df.iterrows():
+            if 'distortion' in row.modality.lower():
+                if 'dmri_b0_ap' in modalities_seen:
+                    df.loc[index, 'distortion'] = 'post_dmri'
+
+                elif 't1w_mpr' in modalities_seen:
+                    df.loc[index, 'distortion'] = 'post_struct'
+
+                else:
+                    df.loc[index, 'distortion'] = 'pre_struct'
+
+            modalities_seen.append(row.modality.lower())
+
+    df_merge = pd.merge(
+            csa_df, standard_csa_df,
+            suffixes=('_input', '_std'),
+            on=['modality', 'distortion'], how='left')
+
+    columns_to_select = [x for x in df_merge.columns if
+            'asSlice[0].sPosition' in x]
+    csa_qc_df = df_merge[['modality', 'distortion'] + columns_to_select]
+            
+
+def save_csa(df_full: pd.DataFrame,
+             qc_out_dir: Path,
+             standard_dir: Path) -> None:
     csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
             df_full, get_same=True)
     csa_df = pd.concat([csa_diff_df, csa_common_df],
@@ -81,6 +121,7 @@ def check_order_of_series(df_full_input: pd.DataFrame,
     Returns:
         number of series in pd.DataFrame
     '''
+    # TODO: see if this function can be used in the csa extraction
     series_num_df = df_full_input[
             ['series_num', 'series_desc']].drop_duplicates()
     series_num_df.columns = ['series_num', 'series_order']

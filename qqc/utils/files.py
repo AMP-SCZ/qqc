@@ -14,6 +14,7 @@ from sklearn import preprocessing
 import os
 import zipfile
 import re
+import itertools
 
 
 def get_all_files_walk(root_dir: str, extension: str) -> List[Path]:
@@ -251,7 +252,7 @@ def unzip_to_temporary_dir(zip_file_loc: Path) -> Path:
 def get_files_from_json(json_files: list,
                         series_name: str,
                         extension: str = False,
-                        encoding_dir: str = False):
+                        encoding_dir: str = False) -> list:
     '''Find matching files based on the SeriesDescription in the json file
 
     Assuming that other files have the same name prefix as the json file
@@ -289,7 +290,6 @@ def get_files_from_json(json_files: list,
         with open(json_file, 'r') as fp:
             data = json.load(fp)
             name = data['SeriesDescription']
-            print(name)
 
         if re.search(series_name, name, re.IGNORECASE):
             if encoding_dir:
@@ -299,9 +299,14 @@ def get_files_from_json(json_files: list,
             if extension:
                 matching_file = Path(json_file).parent / \
                     f"{json_file.name.split('.json')[0]}.{extension}"
-                matched_files.append(matching_file)
+                if matching_file.is_file():
+                    matched_files.append(matching_file)
             else:
                 matched_files.append(json_file)
 
     return matched_files
+
+
+def loop_through_two_lists(a: list, b: list) -> List[tuple]:
+    return list(itertools.product(a, b))
 
