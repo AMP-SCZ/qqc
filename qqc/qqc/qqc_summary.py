@@ -62,7 +62,10 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
 
         if df.loc[title, colname] == 'Fail':
             if 'volume_slice' in df_loc.name:
-                df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
+                try:
+                    df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
+                except:
+                    print(df)
             # elif 'series_count' in df_loc.name:
                 # print(df_tmp)
                 # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_num.dropna().unique())

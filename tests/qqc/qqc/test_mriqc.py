@@ -50,3 +50,29 @@ def test_after_removing_DSTP_from_json():
             mriqc_outdir_root,
             bsub=True)
 
+
+
+def test_calgary_GA_oct():
+    root_dir = Path('/data/predict/phantom_data/kcho/GE_experiment/MRI_root')
+    rawdata_dir = root_dir / 'rawdata'
+    subject_id = 'sub-Calgary'
+    session_id = 'ses-Oct'
+    mriqc_outdir_root = root_dir / 'derivatives/mriqc'
+
+    run_mriqc_on_data(
+            rawdata_dir,
+            subject_id,
+            session_id,
+            mriqc_outdir_root,
+            bsub=True)
+
+    subject_id = 'sub-GA'
+    session_id = 'ses-Oct'
+
+    run_mriqc_on_data(
+            rawdata_dir,
+            subject_id,
+            session_id,
+            mriqc_outdir_root,
+            bsub=True)
+
