@@ -75,7 +75,7 @@ def dicom_to_bids_QQC(args) -> None:
                 '*Run_sheet_mri*.csv'))
         except:
             print('No run sheet detected')
-
+            print(list(Path(args.input).parent.glob('*')))
             run_sheet = Path('no_run_sheet')
 
     # str to path
@@ -332,7 +332,10 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     df_with_one_series = pd.concat(
         [x[1].iloc[0] for x in df_full.groupby('series_num')],
         axis=1).T
-    save_csa(df_with_one_series, qc_out_dir, standard_dir)
+    try:
+        save_csa(df_with_one_series, qc_out_dir, standard_dir)
+    except KeyError:
+        print('No pydicom information in df_with_one_series')
 
     # load json information from the user givin standard BIDS directory
     df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()

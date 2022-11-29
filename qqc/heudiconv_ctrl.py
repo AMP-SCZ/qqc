@@ -34,9 +34,9 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     Note:
         - Heudiconv will use the "qqc/data/heuristic.py"
     '''
-    heuristic_file = Path(qqc.__file__).parent.parent / 'data' / \
-            'heuristic.py'
-    print(heuristic_file)
+    data_dir = Path(qqc.__file__).parent.parent / 'data'
+    heuristic_file =  data_dir / 'heuristic.py'
+    # heuristic_file = data_dir / 'dpacc-heuristic.py'
 
     # os.environ['dcm2niix'] = \
             # '/data/predict/phantom_data/softwares' \
@@ -48,10 +48,14 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     # os.environ['dcm2niix'] = \
             # '/data/predict/phantom_data/kcho/devel_soft/'\
             # 'dcm2niix_devel_branch/dcm2niix/build/bin/dcm2niix'
-
+# /data/predict/phantom_data/softwares/dcm2niix_bb3a6c3/build/bin/dcm2niix
     os.environ['dcm2niix'] = \
             '/data/predict/phantom_data/softwares/dcm2niix_bb3a6c3/' \
             'build/bin/dcm2niix'
+
+    # os.environ['dcm2niix'] = \
+            # '/data/predict/phantom_data/softwares/dcm2niix_2a9fbe8/' \
+            # 'build/bin/dcm2niix'
 
     command = f'heudiconv \
         -d {dicom_input_root}' + '/{subject}/ses-{session}/*/* ' \

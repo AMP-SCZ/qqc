@@ -4,8 +4,8 @@ import sys
 import pandas as pd
 import qqc
 data_loc = Path(qqc.__file__).parent.parent / 'data'
-sys.path.append(str(data_loc))
-import pronet_run_sheet
+# from pronet_run_sheet import var
+from qqc.pronet_run_sheet import var
 
 
 def get_run_sheet(run_sheet: Path):
@@ -21,7 +21,7 @@ def get_run_sheet(run_sheet: Path):
 
     run_sheet_df['field label'] = run_sheet_df['field name'].apply(
             lambda x: get_dict_from_pronet_dict_list(
-                x, pronet_run_sheet.var))
+                x, var))
     run_sheet_df = run_sheet_df[
             ['field name', 'field label', 'field value']]
 

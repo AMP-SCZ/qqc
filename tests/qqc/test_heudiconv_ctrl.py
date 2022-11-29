@@ -72,3 +72,16 @@ def test_run_heudiconv_on_t1_only_jena_xa30():
     qc_out_dir = 'test_qc'
     run_heudiconv(dicom_clearned_up_output, subject_name,
                   session_name, bids_rawdata_dir, qc_out_dir)
+
+
+
+def test_run_heudiconv_on_partial_data():
+    dicom_clearned_up_output = Path(
+            '/data/predict/data_from_nda/MRI_ROOT/sourcedata')
+
+    subject_name = 'YA05293'
+    session_name = '202209261'
+    bids_rawdata_dir = '/data/predict/data_from_nda/MRI_ROOT/rawdata'
+    qc_out_dir = 'test_qc'
+    run_heudiconv(dicom_clearned_up_output, subject_name,
+                  session_name, bids_rawdata_dir, qc_out_dir)

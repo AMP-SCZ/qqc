@@ -377,6 +377,9 @@ def find_matching_files_between_BIDS_sessions(
     json_df_input = get_all_json_information_quick(input_dir)
     json_df_std = get_all_json_information_quick(standard_dir)
 
+    json_df_input.to_csv('input.csv')
+    json_df_std.to_csv('std.csv')
+
     if 'distortion_map_before' in json_df_input.columns:
         json_df_all = pd.merge(
             json_df_input, json_df_std,
@@ -391,6 +394,7 @@ def find_matching_files_between_BIDS_sessions(
             on=['series_desc', 'image_type', 'run_num',
                 'num_num', 'scout_num'],
             suffixes=['_input', '_std'])
+
 
     for index, row in json_df_all.iterrows():
         # When there is extra distortion map, the number in front of run_num
@@ -468,13 +472,16 @@ def find_matching_files_between_BIDS_sessions(
         elif pd.isnull(row.json_path_std) and \
             'localizer' in row.series_desc.lower():
             print(json_df_std)
-            series_tmp = json_df_std[
-                (json_df_std.series_desc.str.lower() == row.series_desc.lower()) &
-                (json_df_std.scout_num == row.scout_num)].iloc[0]
+            try:
+                series_tmp = json_df_std[
+                    (json_df_std.series_desc.str.lower() == row.series_desc.lower()) &
+                    (json_df_std.scout_num == row.scout_num)].iloc[0]
 
-            json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
-            json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
-            json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+                json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
+                json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
+                json_df_all.loc[index, 'series_num_std'] = series_tmp.series_num
+            except:
+                pass
 
         # other maps with different series number
         # else:

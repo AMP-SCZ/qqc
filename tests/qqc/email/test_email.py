@@ -65,5 +65,21 @@ def test_send_out_qqc_results():
 
     # send(['kevincho@bwh.harvard.edu'], 'kc244@research.partners.org', 'ha', 'ho')
 
+def test_redcap_update_send_out_qqc_results():
+    root_dir = Path('/data/predict/data_from_nda/MRI_ROOT')
+    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-YA03473/ses-202211281'
+
+    
+    print()
+    print(qqc_out_dir)
+
+    standard_dir = '/data/predict/data_from_nda/MRI_ROOT/rawdata/sub-YA01508/ses-202206231'
+    # send_out_qqc_results(qqc_out_dir, test=True)
+    from qqc.run_sheet import get_run_sheet
+    input_dir = Path('/data/predict/data_from_nda/Pronet/PHOENIX/PROTECTED/PronetYA/raw/YA03473/mri')
+    run_sheet = next(input_dir.glob('*Run_sheet_mri*2*.csv'))
+    run_sheet_df = get_run_sheet(run_sheet)
+    send_out_qqc_results(qqc_out_dir, standard_dir, run_sheet_df, [], mailx=True)
+
 def test_send_error():
     send_error('title', 'subtitle', 'top_message', 'second message')

@@ -28,6 +28,12 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
 
         input_json = nifti_input.parent / (
                 nifti_input.name.split('.')[0] + '.json')
+        if not input_json.is_file():
+            # likely be from partial data
+            volume_comparison_df.loc[num, 'nifti_suffix'] = nifti_suffix_input
+            volume_comparison_df.loc[num, 'series_num'] = 1000 + num
+            continue
+
         with open(input_json, 'r') as json_file:
             data = json.load(json_file)
 
