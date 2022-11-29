@@ -8,6 +8,7 @@ from argparse import RawTextHelpFormatter
 from qqc.pipeline import dicom_to_bids_QQC
 from pathlib import Path
 import re
+sys.path.append('/data/predict/phantom_data/kcho/devel_soft/qqc')
 
 logger = logging.getLogger(__name__)
 logging.getLogger().addHandler(logging.StreamHandler())
@@ -161,7 +162,11 @@ if __name__ == '__main__':
     logger.info('Dicom to DPACC BIDS conversion started')
 
     site = args.subject_name[:2]
-    args.standard_dir = config.get('First Scan', site)
+    try:
+        args.standard_dir = config.get('First Scan', site)
+    except:
+        args.standard_dir = args.standard_dir
+
     dicom_to_bids_QQC(args)
     logger.info('Completed')
 
