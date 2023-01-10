@@ -40,7 +40,8 @@ all_elements_to_extract = [
 
 
 def get_dicom_files_walk(dicom_root: Union[Path, str],
-                         one_file_for_series=False) -> pd.DataFrame:
+                         one_file_for_series=False,
+                         quick_scan=False) -> pd.DataFrame:
     '''Find all dicom path under the root and return it as pandas DataFrame
 
     Key arguments:
@@ -67,6 +68,7 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
                 if (max_number_of_dirs < len(folders)) else max_number_of_dirs
 
     num = 0
+    print('Searching for files...')
     for root, folders, files in os.walk(dicom_root):
         for file in [x for x in files if not x.startswith('.')]:
             file_lower = file.lower()
@@ -80,12 +82,13 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
                         or len(re.search('\d+', file).group(0)) == len(file):
                     dicom_paths.append(os.path.join(root, file))
                     num += 1
-
+                elif not file_lower.startswith('.'):
+                    dicom_paths.append(os.path.join(root, file))
+                    num += 1
+                
                 if one_file_for_series:  # to load a single file for each dir
-                    # if len(max_number_of_dirs) == 1:
                     break
-                    # else:
-                        # break
+
             except:
                 logger.warning(f'There are non-dicom files {root}/{file}')
 
@@ -94,6 +97,8 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     if num == 0:
         logger.critical(f'No dicom files found under {dicom_root}')
         print(f'No dicom files found under {dicom_root}')
+    else:
+        print(f'There are {num} files detected as dicom by QQC')
 
     end = time.time()
     t = end - start
@@ -105,23 +110,49 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     start = time.time()
 
     print('Read dicoms into pydicom object')
-    df['pydicom'] = df.file_path.apply(lambda x: pydicom.read_file(x,
-        force=True))
-    end = time.time()
-    t = end - start
-    logger.info(f'Time taken to dicomise dicom all paths: {t}')
+    # TODO: update the lines below to make the process faster
+    if quick_scan:
+        df['parent'] = df.file_path.apply(lambda x: Path(x).parent)
+        df['norm'] = pd.NA
+        df['series'] = pd.NA
+        for dirname, table in df.groupby('parent'):
+            pydicom_obj = pydicom.read_file(table.iloc[0]['file_path'],
+                                            force=True)
+            try:
+                table.at[table.index[0], 'norm'] = get_additional_info(
+                        pydicom_obj, '0008', '0008')
+            except:
+                table.at[table.index[0], 'norm'] = 'unknown'
 
-    print('READING complete 2')
+            table.at[table.index[0], 'series'] = get_series_info(pydicom_obj)
+            table['norm'] = table['norm'].fillna(method='ffill')
+            table['series'] = table['series'].fillna(method='ffill')
+            df.at[table.index, 'norm'] = table['norm']
+            df.at[table.index, 'series'] = table['series']
 
-    start = time.time()
-    logger.info('Extracting information from pydicom objects')
-    try:
-        df['norm'] = df.pydicom.apply(lambda x:
-                get_additional_info(x, '0008', '0008'))
-    except:  #GE
-        df['norm'] = 'unknown'
+        end = time.time()
+        t = end - start
+        logger.info(f'Quick-scan enabled')
+        logger.info(f'Time taken to dicomise dicom all paths: {t}')
 
-    df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
+    else:
+        df['pydicom'] = df.file_path.apply(lambda x: pydicom.read_file(x,
+            force=True))
+        end = time.time()
+        t = end - start
+        logger.info(f'Time taken to dicomise dicom all paths: {t}')
+
+        print('READING complete 2')
+
+        start = time.time()
+        logger.info('Extracting information from pydicom objects')
+        try:
+            df['norm'] = df.pydicom.apply(lambda x:
+                    get_additional_info(x, '0008', '0008'))
+        except:  #GE
+            df['norm'] = 'unknown'
+
+        df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
 
     logger.info('Extracting information from pydicom objects')
     try:

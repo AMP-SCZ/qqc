@@ -99,13 +99,22 @@ def dicom_to_bids_QQC(args) -> None:
 
         # raw dicom -> cleaned up dicom structure
         dicom_clearned_up_output = bids_root / 'sourcedata'
-        df_full = get_dicom_df(qqc_input, args.skip_dicom_rearrange)
+        sorted_dicom_dir = dicom_clearned_up_output / \
+                          subject_name.split('-')[1] / \
+                          ('ses-' + session_name.split('-')[1])
+
+        df_full = get_dicom_df(qqc_input,
+                               args.skip_dicom_rearrange,
+                               sorted_dicom_dir,
+                               args.quick_scan)
 
         logger.info('Arranging dicoms')
-        rearange_dicoms(df_full, dicom_clearned_up_output,
-                        subject_name.split('-')[1],
-                        session_name.split('-')[1],
-                        args.force_copy_dicom_to_source)
+
+        if not args.skip_dicom_rearrange:
+            rearange_dicoms(df_full, dicom_clearned_up_output,
+                            subject_name.split('-')[1],
+                            session_name.split('-')[1],
+                            args.force_copy_dicom_to_source)
 
         # cleaned up dicom structure -> BIDS
         bids_rawdata_dir = bids_root / 'rawdata'
@@ -267,7 +276,9 @@ def remove_repeated_scans(df_full: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_dicom_df(dicom_input_dir: Path,
-                 skip_dicom_rearrange: bool = False) -> pd.DataFrame:
+                 skip_dicom_rearrange: bool = False,
+                 sorted_dicom_dir: Path = None,
+                 quick_scan: bool = False) -> pd.DataFrame:
     '''Rearrange dicoms and load series information after removing extra scans
 
     Runs:
@@ -285,7 +296,14 @@ def get_dicom_df(dicom_input_dir: Path,
 
     if skip_dicom_rearrange:
         logger.info('Skip dicom rearrange')
-        df_full = get_dicom_files_walk(dicom_input_dir, True)
+        if Path(sorted_dicom_dir).is_dir():
+            df_full = get_dicom_files_walk(sorted_dicom_dir, True)
+        else:
+            df_full = get_dicom_files_walk(dicom_input_dir, True)
+    elif quick_scan:
+        logger.info('Copy and rearrange dicoms')
+        logger.info('assuming single series in a directory')
+        df_full = get_dicom_files_walk(dicom_input_dir, quick_scan=quick_scan)
     else:
         logger.info('Copy and rearrange dicoms')
         df_full = get_dicom_files_walk(dicom_input_dir)
@@ -335,7 +353,9 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
         print('No pydicom information in df_with_one_series')
 
     # load json information from the user givin standard BIDS directory
+    print(standard_dir)
     df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
+    print(df_full_std)
     df_full_std.sort_values('series_num', inplace=True)
 
     logger.info('Checking number and order of scan series')

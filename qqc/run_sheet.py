@@ -27,12 +27,12 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
     '''
     run_sheet = Path('no_run_sheet')
     for run_sheet_tmp in Path(mri_data).parent.glob('*Run_sheet_mri*.csv'):
-        run_sheet_df_tmp = pd.read_csv(run_sheet)
-        run_sheet_dict = run_sheet_df_tmp.set_index('field name').loc[
+        run_sheet_df_tmp = pd.read_csv(run_sheet_tmp)
+        run_sheet_dict = run_sheet_df_tmp.set_index('field_name').loc[
                 ['chrmri_session_num',
                  'chrmri_session_year',
                  'chrmri_session_month',
-                 'chrmri_session_day']].to_dict()
+                 'chrmri_session_day']]['field_value'].to_dict()
         sp = session_str.split('_')
         if run_sheet_dict['chrmri_session_num'] == sp[-1] and \
                 run_sheet_dict['chrmri_session_year'] == sp[0] and \

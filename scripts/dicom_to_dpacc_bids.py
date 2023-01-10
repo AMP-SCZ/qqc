@@ -53,8 +53,6 @@ def parse_args(argv):
                         help='ExtraQC output directory name.')
 
     parser.add_argument('--standard_dir', '-std', type=str,
-                        default='/data/predict/phantom_human_pilot/rawdata/'
-                                'sub-ProNETUCLA/ses-humanpilot',
                         help='Root of a standard dataset to compare to.')
 
     parser.add_argument('--config', '-c', type=str,
@@ -96,6 +94,10 @@ def parse_args(argv):
     parser.add_argument('--skip_qc', '-sq', default=False,
                         action='store_true',
                         help='Skip quick QC step.')
+
+    parser.add_argument('--quick_scan', '-qqs', default=False,
+                        action='store_true',
+                        help='Assuming single series under a directory')
 
     parser.add_argument('--additional_recipients', '-ar',
                         nargs='+',
@@ -162,10 +164,14 @@ if __name__ == '__main__':
     logger.info('Dicom to DPACC BIDS conversion started')
 
     site = args.subject_name[:2]
-    try:
-        args.standard_dir = config.get('First Scan', site)
-    except:
-        args.standard_dir = args.standard_dir
+
+    if args.standard_dir is None:
+        try:
+            args.standard_dir = config.get('First Scan', site)
+        except:
+            # TODO: update to default standard template?
+            args.standard_dir = args.standard_dir
+
 
     dicom_to_bids_QQC(args)
     logger.info('Completed')

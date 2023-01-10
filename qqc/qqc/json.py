@@ -33,6 +33,7 @@ def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
     df = pd.DataFrame()
 
     json_paths_input = get_all_files_walk(session_dir, 'json')
+    num = 0
     for num, file in enumerate(json_paths_input):
         with open(file, 'r') as json_file:
             data = json.load(json_file)
@@ -42,6 +43,7 @@ def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
             df.loc[num, 'series_num'] = series_num
             df.loc[num, 'series_desc'] = series_desc
             df.loc[num, 'norm'] = norm
+            num += 1
 
     if num == 0:
         logger.warn('There is no JSON files under the nifti directory')
@@ -384,16 +386,18 @@ def find_matching_files_between_BIDS_sessions(
         json_df_all = pd.merge(
             json_df_input, json_df_std,
             how='left',
-            on=['series_desc', 'image_type', 'run_num',
+            on=['series_desc', 'run_num',
                 'num_num', 'scout_num', 'distortion_map_before'],
             suffixes=['_input', '_std'])
+        # 'image_type' is removed from keys to match for XA30 data test
     else:
         json_df_all = pd.merge(
             json_df_input, json_df_std,
             how='left',
-            on=['series_desc', 'image_type', 'run_num',
+            on=['series_desc', 'run_num',
                 'num_num', 'scout_num'],
             suffixes=['_input', '_std'])
+        # 'image_type' is removed from keys to match for XA30 data test
 
 
     for index, row in json_df_all.iterrows():
@@ -509,6 +513,9 @@ def find_matching_files_between_BIDS_sessions(
     json_df_all.sort_values(['series_num_input', 'run_num', 'scout_num'],
                             inplace=True)
 
+    json_df_all.to_csv('all.csv')
+    # import sys
+    # sys.exit()
     return json_df_all
 
 
@@ -565,8 +572,6 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     Notes:
     '''
     json_paths_input = get_all_files_walk(session_dir, 'json')
-    print(session_dir)
-    print(json_paths_input)
 
     non_ignore_json_paths_input = [x for x in json_paths_input
                                  if (x.parent.name != 'ignore')]
