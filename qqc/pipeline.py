@@ -80,29 +80,33 @@ def dicom_to_bids_QQC(args) -> None:
         qc_out_dir = deriv_p / 'quick_qc' / subject_name / session_name
     qc_out_dir.mkdir(exist_ok=True, parents=True)
     standard_dir = Path(args.standard_dir)
+
     # BIDS_root / rawdata / sub-${subject} / ses-${session}
     subject_dir = bids_root / 'rawdata' / subject_name
     session_dir = subject_dir / session_name  # raw nifti path
+
+    # raw dicom -> cleaned up dicom structure
+    dicom_clearned_up_output = bids_root / 'sourcedata'
+    sorted_dicom_dir = dicom_clearned_up_output / \
+                      subject_name.split('-')[1] / \
+                      ('ses-' + session_name.split('-')[1])
+
 
     # ----------------------------------------------------------------------
     # Copy the data
     # ----------------------------------------------------------------------
     # if the input is a zip file, decompress it to a temporary directory
     if qqc_input.name.endswith('.zip') or qqc_input.name.endswith('.ZIP'):
-        qqc_input = unzip_and_update_input(qqc_input)
+        # if there are 
+        qqc_input = unzip_and_update_input(qqc_input,
+                                           sorted_dicom_dir,
+                                           args.force_copy_dicom_to_source)
 
     if args.nifti_dir:  # if nifti directory is given
         df_full = get_information_from_rawdata(args.nifti_dir)
         session_dir = Path(args.nifti_dir)  # update session_dir
     else:  # if the input given is a dicom directory or dicom zip
         logger.info('Running dicom_to_bids to sort and convert dicom files')
-
-        # raw dicom -> cleaned up dicom structure
-        dicom_clearned_up_output = bids_root / 'sourcedata'
-        sorted_dicom_dir = dicom_clearned_up_output / \
-                          subject_name.split('-')[1] / \
-                          ('ses-' + session_name.split('-')[1])
-
         df_full = get_dicom_df(qqc_input,
                                args.skip_dicom_rearrange,
                                sorted_dicom_dir,
@@ -149,7 +153,7 @@ def dicom_to_bids_QQC(args) -> None:
     # ----------------------------------------------------------------------
     # Email
     # ----------------------------------------------------------------------
-    if args.standard_dir:
+    if args.email_report:
         logger.info('Sending out email')
         send_out_qqc_results(qc_out_dir, standard_dir,
                              run_sheet_df, args.additional_recipients)
@@ -314,8 +318,17 @@ def get_dicom_df(dicom_input_dir: Path,
     return df_full
 
 
-def unzip_and_update_input(input: str) -> str:
+def unzip_and_update_input(input: str,
+                           sorted_dicom_dir: Path,
+                           force: bool = False) -> str:
     '''Unzip the MRI files to a temporary dir and return the path'''
+    logger.info('See if there is already re-arranged dicom files')
+
+    if not force:
+        dicom_dirs = [x for x in sorted_dicom_dir.glob('*') if x.is_dir()]
+        if len(dicom_dirs) > 4:
+            return sorted_dicom_dir
+
     logger.info('Input is a zip file. Extracting it to a temp directory')
     zf = zipfile.ZipFile(input)
     tf = tempfile.mkdtemp(
