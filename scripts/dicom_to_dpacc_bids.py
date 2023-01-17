@@ -7,6 +7,7 @@ import logging
 from argparse import RawTextHelpFormatter
 from qqc.pipeline import dicom_to_bids_QQC
 from pathlib import Path
+from datetime import datetime
 import re
 sys.path.append('/data/predict/phantom_data/kcho/devel_soft/qqc')
 
@@ -56,7 +57,7 @@ def parse_args(argv):
                         help='Root of a standard dataset to compare to.')
 
     parser.add_argument('--config', '-c', type=str,
-                        default='/data/predict/data_from_nda/MRI_ROOT/'
+                        default='/data/predict1/data_from_nda/MRI_ROOT/'
                                 'standard_templates.cfg',
                         help='configuration file for standard tempates.')
 
@@ -99,6 +100,10 @@ def parse_args(argv):
                         action='store_true',
                         help='Assuming single series under a directory')
 
+    parser.add_argument('--email_report', '-e', default=False,
+                        action='store_true',
+                        help='Send email report')
+
     parser.add_argument('--additional_recipients', '-ar',
                         nargs='+',
                         type=str, default=[],
@@ -121,8 +126,10 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read(args.config)
 
+    print(config)
+
     if args.run_all:
-        root_dir = Path('/data/predict/data_from_nda')
+        root_dir = Path('/data/predict1/data_from_nda')
         mri_root = root_dir / 'MRI_ROOT'
         mri_paths = root_dir.glob('*/PHOENIX/*/*/raw/*/mri/*')
         for i in [x for x in mri_paths if x.is_dir()]:
@@ -164,14 +171,25 @@ if __name__ == '__main__':
     logger.info('Dicom to DPACC BIDS conversion started')
 
     site = args.subject_name[:2]
-
     if args.standard_dir is None:
-        try:
+        xa_subjects = config.get('XA30 list', 'xa_30_list')
+        xa_subject = f'{args.subject_name}/{args.session_name}' in xa_subjects
+        if xa_subject:
+            args.standard_dir = config.get('XA30 template', site)
+        else:
             args.standard_dir = config.get('First Scan', site)
-        except:
-            # TODO: update to default standard template?
-            args.standard_dir = args.standard_dir
 
+        # xa_update_date = datetime.strptime(
+            # config.get('XA30 update date', site, fallback='2099-01-01'),
+            # '%Y-%m-%d')
+        # scan_date = datetime.strptime(
+            # re.search('(\d{8})', args.session_name).group(1),
+            # '%Y%m%d')
+
+        # if (scan_date - xa_update_date).days > 0:
+            # args.standard_dir = config.get('XA30 template', site)
+        # else:
+            # args.standard_dir = config.get('First Scan', site)
 
     dicom_to_bids_QQC(args)
     logger.info('Completed')

@@ -501,3 +501,20 @@ def test_prev_calgary_phantom():
 
     print(args)
     dicom_to_bids_QQC(args)
+
+
+def test_ME_data():
+    args = parse_args([
+        '-i', '/data/predict1/data_from_nda/MRI_ROOT/sourcedata/ME97666/ses-202212202',
+        '-s', 'ME97666',
+        '-ss', '202212202',
+        '-o', 'test',
+        '--quick_scan',
+        '--email_report',
+        '--config', '/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg',
+        '--standard_dir', '/data/predict1/kcho/software/qqc/tests/scripts/test/rawdata/sub-ME97666/ses-202212202'
+        ])
+        # '-mriqc', '-fmriprep', '-dwipreproc',
+
+    print(args)
+    dicom_to_bids_QQC(args)

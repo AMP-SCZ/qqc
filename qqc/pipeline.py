@@ -5,6 +5,7 @@ import zipfile
 import tempfile
 import pandas as pd
 import shutil
+import configparser
 from pathlib import Path
 from typing import List, Tuple
 from qqc.run_sheet import get_run_sheet, get_matching_run_sheet_path
@@ -71,6 +72,9 @@ def dicom_to_bids_QQC(args) -> None:
         # find the matching run sheet
         run_sheet = get_matching_run_sheet_path(args.input, args.session_name)
             
+    site = args.subject_name[:2]
+    raw_input_given = qqc_input
+
     # str variables to Path
     bids_root = Path(args.bids_root)
     deriv_p = bids_root / 'derivatives'
@@ -97,10 +101,18 @@ def dicom_to_bids_QQC(args) -> None:
     # ----------------------------------------------------------------------
     # if the input is a zip file, decompress it to a temporary directory
     if qqc_input.name.endswith('.zip') or qqc_input.name.endswith('.ZIP'):
-        # if there are 
+        # if there are XA30 t1w dir
         qqc_input = unzip_and_update_input(qqc_input,
                                            sorted_dicom_dir,
                                            args.force_copy_dicom_to_source)
+
+    # XA30
+    config = configparser.ConfigParser()
+    config.read(args.config)
+    for root, dirs, files in os.walk(qqc_input):
+        for subdir in dirs:
+            if 't1w_mpr_nd' in subdir.lower():
+                standard_dir = Path(config.get('XA30 template', site))
 
     if args.nifti_dir:  # if nifti directory is given
         df_full = get_information_from_rawdata(args.nifti_dir)
@@ -125,12 +137,27 @@ def dicom_to_bids_QQC(args) -> None:
         if not args.skip_heudiconv:
             logger.info('Run heudiconv')
             qc_out_dir.mkdir(exist_ok=True, parents=True)
-            run_heudiconv(dicom_clearned_up_output,
-                          subject_name.split('-')[1],
-                          session_name.split('-')[1],
-                          bids_rawdata_dir,
-                          qc_out_dir,
-                          args.force_heudiconv)
+
+            heudiconv_nifti_dir_out = bids_rawdata_dir / subject_name / \
+                    session_name
+
+            if heudiconv_nifti_dir_out.is_dir():
+                if len(list(heudiconv_nifti_dir_out.glob('*'))) > 0:
+                    pass
+                else:
+                    run_heudiconv(dicom_clearned_up_output,
+                                  subject_name.split('-')[1],
+                                  session_name.split('-')[1],
+                                  bids_rawdata_dir,
+                                  qc_out_dir,
+                                  args.force_heudiconv)
+            else:
+                run_heudiconv(dicom_clearned_up_output,
+                              subject_name.split('-')[1],
+                              session_name.split('-')[1],
+                              bids_rawdata_dir,
+                              qc_out_dir,
+                              args.force_heudiconv)
 
             # remove temporary directory
             if Path(qqc_input).name.endswith('.zip') or \
@@ -155,7 +182,7 @@ def dicom_to_bids_QQC(args) -> None:
     # ----------------------------------------------------------------------
     if args.email_report:
         logger.info('Sending out email')
-        send_out_qqc_results(qc_out_dir, standard_dir,
+        send_out_qqc_results(raw_input_given, qc_out_dir, standard_dir,
                              run_sheet_df, args.additional_recipients)
 
     # ----------------------------------------------------------------------
@@ -332,10 +359,15 @@ def unzip_and_update_input(input: str,
     logger.info('Input is a zip file. Extracting it to a temp directory')
     zf = zipfile.ZipFile(input)
     tf = tempfile.mkdtemp(
-            prefix='/data/predict/kcho/tmp/zip_tempdir/')
+            prefix='/data/predict1/home/kcho/tmp/zip_tempdir/')
     zf.extractall(tf)
 
     return tf
+
+
+def get_matching_standard_dir(qqc_input: Path) -> Path:
+    '''Read configuration file and return matching standard dir'''
+    pass
 
 
 def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,

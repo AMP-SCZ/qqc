@@ -37,32 +37,47 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
         with open(input_json, 'r') as json_file:
             data = json.load(json_file)
 
-            image_type = data['ImageType']
             series_num = data['SeriesNumber']
             series_desc = data['SeriesDescription'].lower()
+            if 'ImageTypeText' in data.keys():
+                image_type = data['ImageTypeText']
+            else:
+                image_type = data['ImageType']
+            if 'PhaseEncodingDirection' in data.keys():
+                encoding_dir = data['PhaseEncodingDirection']
+            else:
+                encoding_dir = ''
 
-        print()
         for nifti_std in nifti_paths_std:
             _, _, nifti_suffix_std = \
                 get_naming_parts_bids(nifti_std.name)
             # if partial_rescan:
             std_json = nifti_std.parent / (
                     nifti_std.name.split('.')[0] + '.json')
+
             with open(std_json, 'r') as json_file:
                 data = json.load(json_file)
-                std_image_type = data['ImageType']
+
                 std_series_num = data['SeriesNumber']
                 std_series_desc = data['SeriesDescription'].lower()
+                if 'ImageTypeText' in data.keys():
+                    std_image_type = data['ImageTypeText']
+                else:
+                    std_image_type = data['ImageType']
+                if 'PhaseEncodingDirection' in data.keys():
+                    std_encoding_dir = data['PhaseEncodingDirection']
+                else:
+                    std_encoding_dir = ''
 
-            print('===='*20)
-            print('input')
-            print(series_desc)
-            print(image_type)
-            print('------')
-            print('output')
-            print(std_series_desc)
-            print(std_image_type)
-            print('===='*20)
+            # print('===='*20)
+            # print('input')
+            # print(series_desc)
+            # print(image_type)
+            # print('------')
+            # print('output')
+            # print(std_series_desc)
+            # print(std_image_type)
+            # print('===='*20)
 
             # # for JE site, extracted image type is different
             # if (series_desc == std_series_desc):
@@ -75,20 +90,14 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                     # image_type.pop(image_type.index(var_to_remove))
                 # if var_to_remove in std_image_type:
                     # std_image_type.pop(std_image_type.index(var_to_remove))
-
             # ###
 
             # if (series_desc == std_series_desc) & \
                     # (all([x in std_image_type for x in image_type])):
-            if (series_desc == std_series_desc) & \
-                    (all([x in std_image_type for x in image_type])):
-                # print(series_desc, std_series_desc)
-                # print(image_type, std_image_type)
-                # make sure the number of localizer and scout files are
-                # the same
+            if (series_desc == std_series_desc):
                 if ('localizer' in series_desc.lower()) or \
                         ('scout' in series_desc.lower()):
-                    if nifti_input.name[-8] != nifti_std.name[-8]:
+                    if not encoding_dir == std_encoding_dir:
                         continue
 
                 img_shape_std = nb.load(nifti_std).shape
@@ -104,13 +113,14 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                     break
 
                 except:
-                    print('hahahah*')
                     pass
-
+            elif (series_desc == std_series_desc):
+                print(series_desc)
+                print(std_image_type)
+                print(image_type)
 
         num += 1
 
-    print(volume_comparison_df)
     if len(volume_comparison_df) == 0:
         print('No matching series name - GE data')
         return
@@ -118,7 +128,22 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
     volume_comparison_df['check'] = (volume_comparison_df['input shape'] ==
             volume_comparison_df['standard shape']).map(
                     {True: 'Pass', False: 'Fail'})
-
+    volume_comparison_df.at[
+            volume_comparison_df[
+                volume_comparison_df.series_desc.str.contains(
+                    'localizer')].index,
+            'check'] = volume_comparison_df[
+                volume_comparison_df.series_desc.str.contains(
+                    'localizer')]['check'].map({'Pass': 'Pass',
+                                                'Fail': 'Warning'})
+    volume_comparison_df.at[
+            volume_comparison_df[
+                volume_comparison_df.series_desc.str.contains(
+                    'scout')].index,
+            'check'] = volume_comparison_df[
+                volume_comparison_df.series_desc.str.contains(
+                    'scout')]['check'].map({'Pass': 'Pass',
+                                                'Fail': 'Warning'})
     volume_comparison_df.series_num = \
             volume_comparison_df.series_num.astype(int)
 

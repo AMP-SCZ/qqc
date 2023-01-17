@@ -27,7 +27,7 @@ def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
         pd.DataFrame
 
     Notes:
-        series_num, series_desc and norm (bool of 'NORM' in ImageType) are 
+        series_num, series_desc and norm (bool of 'NORM' in ImageType) are
         included inthe pd.DataFrame as columns.
     '''
     df = pd.DataFrame()
@@ -39,7 +39,12 @@ def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
             data = json.load(json_file)
             series_num = data['SeriesNumber']
             series_desc = data['SeriesDescription']
-            norm = 'NORM' in data['ImageType']
+            if 'ImageTypeText' in data:  # XA30
+                norm = 'NORM' in data['ImageTypeText']
+                dis3d = 'DIS3D' in data['ImageTypeText']
+            else:  # non-XA30
+                norm = 'NORM' in data['ImageType']
+                dis3d = False
             df.loc[num, 'series_num'] = series_num
             df.loc[num, 'series_desc'] = series_desc
             df.loc[num, 'norm'] = norm
@@ -56,7 +61,6 @@ def json_check_for_a_session(json_files: List[str],
                              print_shared: bool = False,
                              **kwargs) -> Tuple[pd.DataFrame]:
     '''Iteratively compare between MR protocol json files and print outputs
-
 
     Key Arguments:
         json_files: list of json file paths, list of str.
@@ -88,6 +92,10 @@ def json_check_for_a_session(json_files: List[str],
         bn_sname_dict[Path(i).name] = single_dict['SeriesDescription']
         single_dict = dict((x, y) for x, y in single_dict.items()
                            if x in [specific_field])
+        # image orientation round up
+        if 'ImageOrientationPatientDICOM' in single_dict.keys():
+            single_dict['ImageOrientationPatientDICOM'] = np.around(
+                    single_dict['ImageOrientationPatientDICOM'], 6)
         dicts.append(single_dict)
 
     # convert collected information into pandas dataframe
@@ -326,7 +334,11 @@ def get_all_json_information_quick(data_dir):
         with open(json_path_input, 'r') as json_file:
             data = json.load(json_file)
 
-            image_type = str(data['ImageType'])
+            if 'ImageTypeText' in data.keys():
+                image_type = str(data['ImageTypeText'])
+            else:
+                image_type = str(data['ImageType'])
+
             series_num = data['SeriesNumber']
             series_desc = data['SeriesDescription'].lower()
 
@@ -379,8 +391,8 @@ def find_matching_files_between_BIDS_sessions(
     json_df_input = get_all_json_information_quick(input_dir)
     json_df_std = get_all_json_information_quick(standard_dir)
 
-    json_df_input.to_csv('input.csv')
-    json_df_std.to_csv('std.csv')
+    # json_df_input.to_csv('input.csv')
+    # json_df_std.to_csv('std.csv')
 
     if 'distortion_map_before' in json_df_input.columns:
         json_df_all = pd.merge(
@@ -513,7 +525,7 @@ def find_matching_files_between_BIDS_sessions(
     json_df_all.sort_values(['series_num_input', 'run_num', 'scout_num'],
                             inplace=True)
 
-    json_df_all.to_csv('all.csv')
+    # json_df_all.to_csv('all.csv')
     # import sys
     # sys.exit()
     return json_df_all
@@ -572,13 +584,19 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     Notes:
     '''
     json_paths_input = get_all_files_walk(session_dir, 'json')
+    
+    # ignore FA and colFA maps
+    json_paths_input = [x for x in json_paths_input 
+            if not '_fa' in x.name.lower() or not '_colfa' in x.name.lower()]
 
     non_ignore_json_paths_input = [x for x in json_paths_input
                                  if (x.parent.name != 'ignore')]
 
     non_anat_json_paths_input = [x for x in json_paths_input
-                                 if (x.parent.name != 'anat') and 
-                                    (x.parent.name != 'ignore')]
+                                 if (x.parent.name != 'anat') and
+                                    (x.parent.name != 'ignore') and
+                                    ('_fa' not in x.name.lower())]
+    print(non_anat_json_paths_input)
 
     anat_json_paths_input = [x for x in json_paths_input
                              if x.parent.name == 'anat']
@@ -594,6 +612,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
              'image orientation in others',
              'image orientation in anat'],
             ['c', 'b', 'a']):
+
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
             print_diff=False, print_shared=False,
@@ -603,7 +622,6 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
 
         # label summary
         print('-'*70)
-        print(json_input)
         print(specific_field)
         print(df_all)
         print('-'*70)
@@ -620,8 +638,8 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                         else 'Fail'
             else:
                 summary_df[col] = ''
-        df_all = pd.concat([summary_df, df_all])
 
+        df_all = pd.concat([summary_df, df_all])
         df_all.to_csv(qc_out_dir / f'05{letter}_{csv_suffix}.csv')
 
 
@@ -722,7 +740,7 @@ def compare_jsons_to_std(input_dir: str,
 
         df_row = df_row.reset_index().set_index(
             ['series_desc', 'series_num', 'input_json',
-             'standard_json', 'index'])
+             'standard_json', 'index']).dropna()
 
         if len(df_row) == 0:
             df_row.loc[(row['series_desc'],

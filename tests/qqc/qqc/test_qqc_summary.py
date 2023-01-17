@@ -227,3 +227,16 @@ def test_qqc_summary_add_forms_for_follow_up():
     pd.set_option('display.max_rows', 500)
     print(qqc_summary_df.T)
 
+
+def test_ME_data():
+    qqc_root = Path(
+            '/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc')
+    qqc_ss_dir = qqc_root / 'sub-ME79913/ses-202212201'
+    qqc_summary(qqc_ss_dir)
+
+
+def test_rerun_qqc_summary_on_all_data():
+    qqc_root = Path(
+            '/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc')
+    for qqc_ss_dir in qqc_root.glob('sub-*/ses-*'):
+        qqc_summary(qqc_ss_dir)

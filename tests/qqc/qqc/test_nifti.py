@@ -46,3 +46,9 @@ def test_GE():
     compare_volume_to_standard_all_nifti_test(ga, standard_dir, ga)
     compare_volume_to_standard_all_nifti_test(kcl, standard_dir, kcl)
 
+
+def test_XA30():
+    input_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-ME97666/ses-202212202')
+    standard_dir = Path('/data/predict1/kcho/MRI_site_cert/qqc_output/rawdata/sub-LS/ses-202211071')
+    # compare_volume_to_standard_all_nifti(input_dir, standard_dir, qc_out_dir)
+    compare_volume_to_standard_all_nifti(input_dir, standard_dir, Path('prac'))

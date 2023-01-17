@@ -109,6 +109,12 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     df = pd.DataFrame({'file_path': dicom_paths})
     start = time.time()
 
+    # drop files
+    df = df[~df['file_path'].str.endswith('.gif')]
+    df = df[~df['file_path'].str.endswith('.GIF')]
+    df = df.reset_index()
+
+
     print('Read dicoms into pydicom object')
     # TODO: update the lines below to make the process faster
     if quick_scan:

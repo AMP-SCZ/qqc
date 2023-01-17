@@ -1,4 +1,5 @@
-from qqc.email import send_out_qqc_results, send, send_error
+from qqc.email import send_out_qqc_results, send, send_error, \
+        create_html_for_qqc_study
 from pathlib import Path
 import pandas as pd
 import os
@@ -83,3 +84,42 @@ def test_redcap_update_send_out_qqc_results():
 
 def test_send_error():
     send_error('title', 'subtitle', 'top_message', 'second message')
+
+
+def test_study_website():
+    import qqc
+    from jinja2 import Environment, FileSystemLoader
+    email_template_dir = os.path.join(Path(qqc.email.__file__).parent)
+    env = Environment(loader=FileSystemLoader(str(email_template_dir)))
+    template = env.get_template('bootdey_template_study.html')
+    title = '**title**'
+    subtitle = '**subtitle**'
+    first_message = '**first message**'
+    second_message = '**second message**'
+    code = ['**code1**', '**code2**']
+    in_mail_footer = '*footer*'
+
+
+    qqc_out_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc')
+    qqc_html_files = list(qqc_out_dir.glob('*/*/*.html'))
+    qqc_html_list = []
+    for qqc_html in qqc_html_files:
+        qqc_html_dict = {}
+        qqc_html_dict['subject_name'] = qqc_html.parent.parent.name
+        qqc_html_dict['session_name'] = qqc_html.parent.name
+        qqc_html_dict['qqc_html'] = qqc_html
+
+        # qc
+        qqc_html_dict['qc'] = 'Fail'
+        if (qqc_html.parent / '00_qc_summary.csv').is_file():
+            qc_summary_df = pd.read_csv(qqc_html.parent / '00_qc_summary.csv')
+            col_name = qc_summary_df.columns[1]
+            if (qc_summary_df.iloc[:6][col_name] == 'Pass').all():
+                qqc_html_dict['qc'] = 'Pass'
+
+    html_str = create_html_for_qqc_study(template, title, subtitle,
+            first_message, second_message, code, in_mail_footer,
+            qqc_html_list)
+
+    with open('study_level.html', 'w') as fh:
+        fh.write(html_str)

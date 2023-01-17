@@ -123,11 +123,13 @@ def get_motion_tmp(dwipreproc_dir: Path) -> Tuple:
 def get_motion_fMRI(fmriprep: Path) -> Tuple:
     df = pd.DataFrame()
     if fmriprep.is_dir():
-        for tsv_file in fmriprep.glob('*tsv'):
-            print(tsv_file)
+        fmriprep_tsvs = list(fmriprep.glob('*tsv'))
+        if len(fmriprep_tsvs) == 0:
+            return df
+
+        for tsv_file in fmriprep_tsvs:
             encoding_dir = tsv_file.name.split('-rest_dir-')[1][:2]
             run_number = tsv_file.name.split('_run-')[1][0]
-            print(encoding_dir, run_number)
             df_tmp = pd.read_csv(tsv_file, sep='\t')[
                     ['dvars', 'framewise_displacement']].mean().T
 
@@ -143,9 +145,10 @@ def get_motion_fMRI(fmriprep: Path) -> Tuple:
 
 
 def get_anat_qc(mriqc_anat_dir: Path) -> Tuple:
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=['modality'])
     if mriqc_anat_dir.is_dir():
         for json_f in mriqc_anat_dir.glob('*rec-norm_run-1_T*w.json'):
+
             with open(json_f, 'r') as fp:
                 data = json.load(fp)
 

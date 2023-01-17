@@ -26,22 +26,55 @@
                                         <tbody>
                                             <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                                 <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                                                    {{ first_message }}
+                                                    <h1>AMP-SCZ MRI data processed with QQC</h1>
+                                                    <h4>MRI BIDS Root:<code> {{ first_message }}</code></h4>
                                                 </td>
                                             </tr>
-                                            <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
-                                                <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                                                    {{ second_message }}
-                                                </td>
-                                            </tr>
+
                                             <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                                 <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 9px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
-                                                    <code>{% for para in code %}
-                                                        <p>{{ para }}</p>
-                                                        {% endfor %}
-                                                    </code>
+                                                    <table class="table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col">Scans</th>
+                                                                <th scope="col">Subject ID</th>
+                                                                <th scope="col">Session ID</th>
+                                                                <th scope="col">Series Count</th>
+                                                                <th scope="col">Volume check</th>
+                                                                <th scope="col">Orientation-Anat</th>
+                                                                <th scope="col">Orientation-Others</th>
+                                                                <th scope="col">Shim settings-Others</th>
+                                                                <th scope="col">Bval comparison</th>
+                                                                <th scope="col">QQC summary</th>
+                                                                <th scope="col">QQC report location</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for qqc_html in qqc_html_list %}
+                                                                <tr>
+                                                                <th scope="row">{{ loop.index }}</th>
+                                                                <td>{{ qqc_html['subject_name'] }}</td>
+                                                                <td>{{ qqc_html['session_name'] }}</td>
+                                                                <td>{{ qqc_html['series_count'] }}</td>
+                                                                <td>{{ qqc_html['vol_check'] }}</td>
+                                                                <td>{{ qqc_html['orient_anat'] }}</td>
+                                                                <td>{{ qqc_html['orient_others'] }}</td>
+                                                                <td>{{ qqc_html['shim_settings'] }}</td>
+                                                                <td>{{ qqc_html['bval_comp'] }}</td>
+                                                                {% if qqc_html['qc'] == "Pass" %}
+                                                                    <td class="table-success">{{ qqc_html['qc'] }}</td>
+                                                                {% else %} 
+                                                                    <td class="table-warning">{{ qqc_html['qc'] }}</td>
+                                                                {% endif %}
+                                                                <td><a href="{{ qqc_html['qqc_html'] }}">{{ qqc_html['qqc_html'] }}</a></td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+
                                                 </td>
                                             </tr>
+                                            
                                             <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                                 <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 9px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
                                                 {% if image_paths %}

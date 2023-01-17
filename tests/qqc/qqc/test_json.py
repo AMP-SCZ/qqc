@@ -265,3 +265,11 @@ def test_compare_philips_within_phantom():
     qqc_out_dir = Path('/data/predict/kcho/philips/new_unzip/Philips_Copenhagen_20220908_test/BIDS')
     standard_dir = Path('/data/predict/data_from_nda_dev/MRI_ROOT/rawdata/sub-AD00001/ses-202109061')
     compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
+
+
+def test_image_orientation_roundup():
+    input_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-ME97666/ses-202212202')
+    qc_out_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-ME97666/ses-202212202')
+    within_phantom_qc(
+            input_dir,
+            qc_out_dir)
