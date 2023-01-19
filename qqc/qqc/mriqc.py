@@ -38,7 +38,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
                       subject_id: str,
                       session_id: str,
                       mriqc_outdir_root: Path,
-                      temp_dir: str = '/data/predict/kcho/tmp',
+                      temp_dir: str = '/data/predict1/home/kcho/tmp',
                       bsub: bool = True) -> None:
     '''Run MRI-QC following the quick QC
 
@@ -50,7 +50,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
         temp_dir: location of mriqc working directory
         bsub: bsub option, bool.
     '''
-    img_loc = '/data/predict1/kcho/singularity_images/mriqc-22.0.6.simg'
+    img_loc = '/data/predict1/home/kcho/singularity_images/mriqc-22.0.6.simg'
     singularity = '/apps/released/gcc-toolchain/gcc-4.x/singularity/' \
                   'singularity-3.7.0/bin/singularity'
 
