@@ -246,7 +246,6 @@ def extract_info_for_qqc_report(raw_input_given: Path,
                                       'Image orientation in others',
                                       'Bval comparison']] == 'Pass').all() \
                                               else 'Fail'
-            # if (qc_summary_df.iloc[:6][col_name] == 'Pass').all():
 
         qqc_html_list.append(qqc_dict)
 
