@@ -3,6 +3,7 @@ import sys
 import logging
 import zipfile
 import tempfile
+import os
 import pandas as pd
 import shutil
 import configparser
@@ -20,7 +21,12 @@ from qqc.qqc.figures import quick_figures
 from qqc.qqc.mriqc import run_mriqc_on_data
 from qqc.qqc.fmriprep import run_fmriprep_on_data
 from qqc.qqc.dwipreproc import run_quick_dwi_preproc_on_data
-from qqc.email import send_out_qqc_results, send_error
+from qqc.email import send_out_qqc_results, send_error, \
+        extract_info_for_qqc_report
+import getpass
+from datetime import datetime, date, timedelta
+from jinja2 import Environment, FileSystemLoader
+from qqc.email import create_html_for_qqc, create_html_for_qqc_study
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
@@ -107,12 +113,16 @@ def dicom_to_bids_QQC(args) -> None:
                                            args.force_copy_dicom_to_source)
 
     # XA30
-    config = configparser.ConfigParser()
-    config.read(args.config)
-    for root, dirs, files in os.walk(qqc_input):
-        for subdir in dirs:
-            if 't1w_mpr_nd' in subdir.lower():
-                standard_dir = Path(config.get('XA30 template', site))
+    if standard_dir is None:
+        config = configparser.ConfigParser()
+        config.read(args.config)
+        for root, dirs, files in os.walk(qqc_input):
+            for subdir in dirs:
+                if 't1w_mpr_nd' in subdir.lower():
+                    standard_dir = Path(config.get('XA30 template', site))
+                elif '!' in subdir.lower():
+                    # sys.exit()  # GE data
+                    pass
 
     if args.nifti_dir:  # if nifti directory is given
         df_full = get_information_from_rawdata(args.nifti_dir)
@@ -175,7 +185,60 @@ def dicom_to_bids_QQC(args) -> None:
     # Run QQC
     # ----------------------------------------------------------------------
     if not args.skip_qc:
+        # try:
         run_qqc(qc_out_dir, session_dir, df_full, standard_dir)
+        # except:
+            # save_qqc_error(qc_out_dir)
+
+        sender, recipients, title, subtitle, top_message, qc_detail, \
+                    code, image_paths, qqc_html_list, in_mail_footer = \
+            extract_info_for_qqc_report(raw_input_given, qc_out_dir,
+                                        standard_dir, run_sheet_df)
+                                        
+        admin_recipient = 'kc244@research.partners.org'
+        user_id = getpass.getuser()
+        recipients = list(set(
+            [f'{user_id}@research.partners.org'] + args.additional_recipients))
+
+        # get template
+        env = Environment(loader=FileSystemLoader(str(
+            os.path.join(os.path.dirname(__file__), 'email'))))
+
+        # html form to be used for email
+        email_template = env.get_template('bootdey_template_clean.html')
+        html_str = create_html_for_qqc(email_template, title, subtitle,
+                top_message, qc_detail, code, in_mail_footer,
+                image_paths)
+
+        # html form to be saved in the server
+        template = env.get_template('bootdey_template.html')
+        html_str = create_html_for_qqc(
+                template, title, subtitle,
+                top_message, qc_detail, code, in_mail_footer,
+                image_paths)
+        outloc = Path(qc_out_dir) / 'qqc_summary.html'
+        with open(outloc, 'w') as fh:
+            fh.write(html_str)
+
+        # study level html
+        study_template = env.get_template('bootdey_template_study.html')
+        study_level_html = Path(qc_out_dir).parent.parent / 'study_summary.html'
+        study_level_csv = Path(qc_out_dir).parent.parent / 'study_summary.csv'
+
+        title = 'QQC report summary'
+        subtitle = f'Created on {date.today().strftime("%m/%d/%y")}'
+        first_message = qc_out_dir.parent.parent.parent.parent
+        second_message = ''
+
+        # save as csv file
+        pd.DataFrame(qqc_html_list).to_csv(study_level_csv)
+
+        html_str = create_html_for_qqc_study(study_template,
+                title, subtitle,
+                first_message, second_message, code, in_mail_footer,
+                qqc_html_list)
+        with open(study_level_html, 'w') as fh:
+            fh.write(html_str)
 
     # ----------------------------------------------------------------------
     # Email
@@ -195,7 +258,8 @@ def dicom_to_bids_QQC(args) -> None:
             bids_root / 'rawdata',
             subject_dir.name,
             session_dir.name,
-            dwipreproc_outdir_root)
+            dwipreproc_outdir_root,
+            bsub=True)
 
     if args.mriqc:
         # mriqc
@@ -396,6 +460,8 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
         save_csa(df_with_one_series, qc_out_dir, standard_dir)
     except KeyError:
         print('No pydicom information in df_with_one_series')
+    except ValueError:
+        print('No pydicom information in df_with_one_series')
 
     # load json information from the user givin standard BIDS directory
     print(standard_dir)
@@ -418,3 +484,37 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
         refresh_qqc_summary_for_subject(qc_out_dir.parent)
     except:
         pass
+
+
+def save_qqc_error(qqc_out_dir: Path) -> None:
+    '''Save QQC error to be visualized in the Study page
+
+    Key Argument
+        qc_out_dir: QQC output path, Path.
+        nifti_session_dir: nifti data path, Path.
+        df_full: series information, pd.DataFrame.
+        standard_dir: nifti data path of the template session, Path.
+        run_sheet_df: MRI run sheet information, pd.DataFrame
+
+    Returns:
+        None
+    '''
+    print('hahah')
+    session_name = qqc_out_dir.name.split('-')[1]
+    subject_name = qqc_out_dir.parent.name.split('-')[1]
+
+    title = f'{subject_name} - MRI QQC'
+    subtitle = 'Automatically created message ' \
+               f'for {subject_name} ({session_name})'
+    qqc_html_file = qqc_out_dir / 'qqc_summary.html'
+    env = Environment(loader=FileSystemLoader(str(
+        os.path.join(os.path.dirname(__file__), 'email'))))
+    # html form to be used for email
+    email_template = env.get_template('bootdey_template_clean.html')
+
+    str_tmp = '<h4>{0} </h4><code>{1}</code><br><br>'
+    in_mail_footer = str_tmp.format('QQC ran on', datetime.now().date())
+    in_mail_footer += str_tmp.format('QQC ran by', getpass.getuser())
+
+    html_str = create_html_for_qqc(email_template, title, subtitle,
+            'QQC failed', 'QQC failed', [''], in_mail_footer, [])
