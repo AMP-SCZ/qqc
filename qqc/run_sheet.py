@@ -1,6 +1,7 @@
 from typing import List
 from pathlib import Path
 import sys
+import re
 import pandas as pd
 import qqc
 data_loc = Path(qqc.__file__).parent.parent / 'data'
@@ -19,8 +20,6 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
                   str.
                   'PHOENIX/PROTECTED/PronetAA/raw/AB012345/mri/' \
                           'AB012345_MR_2022_09_20_1'
-        session_str: date and session stated in the MRI directory or file, str.
-                     eg: '2022_09_20_1'
 
     Returns:
         csv: path of the matching CSV file
@@ -38,13 +37,23 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
                 ['chrmri_session_num',
                  'chrmri_session_year',
                  'chrmri_session_month',
-                 'chrmri_session_day']]['field_value'].to_dict()
+                 'chrmri_session_day']]['field_value'].astype(str).to_dict()
+
+        session_str_search = re.search(
+                r'[A-Z]{2}\d{5}_MR_(\d{4}_\d{1,2}_\d{1,2}_\d)',
+                Path(mri_data).name)
+        if session_str_search:
+            session_str = session_str_search.group(1)
+        else:
+            return run_sheet
 
         sp = session_str.split('_')
+        print(sp)
+        print(run_sheet_dict)
         #run_sheet_dict['chrmri_session_num'] == sp[-1] and \
-        if run_sheet_dict['chrmri_session_year'] == sp[0] and \
-                run_sheet_dict['chrmri_session_month'] == sp[1] and \
-                run_sheet_dict['chrmri_session_day'] == sp[2]:
+        if int(run_sheet_dict['chrmri_session_year']) == int(sp[0]) and \
+                int(run_sheet_dict['chrmri_session_month']) == int(sp[1]) and \
+                int(run_sheet_dict['chrmri_session_day']) == int(sp[2]):
             run_sheet = run_sheet_tmp
             break
 
