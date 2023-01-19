@@ -169,11 +169,23 @@ def infotodict(seqinfo):
     t1w_nonnorm = create_key('sub-{subject}/{session}/'
          'anat/sub-{subject}_{session}_rec-nonnorm_run-{item}_T1w_auxiliary')
 
+    t1w = create_key('sub-{subject}/{session}/'
+                     'anat/sub-{subject}_{session}_run-{item}_T1w')
+
+    t1w_axil = create_key('sub-{subject}/{session}/'
+         'anat/sub-{subject}_{session}_run-{item}_T1w_auxiliary')
+
     t2w_norm = create_key('sub-{subject}/{session}/'
          'anat/sub-{subject}_{session}_rec-norm_run-{item}_T2w')
 
     t2w_nonnorm = create_key('sub-{subject}/{session}/'
          'anat/sub-{subject}_{session}_rec-nonnorm_run-{item}_T2w_auxiliary')
+
+    t2w = create_key('sub-{subject}/{session}/'
+                     'anat/sub-{subject}_{session}_run-{item}_T2w')
+
+    t2w_axil = create_key('sub-{subject}/{session}/'
+         'anat/sub-{subject}_{session}_run-{item}_T2w_auxiliary')
 
     # dwi
     dwi = create_key(
@@ -232,8 +244,8 @@ def infotodict(seqinfo):
             'sub-{subject}/{session}/fmap/'
             'sub-{subject}_{session}_acq-{acq}_dir-{APPA}_run-{item}_epi')
 
-    info = {t1w_norm: [], t1w_nonnorm: [],
-            t2w_norm: [], t2w_nonnorm: [],
+    info = {t1w_norm: [], t1w_nonnorm: [], t1w: [], t1w_axil: [],
+            t2w_norm: [], t2w_nonnorm: [], t2w: [], t2w_axil: [],
             dwi: [],
             dwi_sbref: [],
             dwi_b0: [],
@@ -251,6 +263,8 @@ def infotodict(seqinfo):
     # check machine
     ds = dcmread(seqinfo[0].example_dcm_file_path)
     xa30 = True if 'xa30' in ds.SoftwareVersions.lower() else False
+    ge_machine = True if 'ge' in ds.Manufacturer.lower() else False
+
     for s in seqinfo:
         if 't1w' in s.series_description.lower():
             # XA30
@@ -265,7 +279,12 @@ def infotodict(seqinfo):
                     # # check if the private tag has both ND and NORM
                     # assert re.search('\"NORM\"', private_tag_json) and \
                         # re.search('\"ND\"', private_tag_json)
-                    info[t1w_norm].append({'item': s.series_id})
+                    info[t1w].append({'item': s.series_id})
+                else:
+                    info[t1w_axil].append({'item': s.series_id})
+            elif ge_machine:
+                if 'orig' in s.series_description.lower():
+                    info[t1w_nonnorm_orig].append({'item': s.series_id})
                 else:
                     info[t1w_nonnorm].append({'item': s.series_id})
             else:
@@ -289,7 +308,12 @@ def infotodict(seqinfo):
                     # # check if the private tag has both ND and NORM
                     # assert re.search('\"NORM\"', private_tag_json) and \
                         # re.search('\"ND\"', private_tag_json)
-                    info[t2w_norm].append({'item': s.series_id})
+                    info[t2w].append({'item': s.series_id})
+                else:
+                    info[t2w_axil].append({'item': s.series_id})
+            elif ge_machine:
+                if 'orig' in s.series_description.lower():
+                    info[t2w_nonnorm_orig].append({'item': s.series_id})
                 else:
                     info[t2w_nonnorm].append({'item': s.series_id})
             else:
