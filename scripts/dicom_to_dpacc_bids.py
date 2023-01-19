@@ -171,6 +171,7 @@ if __name__ == '__main__':
     logger.info('Dicom to DPACC BIDS conversion started')
 
     site = args.subject_name[:2]
+
     if args.standard_dir is None:
         xa_subjects = config.get('XA30 list', 'xa_30_list')
         xa_subject = f'{args.subject_name}/{args.session_name}' in xa_subjects
