@@ -72,7 +72,7 @@ if __name__ == '__main__':
     # refresh 'mriqc-combined-mriqc-day1to9999.csv'
     # for mri_root in [Path('/data/predict/data_from_nda/MRI_ROOT'),
                      # Path('/data/predict/data_from_nda_dev/MRI_ROOT')]:
-    for mri_root in [Path('/data/predict/data_from_nda/MRI_ROOT')]:
+    for mri_root in [Path('/data/predict1/data_from_nda/MRI_ROOT')]:
         print(mri_root)
         nifti_root = mri_root / 'rawdata'
         dicom_root = mri_root / 'sourcedata'

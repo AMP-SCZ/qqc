@@ -8,17 +8,22 @@ import re
 import json
 
 
-def test_qqc_summary():
+def test_qqc_summary_test():
 
-    root_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
-    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-SF11111/ses-202201261'
+    # root_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
+    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-SF11111/ses-202201261'
 
-    root_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
-    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-NL00000/ses-202112071'
+    # root_dir = Path('/data/predict/kcho/flow_test/MRI_ROOT')
+    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-NL00000/ses-202112071'
 
-    root_dir = Path('/data/predict/data_from_nda/MRI_ROOT')
-    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-OR00697/ses-202208151'
+    # root_dir = Path('/data/predict/data_from_nda/MRI_ROOT')
+    # qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-OR00697/ses-202208151'
+    # df = qqc_summary(qqc_out_dir)
+    root_dir = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    qqc_out_dir = root_dir / 'derivatives/quick_qc/sub-ME25689/ses-202313012'
     df = qqc_summary(qqc_out_dir)
+    refresh_qqc_summary_for_subject(qqc_out_dir)
+    # qqc_summary_for_dpdash(qqc_out_dir)
     print()
     print(df)
 
