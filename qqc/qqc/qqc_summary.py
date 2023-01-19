@@ -87,21 +87,24 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     else:
         gb = json_comp_df.groupby(['series_desc', 'series_num'])
         for (series_desc, series_num), table_upper in gb:
-            for loop_num, (num, table) in enumerate(
-                    table_upper.groupby('num')):
+            try:
+                for loop_num, (num, table) in enumerate(
+                        table_upper.groupby('num')):
 
-                diff_items = table['index'].tolist()
+                    diff_items = table['index'].tolist()
 
-                if loop_num > 0:
-                    df_2.loc[f'{series_desc} {loop_num}', colname] = \
-                            f'{len(table)}'
-                    df_2.loc[f'{series_desc} {loop_num}', colname_2] = \
-                            ', '.join(diff_items)
-                else:
-                    df_2.loc[f'{series_desc}', colname] = \
-                            f'{len(table)}'
-                    df_2.loc[f'{series_desc}', colname_2] = \
-                            ', '.join(diff_items)
+                    if loop_num > 0:
+                        df_2.loc[f'{series_desc} {loop_num}', colname] = \
+                                f'{len(table)}'
+                        df_2.loc[f'{series_desc} {loop_num}', colname_2] = \
+                                ', '.join(diff_items)
+                    else:
+                        df_2.loc[f'{series_desc}', colname] = \
+                                f'{len(table)}'
+                        df_2.loc[f'{series_desc}', colname_2] = \
+                                ', '.join(diff_items)
+            except:
+                pass
     json_comp_df.drop('num', axis=1, inplace=True)
 
     return df, df_2, other_dfs, titles
@@ -435,7 +438,7 @@ def qqc_summary_for_dpdash(qqc_ss_dir: Path, dayto: int) -> None:
 
     # create dpdash settings - update here later TODO
     mriqc_pretty = create_dpdash_settings(qqc_summary_df)
-    with open('/data/predict/data_from_nda/MRI_ROOT/mriqc_pretty.json', 'w') as fp:
+    with open('/data/predict1/data_from_nda/MRI_ROOT/mriqc_pretty.json', 'w') as fp:
         json.dump(mriqc_pretty, fp, indent=2)
 
     # Save individual dpdash settings
@@ -477,9 +480,9 @@ def qqc_summary_add_forms(qqc_summary_df: Path, qqc_ss_dir) -> None:
 
     # set formsqc location
     if '_dev' in str(qqc_ss_dir):
-        forms_qc_path = Path('/data/predict/data_from_nda_dev/formqc')
+        forms_qc_path = Path('/data/predict1/data_from_nda_dev/formqc')
     else:
-        forms_qc_path = Path('/data/predict/data_from_nda/formqc')
+        forms_qc_path = Path('/data/predict1/data_from_nda/formqc')
         
     # get forms qc df
     matching_csvs = list(forms_qc_path.glob(
