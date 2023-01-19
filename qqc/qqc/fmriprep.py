@@ -10,7 +10,7 @@ def run_fmriprep_on_data(rawdata_dir: Path,
                          session_id: str,
                          fmriprep_outdir_root: Path,
                          fs_outdir_root: Path,
-                         temp_dir: str = '/data/predict/kcho/tmp',
+                         temp_dir: str = '/data/predict1/home/kcho/tmp',
                          bsub: bool = True) -> None:
     '''Run fmriprep following the quick QC
 
@@ -26,7 +26,7 @@ def run_fmriprep_on_data(rawdata_dir: Path,
     # img_loc = '/data/predict/mg1050/singularity_images/fmriprep-20.2.6.sif'
     # img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc0.simg'
     # img_loc = '/data/predict/kcho/singularity_images/fmriprep-22.0.0rc2.simg'
-    img_loc = '/data/predict1/kcho/singularity_images/fmriprep-22.1.0.simg'
+    img_loc = '/data/predict1/home/kcho/singularity_images/fmriprep-22.1.0.simg'
     singularity = '/apps/released/gcc-toolchain/gcc-4.x/singularity/' \
                   'singularity-3.7.0/bin/singularity'
 
