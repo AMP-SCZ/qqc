@@ -188,8 +188,7 @@ def json_check(json_files: List[str],
     df_all_shared = pd.DataFrame()
     for (name_1, name_2), (first_dict, second_dict) in zip(names, sets):
 
-        diff_items = {k: first_dict[k] for k in first_dict
-                      if k in second_dict and first_dict[k] != second_dict[k]}
+        diff_items = get_diff_dict_only(first_dict, second_dict)
         shared_items = {k: first_dict[k] for k in first_dict
                         if k in second_dict and
                         first_dict[k] == second_dict[k]}
@@ -224,11 +223,106 @@ def json_check(json_files: List[str],
         # 'ProcedureStepDescription', 'StationName',
         # 'DeviceSerialNumber'
         for i in to_drop_list:
-            # try:
-            print(df_tmp)
-            df_tmp.drop(i, inplace=True)
-            # except:
-                # pass
+            if i in df_tmp.index:
+                df_tmp.drop(i, inplace=True)
+
+
+    if print_diff:
+        print_diff_shared('Different items', df_all_diff)
+
+    if print_shared:
+        print_diff_shared('The same items included in both each comparison',
+                          df_all_shared)
+
+    return (df_all_diff, df_all_shared)
+
+
+def get_diff_dict_only(dict_in: dict, dict_template: dict) -> dict:
+    diff_dict = {}
+    for k, v in dict_in.items():
+        if k in dict_template:
+            if dict_in[k] != dict_template[k]:
+                diff_dict[k] = v
+        else:
+            diff_dict[k] = v
+
+    return diff_dict
+
+
+def get_diff_dict_with_series_desc(dict_in: dict, dict_template: dict) -> dict:
+    diff_dict = {}
+    for k, v in dict_in.items():
+        if k == 'SeriesDescription':
+            diff_dict[k] = v
+        elif k in dict_template:
+            if dict_in[k] != dict_template[k]:
+                diff_dict[k] = v
+        else:
+            diff_dict[k] = v
+
+    return diff_dict
+
+
+def json_check_new_tmp(json_files: List[str],
+                       print_diff: bool = True,
+                       print_shared: bool = False,
+                       **kwargs):
+    '''Iteratively compare between MR protocol json files and print outputs'''
+    dicts = []
+    for i in json_files:
+        with open(i, 'r') as f:
+            single_dict = json.load(f)
+            dicts.append(single_dict)
+
+    names = itertools.combinations(json_files, 2)
+    sets = itertools.combinations(dicts, 2)
+
+    df_all_diff = pd.DataFrame()
+    df_all_shared = pd.DataFrame()
+    for (name_1, name_2), (first_dict, second_dict) in zip(names, sets):
+        diff_items1 = get_diff_dict_only(first_dict, second_dict)
+        diff_items2 = get_diff_dict_only(second_dict, first_dict)
+        # diff_items2 = {k: second_dict[k] for k in second_dict
+                       # if k in first_dict and second_dict[k] != first_dict[k]}
+        shared_items = {k: first_dict[k] for k in first_dict
+                        if k in second_dict and
+                        first_dict[k] == second_dict[k]}
+
+        df_diff1 = pd.DataFrame.from_dict(diff_items1,
+                orient='index',
+                columns=[f'{Path(name_1).name}'])
+        df_diff2 = pd.DataFrame.from_dict(diff_items2,
+                orient='index',
+                columns=[f'{Path(name_2).name}'])
+        df_diff = pd.concat([df_diff1, df_diff2], axis=1)
+
+        df_shared = pd.DataFrame.from_dict(
+                dict((x, str(y)) for x, y in shared_items.items()),
+                orient='index',
+                columns=[f'{Path(name_1).name} (vs {Path(name_2).name})'])
+
+        df_all_diff = pd.concat([df_all_diff, df_diff], axis=1, sort=True)
+        df_all_shared = pd.concat([df_all_shared, df_shared], axis=1, sort=True)
+
+    # drop unnecessary indices
+    for df_tmp in df_all_diff, df_all_shared:
+        to_drop_list = [
+            'AcquisitionTime', 'ImageOrientationPatientDicom',
+            'ImageOrientationPatientDICOM',
+            'SliceTiming',
+            'global', 'TxRefAmp',
+            'dcmmeta_affine', 'WipMemBlock',
+            'SAR', 'time',
+            'ShimSetting', 'ImageOrientationText']
+
+        # Include to detect different machine
+        # 'InstitutionAddress', 'InstitutionName',
+        # 'InstitutionalDepartmentName', 'ManufacturersModelName',
+        # 'ProcedureStepDescription', 'StationName',
+        # 'DeviceSerialNumber'
+        for i in to_drop_list:
+            if i in df_tmp.index:
+                df_tmp.drop(i, inplace=True)
 
 
     if print_diff:
@@ -258,9 +352,7 @@ def json_check_tmp(json_files: List[str],
     df_all_diff = pd.DataFrame()
     df_all_shared = pd.DataFrame()
     for (name_1, name_2), (first_dict, second_dict) in zip(names, sets):
-        diff_items = {k: first_dict[k] for k in first_dict
-                      if k in second_dict and first_dict[k] != second_dict[k] \
-                              or k == 'SeriesDescription'}
+        diff_items = get_diff_dict_with_series_desc(first_dict, second_dict)
         shared_items = {k: first_dict[k] for k in first_dict
                         if k in second_dict and
                         first_dict[k] == second_dict[k]}
@@ -596,7 +688,6 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                                  if (x.parent.name != 'anat') and
                                     (x.parent.name != 'ignore') and
                                     ('_fa' not in x.name.lower())]
-    print(non_anat_json_paths_input)
 
     anat_json_paths_input = [x for x in json_paths_input
                              if x.parent.name == 'anat']
