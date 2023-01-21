@@ -170,28 +170,6 @@ if __name__ == '__main__':
     logger.info(f'command used: \ndicom_to_dpacc_bids.py {args_reconstruct}')
     logger.info('Dicom to DPACC BIDS conversion started')
 
-    site = args.subject_name[:2]
-
-    if args.standard_dir is None:
-        xa_subjects = config.get('XA30 list', 'xa_30_list')
-        xa_subject = f'{args.subject_name}/{args.session_name}' in xa_subjects
-        if xa_subject:
-            args.standard_dir = config.get('XA30 template', site)
-        else:
-            args.standard_dir = config.get('First Scan', site)
-
-        # xa_update_date = datetime.strptime(
-            # config.get('XA30 update date', site, fallback='2099-01-01'),
-            # '%Y-%m-%d')
-        # scan_date = datetime.strptime(
-            # re.search('(\d{8})', args.session_name).group(1),
-            # '%Y%m%d')
-
-        # if (scan_date - xa_update_date).days > 0:
-            # args.standard_dir = config.get('XA30 template', site)
-        # else:
-            # args.standard_dir = config.get('First Scan', site)
-
     dicom_to_bids_QQC(args)
     logger.info('Completed')
 

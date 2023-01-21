@@ -4,7 +4,6 @@ import sys
 import re
 sys.path.append(str(scripts_path))
 
-from dicom_to_dpacc_bids import parse_args
 from qqc.pipeline import dicom_to_bids_QQC
 from qqc.dicom_files import get_dicom_files_walk, \
         get_diff_in_csa_for_all_measures
@@ -518,3 +517,4 @@ def test_ME_data():
 
     print(args)
     dicom_to_bids_QQC(args)
+
