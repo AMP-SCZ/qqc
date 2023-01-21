@@ -89,7 +89,6 @@ def dicom_to_bids_QQC(args) -> None:
     else:
         qc_out_dir = deriv_p / 'quick_qc' / subject_name / session_name
     qc_out_dir.mkdir(exist_ok=True, parents=True)
-    standard_dir = Path(args.standard_dir)
 
     # BIDS_root / rawdata / sub-${subject} / ses-${session}
     subject_dir = bids_root / 'rawdata' / subject_name
@@ -113,16 +112,24 @@ def dicom_to_bids_QQC(args) -> None:
                                            args.force_copy_dicom_to_source)
 
     # XA30
-    if standard_dir is None:
+    standard_dir = None
+    if args.standard_dir is None:
         config = configparser.ConfigParser()
         config.read(args.config)
         for root, dirs, files in os.walk(qqc_input):
             for subdir in dirs:
                 if 't1w_mpr_nd' in subdir.lower():
                     standard_dir = Path(config.get('XA30 template', site))
+                    break
                 elif '!' in subdir.lower():
-                    # sys.exit()  # GE data
-                    pass
+                    # sys.exit()  # GE data  #TODO
+                    standard_dir = Path(config.get('GE template', 'a'))
+                    break
+
+        if standard_dir is None:
+            standard_dir = Path(config.get('First Scan', site))
+    else:
+        standard_dir = Path(args.standard_dir)
 
     if args.nifti_dir:  # if nifti directory is given
         df_full = get_information_from_rawdata(args.nifti_dir)
