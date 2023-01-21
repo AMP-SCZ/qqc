@@ -262,8 +262,8 @@ def infotodict(seqinfo):
 
     # check machine
     ds = dcmread(seqinfo[0].example_dcm_file_path)
-    xa30 = True if 'xa30' in ds.SoftwareVersions.lower() else False
-    ge_machine = True if 'ge' in ds.Manufacturer.lower() else False
+    xa30 = True if 'xa30' in str(ds.SoftwareVersions).lower() else False
+    ge_machine = True if 'ge' in str(ds.Manufacturer).lower() else False
 
     for s in seqinfo:
         if 't1w' in s.series_description.lower():
@@ -284,9 +284,9 @@ def infotodict(seqinfo):
                     info[t1w_axil].append({'item': s.series_id})
             elif ge_machine:
                 if 'orig' in s.series_description.lower():
-                    info[t1w_nonnorm_orig].append({'item': s.series_id})
+                    info[t1w_axil].append({'item': s.series_id})
                 else:
-                    info[t1w_nonnorm].append({'item': s.series_id})
+                    info[t1w].append({'item': s.series_id})
             else:
                 if 'NORM' in s.image_type:
                     info[t1w_norm].append({'item': s.series_id})
@@ -313,9 +313,9 @@ def infotodict(seqinfo):
                     info[t2w_axil].append({'item': s.series_id})
             elif ge_machine:
                 if 'orig' in s.series_description.lower():
-                    info[t2w_nonnorm_orig].append({'item': s.series_id})
+                    info[t2w_axil].append({'item': s.series_id})
                 else:
-                    info[t2w_nonnorm].append({'item': s.series_id})
+                    info[t2w].append({'item': s.series_id})
             else:
                 if 'NORM' in s.image_type:
                     info[t1w_norm].append({'item': s.series_id})
