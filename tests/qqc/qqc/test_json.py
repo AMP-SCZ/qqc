@@ -106,6 +106,13 @@ def test_find_matching_files_between_BIDS_sessions_two():
     print(Path('test.csv').absolute())
 
 
+def test_find_matching_files_between_BIDS_sessions_after_xa30():
+    input_dir = '/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-WU09114/ses-202301101'
+    standard_dir = '/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-WU04342/ses-202210101'
+    json_df_all = find_matching_files_between_BIDS_sessions(input_dir, standard_dir)
+    json_df_all.to_csv('test.csv')
+    print(Path('test.csv').absolute())
+
 def test_find_matching_files_between_BIDS_sessions_missing_input():
     print()
     pd.set_option('max_columns', 50)
