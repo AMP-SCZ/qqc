@@ -412,6 +412,28 @@ def json_check_tmp(json_files: List[str],
     return (df_all_diff, df_all_shared)
 
 
+def is_strct_to_use(json_dict) -> str:
+    '''AMP-SCZ project uses normalized T1w'''
+    series_desc = json_dict['SeriesDescription'].lower()
+
+    if 't1w' in series_desc or 't2w' in series_desc:
+        pass
+    else:
+        return False
+
+    if 'xa30' in json_dict['SoftwareVersions'].lower():
+        if '_nd' in series_desc:
+            return 'strct_to_use'
+        else:
+            return 'auxiliary'
+
+    else: # non-XA30
+        if 'norm' in [x.lower() for x in json_dict['ImageType']]:
+            return 'strct_to_use'
+        else:
+            return 'auxiliary'
+
+
 def get_all_json_information_quick(data_dir):
     json_paths = get_all_files_walk(data_dir, 'json')
     df_path_order = sort_json_paths_with_series_number(json_paths)
@@ -425,6 +447,7 @@ def get_all_json_information_quick(data_dir):
 
         with open(json_path_input, 'r') as json_file:
             data = json.load(json_file)
+            strct_to_use = is_strct_to_use(data)
 
             if 'ImageTypeText' in data.keys():
                 image_type = str(data['ImageTypeText'])
@@ -439,14 +462,19 @@ def get_all_json_information_quick(data_dir):
             'json_suffix': json_suffix_input,
             'image_type': image_type,
             'series_num': series_num,
-            'series_desc': series_desc})
+            'series_desc': series_desc,
+            'strct_to_use': strct_to_use})
 
-        json_df_tmp['run_num'] = json_df_tmp['json_suffix'].str.extract(
-                'run-(\d+)')
         json_df_tmp['num_num'] = json_df_tmp['json_suffix'].str.extract(
                 'num-(\d+)')
-        json_df_tmp['scout_num'] = json_df_tmp['json_path'].apply(
-                lambda x: x.name).str.split('.').str[0].str[-1]
+        
+        if strct_to_use or 'fmri' in series_desc:
+            pass
+        else:
+            json_df_tmp['run_num'] = json_df_tmp['json_suffix'].str.extract(
+                    'run-(\d+)')
+            json_df_tmp['scout_num'] = json_df_tmp['json_path'].apply(
+                    lambda x: x.name).str.split('.').str[0].str[-1]
 
         json_df = pd.concat([json_df, json_df_tmp], sort=False)
 
@@ -491,7 +519,8 @@ def find_matching_files_between_BIDS_sessions(
             json_df_input, json_df_std,
             how='left',
             on=['series_desc', 'run_num',
-                'num_num', 'scout_num', 'distortion_map_before'],
+                'num_num', 'scout_num', 'distortion_map_before',
+                'strct_to_use'],
             suffixes=['_input', '_std'])
         # 'image_type' is removed from keys to match for XA30 data test
     else:
@@ -499,7 +528,7 @@ def find_matching_files_between_BIDS_sessions(
             json_df_input, json_df_std,
             how='left',
             on=['series_desc', 'run_num',
-                'num_num', 'scout_num'],
+                'num_num', 'scout_num', 'strct_to_use'],
             suffixes=['_input', '_std'])
         # 'image_type' is removed from keys to match for XA30 data test
 
@@ -548,7 +577,6 @@ def find_matching_files_between_BIDS_sessions(
                     json_df_all.loc[index, 'json_suffix_std'] = r2.json_suffix
                     json_df_all.loc[index, 'series_num_std'] = r2.series_num
                     diff_in_series_num = diff
-
 
         # scout
         if pd.isnull(row.json_path_std) and \
