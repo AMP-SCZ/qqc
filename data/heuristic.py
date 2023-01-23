@@ -260,10 +260,16 @@ def infotodict(seqinfo):
             localizer_aligned: [],
             scout: []}
 
-    # check machine
-    ds = dcmread(seqinfo[0].example_dcm_file_path)
-    xa30 = True if 'xa30' in str(ds.SoftwareVersions).lower() else False
-    ge_machine = True if 'ge' in str(ds.Manufacturer).lower() else False
+    # check machine and software versions
+    for s in seqinfo:
+        try:
+            ds = dcmread(s.example_dcm_file_path)
+            sv = str(ds.SoftwareVersions)
+            xa30 = True if 'xa30' in sv.lower() else False
+            ge_machine = True if 'ge' in sv.lower() else False
+            break
+        except AttributeError:
+            pass
 
     for s in seqinfo:
         if 't1w' in s.series_description.lower():
