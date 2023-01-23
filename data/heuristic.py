@@ -267,6 +267,8 @@ def infotodict(seqinfo):
             sv = str(ds.SoftwareVersions)
             xa30 = True if 'xa30' in sv.lower() else False
             ge_machine = True if 'ge' in sv.lower() else False
+            print(f'Is it XA30: {xa30}')
+            print(f'Is it GE: {ge_machine}')
             break
         except AttributeError:
             pass
@@ -324,7 +326,7 @@ def infotodict(seqinfo):
                     info[t2w].append({'item': s.series_id})
             else:
                 if 'NORM' in s.image_type:
-                    info[t1w_norm].append({'item': s.series_id})
+                    info[t2w_norm].append({'item': s.series_id})
                 else:
                     info[t2w_nonnorm].append({'item': s.series_id})
 
