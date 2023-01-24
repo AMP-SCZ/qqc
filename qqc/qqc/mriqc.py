@@ -70,7 +70,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
         /data /out participant \
         -w /work --participant-label {subject_id} \
         --session-id {session_id.split("-")[1]} \
-        --nprocs 4 --mem 8G --omp-nthreads 2 \
+        --nprocs 8 --mem 16G --omp-nthreads 2 \
         --no-sub \
         --verbose-reports'
 
@@ -78,7 +78,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
         command = f'bsub -q pri_pnl \
                 -o {mriqc_outdir_root}/mriqc.out \
                 -e {mriqc_outdir_root}/mriqc.err \
-                -n 4 -J mriqc_{subject_id}_{session_id} \
+                -n 8 -J mriqc_{subject_id}_{session_id} \
                 {command}'
 
     command = re.sub('\s+', ' ', command)
