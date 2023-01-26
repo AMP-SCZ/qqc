@@ -8,7 +8,8 @@ def run_quick_dwi_preproc_on_data(rawdata_dir: Path,
                                   subject_id: str,
                                   session_id: str,
                                   dwipreproc_outdir_root: Path,
-                                  bsub: bool = True) -> None:
+                                  bsub: bool = True,
+                                  cpu_only: bool = False) -> None:
     '''Run quick DWI preprocessing following the quick QC
 
     Key Argument:
@@ -30,12 +31,16 @@ def run_quick_dwi_preproc_on_data(rawdata_dir: Path,
     command = f'/data/pnl/kcho/anaconda3/bin/python {dwipreproc_python_code} \
             --mri_root {rawdata_dir.parent} \
             --ampscz_id {subject_id} --session {session_id}'
+
+    if cpu_only:
+        command += ' --cpu_only'
     
     if bsub:
+        # command = f'bsub -q normal \
         command = f'bsub -q pri_pnl \
                 -o {dwipreproc_outdir_root}/dwipreproc.out \
                 -e {dwipreproc_outdir_root}/dwipreproc.err \
-                -n 8 -J dwipreproc_{subject_id}_{session_id} \
+                -n 1 -J dwipreproc_{subject_id}_{session_id} \
                 {command}'
 
     command = re.sub('\s+', ' ', command)
