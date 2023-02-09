@@ -49,7 +49,6 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     # os.environ['dcm2niix'] = \
             # '/data/predict/phantom_data/kcho/devel_soft/'\
             # 'dcm2niix_devel_branch/dcm2niix/build/bin/dcm2niix'
-# /data/predict/phantom_data/softwares/dcm2niix_bb3a6c3/build/bin/dcm2niix
     os.environ['dcm2niix'] = \
             '/data/predict/phantom_data/softwares/dcm2niix_bb3a6c3/' \
             'build/bin/dcm2niix'
@@ -58,7 +57,14 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
             # '/data/predict/phantom_data/softwares/dcm2niix_2a9fbe8/' \
             # 'build/bin/dcm2niix'
 
-    command = f'heudiconv \
+    # dcm2niix that works with ME XA30
+    # dcm2niix_loc = '/data/predict1/home/kcho/software/dcm2niix_1d4413e_20230121/build/bin/dcm2niix'
+
+    # os.environ["PATH"] += str(Path(dcm2niix_loc).parent)
+    # sys.path.append(str
+    # command = 'echo ${PATH}'
+    heudiconv_loc = '/data/pnl/kcho/anaconda3/bin/heudiconv'
+    command = f'{heudiconv_loc} \
         -d {dicom_input_root}' + '/{subject}/ses-{session}/*/* ' \
         f'-f {heuristic_file} ' \
         f'-s {subject_name} -ss {session_name} -c dcm2niix \
@@ -71,6 +77,8 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
     logger.info('Running heudiconv')
     logger.info('heudiconv command: %s' % command)
     print(os.popen(command).read())
+    # import sys
+    # sys.exit()
 
     # try:
         # proc = subprocess.check_output(command, stderr=subprocess.STDOUT)
