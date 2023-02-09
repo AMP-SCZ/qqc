@@ -158,23 +158,23 @@ def dicom_to_bids_QQC(args) -> None:
             heudiconv_nifti_dir_out = bids_rawdata_dir / subject_name / \
                     session_name
 
-            if heudiconv_nifti_dir_out.is_dir():
-                if len(list(heudiconv_nifti_dir_out.glob('*'))) > 0:
-                    pass
-                else:
-                    run_heudiconv(dicom_clearned_up_output,
-                                  subject_name.split('-')[1],
-                                  session_name.split('-')[1],
-                                  bids_rawdata_dir,
-                                  qc_out_dir,
-                                  args.force_heudiconv)
-            else:
-                run_heudiconv(dicom_clearned_up_output,
-                              subject_name.split('-')[1],
-                              session_name.split('-')[1],
-                              bids_rawdata_dir,
-                              qc_out_dir,
-                              args.force_heudiconv)
+            # if heudiconv_nifti_dir_out.is_dir():
+                # if len(list(heudiconv_nifti_dir_out.glob('*'))) > 0:
+                    # pass
+                # else:
+                    # run_heudiconv(dicom_clearned_up_output,
+                                  # subject_name.split('-')[1],
+                                  # session_name.split('-')[1],
+                                  # bids_rawdata_dir,
+                                  # qc_out_dir,
+                                  # args.force_heudiconv)
+            # else:
+            run_heudiconv(dicom_clearned_up_output,
+                          subject_name.split('-')[1],
+                          session_name.split('-')[1],
+                          bids_rawdata_dir,
+                          qc_out_dir,
+                          args.force_heudiconv)
 
             # remove temporary directory
             if Path(qqc_input).name.endswith('.zip') or \
