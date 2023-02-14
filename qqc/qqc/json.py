@@ -5,7 +5,7 @@ import re
 import os
 import json
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 import logging
 
 from qqc.qqc.nifti import compare_volume_to_standard_all_nifti
@@ -16,6 +16,16 @@ from qqc.utils.visualize import print_diff_shared
 
 logger = logging.getLogger(__name__)
 
+
+def ampscz_json_load(json_file: Union[str, Path]) -> dict:
+    data = json.load(json_file)
+
+    decimal_dict = {'AcquisitionDuration': 2}
+    for var, decimal_point in decimal_dict.items():
+        if var in data.keys():
+            data[var] = round(float(data[var]), decimal_point)
+
+    return data
 
 def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
     '''Read all json files from session_dir and return protocol name as df
@@ -36,7 +46,7 @@ def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
     num = 0
     for num, file in enumerate(json_paths_input):
         with open(file, 'r') as json_file:
-            data = json.load(json_file)
+            data = ampscz_json_load(json_file)
             series_num = data['SeriesNumber']
             series_desc = data['SeriesDescription']
             if 'ImageTypeText' in data:  # XA30
@@ -87,7 +97,7 @@ def json_check_for_a_session(json_files: List[str],
     # collect information from all json files
     for i in json_files:
         with open(i, 'r') as f:
-            single_dict = json.load(f)
+            single_dict = ampscz_json_load(f)
         bn_snum_dict[Path(i).name] = single_dict['SeriesNumber']
         bn_sname_dict[Path(i).name] = single_dict['SeriesDescription']
         single_dict = dict((x, y) for x, y in single_dict.items()
@@ -178,7 +188,7 @@ def json_check(json_files: List[str],
     dicts = []
     for i in json_files:
         with open(i, 'r') as f:
-            single_dict = json.load(f)
+            single_dict = ampscz_json_load(f)
             dicts.append(single_dict)
 
     names = itertools.combinations(json_files, 2)
@@ -271,7 +281,7 @@ def json_check_new_tmp(json_files: List[str],
     dicts = []
     for i in json_files:
         with open(i, 'r') as f:
-            single_dict = json.load(f)
+            single_dict = ampscz_json_load(f)
             dicts.append(single_dict)
 
     names = itertools.combinations(json_files, 2)
@@ -343,7 +353,7 @@ def json_check_tmp(json_files: List[str],
     dicts = []
     for i in json_files:
         with open(i, 'r') as f:
-            single_dict = json.load(f)
+            single_dict = ampscz_json_load(f)
             dicts.append(single_dict)
 
     names = list(itertools.combinations(json_files, 2))
@@ -446,7 +456,7 @@ def get_all_json_information_quick(data_dir):
                 get_naming_parts_bids(json_path_input.name)
 
         with open(json_path_input, 'r') as json_file:
-            data = json.load(json_file)
+            data = ampscz_json_load(json_file)
             strct_to_use = is_strct_to_use(data)
 
             if 'ImageTypeText' in data.keys():
@@ -778,7 +788,7 @@ def compare_data_to_standard(input_dir: str, standard_dir: str,
 def sort_json_paths_with_series_number(json_paths_input: List[Path]) -> list:
     df = pd.DataFrame({
         'filepath': json_paths_input,
-        'json': [json.load(open(x)) for x in json_paths_input]})
+        'json': [ampscz_json_load(open(x)) for x in json_paths_input]})
     df['series_number'] = df['json'].apply(lambda x: x['SeriesNumber'])
     df['series_name'] = df['json'].apply(lambda x: x['SeriesDescription'])
     df['series_number'] = df['series_number'].astype(int)
@@ -809,7 +819,7 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
     for i in json_files:
         cols.append(i.name)
         with open(i, 'r') as f:
-            single_dict = json.load(f)
+            single_dict = ampscz_json_load(f)
             dicts.append(single_dict)
 
     df_tmp = pd.DataFrame(dicts).T

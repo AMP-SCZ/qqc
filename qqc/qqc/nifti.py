@@ -8,6 +8,7 @@ import re
 from qqc.utils.files import get_all_files_walk
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
+from qqc.qqc.json import ampscz_json_load
 
 
 def compare_volume_to_standard_all_nifti(input_dir: str,
@@ -35,7 +36,7 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
             continue
 
         with open(input_json, 'r') as json_file:
-            data = json.load(json_file)
+            data = ampscz_json_load(json_file)
 
             series_num = data['SeriesNumber']
             series_desc = data['SeriesDescription'].lower()
@@ -56,7 +57,7 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
                     nifti_std.name.split('.')[0] + '.json')
 
             with open(std_json, 'r') as json_file:
-                data = json.load(json_file)
+                data = ampscz_json_load(json_file)
 
                 std_series_num = data['SeriesNumber']
                 std_series_desc = data['SeriesDescription'].lower()
@@ -191,7 +192,7 @@ def compare_volume_to_standard_all_nifti_test(input_dir: str,
         input_json = nifti_input.parent / (
                 nifti_input.name[:-7] + '.json')
         with open(input_json, 'r') as json_file:
-            data = json.load(json_file)
+            data = ampscz_json_load(json_file)
 
             image_type = data['ImageType']
             series_num = data['SeriesNumber']
@@ -215,7 +216,7 @@ def compare_volume_to_standard_all_nifti_test(input_dir: str,
         # if partial_rescan:
         std_json = nifti_std.parent / (nifti_std.name[:-7] + '.json')
         with open(std_json, 'r') as json_file:
-            data = json.load(json_file)
+            data = ampscz_json_load(json_file)
             std_image_type = data['ImageType']
             std_series_num = data['SeriesNumber']
             std_series_desc = data['SeriesDescription'].lower()
