@@ -150,7 +150,9 @@ def get_motion_fMRI(fmriprep: Path) -> Tuple:
 def get_anat_qc(mriqc_anat_dir: Path) -> Tuple:
     df = pd.DataFrame(columns=['modality'])
     if mriqc_anat_dir.is_dir():
-        for json_f in mriqc_anat_dir.glob('*rec-norm_run-1_T*w.json'):
+        for json_f in mriqc_anat_dir.glob('*_T*w.json'):
+            if 'nonnorm' in json_f.name:
+                continue
 
             with open(json_f, 'r') as fp:
                 data = json.load(fp)
