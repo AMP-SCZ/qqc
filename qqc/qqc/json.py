@@ -144,7 +144,7 @@ def json_check_for_a_session(json_files: List[str],
 
     for col in df_all_shared.columns:
         if col not in all_cols:
-            all_cols.append(col) 
+            all_cols.append(col)
         df_all_shared[f'{col}_unique_rank'] = df_all[col].rank()
 
     for col in all_cols:
