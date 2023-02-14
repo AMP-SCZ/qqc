@@ -135,7 +135,10 @@ def check_order_of_series(df_full_input: pd.DataFrame,
     series_order_df_all = pd.merge(
             series_num_target_df, series_num_df,
             on='series_num', how='outer').sort_values(by='series_num')
-    series_order_df_all.set_index('series_num', inplace=True)
+
+    # squeeze
+    series_order_df_all['series_num_target'] = series_order_df_all['series_num']
+    series_order_df_all = series_order_df_all.dropna().reset_index(drop=True)
 
     series_order_df_all['order_diff'] = series_order_df_all['series_order'] \
             != series_order_df_all['series_order_target']
@@ -152,7 +155,8 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     series_order_df_all = pd.concat([series_order_summary,
                                      series_order_df_all])
-
+    series_order_df_all = series_order_df_all[['series_num', 'series_order_target', 'series_order',
+       'series_num_target', 'order_diff']]
     return series_order_df_all
 
 
