@@ -105,7 +105,7 @@ def json_check_for_a_session(json_files: List[str],
         # image orientation round up
         if 'ImageOrientationPatientDICOM' in single_dict.keys():
             single_dict['ImageOrientationPatientDICOM'] = np.around(
-                    single_dict['ImageOrientationPatientDICOM'], 6)
+                    single_dict['ImageOrientationPatientDICOM'], 5)
         dicts.append(single_dict)
 
     # convert collected information into pandas dataframe
