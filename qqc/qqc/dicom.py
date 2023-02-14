@@ -138,16 +138,16 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     # drop FA & PHOENIX
     series_order_df_all = series_order_df_all[
-            series_order_df_all['series_order_target'].str.contains(
+            ~series_order_df_all['series_order_target'].str.contains(
                 'fa', na=False)]
     series_order_df_all = series_order_df_all[
-            series_order_df_all['series_order_target'].str.contains(
+            ~series_order_df_all['series_order_target'].str.contains(
                 'phoenix', na=False)]
     series_order_df_all = series_order_df_all[
-            series_order_df_all['series_order'].str.contains(
+            ~series_order_df_all['series_order'].str.contains(
                 'fa', na=False)]
     series_order_df_all = series_order_df_all[
-            series_order_df_all['series_order'].str.contains(
+            ~series_order_df_all['series_order'].str.contains(
                 'phoenix', na=False)]
 
     # squeeze
