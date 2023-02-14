@@ -8,7 +8,7 @@ import re
 from qqc.utils.files import get_all_files_walk
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
-from qqc.qqc.json import ampscz_json_load
+from qqc.utils.files import ampscz_json_load
 
 
 def compare_volume_to_standard_all_nifti(input_dir: str,

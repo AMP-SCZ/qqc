@@ -15,6 +15,17 @@ import os
 import zipfile
 import re
 import itertools
+from typing import Union
+
+def ampscz_json_load(json_file: Union[str, Path]) -> dict:
+    data = json.load(json_file)
+
+    decimal_dict = {'AcquisitionDuration': 2}
+    for var, decimal_point in decimal_dict.items():
+        if var in data.keys():
+            data[var] = round(float(data[var]), decimal_point)
+
+    return data
 
 
 def get_all_files_walk(root_dir: str, extension: str) -> List[Path]:

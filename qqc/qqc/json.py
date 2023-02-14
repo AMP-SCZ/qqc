@@ -5,27 +5,17 @@ import re
 import os
 import json
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple
 import logging
 
 from qqc.qqc.nifti import compare_volume_to_standard_all_nifti
 from qqc.utils.files import get_all_files_walk, loop_through_two_lists, \
-        get_files_from_json
+        get_files_from_json, ampscz_json_load
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
 
 logger = logging.getLogger(__name__)
 
-
-def ampscz_json_load(json_file: Union[str, Path]) -> dict:
-    data = json.load(json_file)
-
-    decimal_dict = {'AcquisitionDuration': 2}
-    for var, decimal_point in decimal_dict.items():
-        if var in data.keys():
-            data[var] = round(float(data[var]), decimal_point)
-
-    return data
 
 def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
     '''Read all json files from session_dir and return protocol name as df

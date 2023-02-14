@@ -136,6 +136,20 @@ def check_order_of_series(df_full_input: pd.DataFrame,
             series_num_target_df, series_num_df,
             on='series_num', how='outer').sort_values(by='series_num')
 
+    # drop FA & PHOENIX
+    series_order_df_all = series_order_df_all[
+            series_order_df_all['series_order_target'].str.contains(
+                'fa', na=False)]
+    series_order_df_all = series_order_df_all[
+            series_order_df_all['series_order_target'].str.contains(
+                'phoenix', na=False)]
+    series_order_df_all = series_order_df_all[
+            series_order_df_all['series_order'].str.contains(
+                'fa', na=False)]
+    series_order_df_all = series_order_df_all[
+            series_order_df_all['series_order'].str.contains(
+                'phoenix', na=False)]
+
     # squeeze
     series_order_df_all['series_num_target'] = series_order_df_all['series_num']
     series_order_df_all = series_order_df_all.dropna().reset_index(drop=True)
