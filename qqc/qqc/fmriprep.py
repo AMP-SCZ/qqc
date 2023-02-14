@@ -60,7 +60,7 @@ def run_fmriprep_on_data(rawdata_dir: Path,
         {img_loc} \
         /data /out participant \
         -w /work --participant-label {subject_id} \
-        --nprocs 8 --mem 20G --omp-nthreads 2 \
+        --nprocs 10 --mem 20G --omp-nthreads 2 \
         --fs-subjects-dir /fsdir \
         --output-layout bids \
         --verbose \
@@ -68,8 +68,6 @@ def run_fmriprep_on_data(rawdata_dir: Path,
         --notrack \
         --bids-filter-file /filter.json'
 
-    print(command)
-    
     if bsub:
         command = f'bsub -q pri_pnl \
                 -o {fmriprep_outdir_root}/fmriprep.out \
