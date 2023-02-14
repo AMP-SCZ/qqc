@@ -480,6 +480,10 @@ def get_all_json_information_quick(data_dir):
 
     json_df = json_df.reset_index().drop('index', axis=1)
 
+    if 'series_desc' not in json_df.columns:
+        print(json_df)
+        return json_df
+
     # adding distortion_map_before
     distortion_index = json_df[
             json_df.series_desc.str.contains(
