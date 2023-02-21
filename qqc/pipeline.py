@@ -413,6 +413,13 @@ def get_dicom_df(dicom_input_dir: Path,
         # remove repeated scans
         # df_full = remove_repeated_scans(df_full)
 
+
+    # ignore FA and colFA maps
+    df_full = df_full[~df_full['series_desc'].str.contains(
+            '_fa', flags=re.IGNORECASE, regex=True)]
+    df_full = df_full[~df_full['series_desc'].str.contains(
+            '_colfa', flags=re.IGNORECASE, regex=True)]
+
     return df_full
 
 
@@ -479,8 +486,9 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     logger.info('Checking number and order of scan series')
     df_full['series_desc'] = df_full['series_desc'].str.lower()
     df_full_std['series_desc'] = df_full_std['series_desc'].str.lower()
-    check_num_order_of_series(df_full, df_full_std, qc_out_dir)
 
+    check_num_order_of_series(df_full, df_full_std, qc_out_dir)
+    
     logger.info('Comparison to standard')
     compare_data_to_standard(nifti_session_dir, standard_dir, qc_out_dir)
 
