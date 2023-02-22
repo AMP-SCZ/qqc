@@ -14,7 +14,7 @@ TEST_ROOT_PATH = TEST_LIB_PATH.parent
 ASANA_ROOT = TEST_ROOT_PATH.parent
 sys.path.append(str(ASANA_ROOT))
 
-from lib.server_scanner import grep_all_paths, grep_subject_files, \
+from ampscz_asana.server_scanner import grep_all_paths, grep_subject_files, \
         grep_id_basename, send_to_caselist, consent_date_extraction
 
 

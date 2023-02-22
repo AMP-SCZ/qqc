@@ -9,6 +9,14 @@ import pandas as pd
 #example caselist
 '''
 
+def grep_run_sheets(phoenix_dir: Path) -> list:
+    '''Grab run sheets from PHOENIX'''
+    protected_dir = phoenix_dir / 'PROTECTED'
+    subject_directories_under_phoenix = protected_dir.glob(
+            '*/raw/*/*/*Run_sheet*csv')
+    return list(subject_directories_under_phoenix)
+
+
 def grep_all_paths(phoenix_dir: Path) -> list:
     #this will grab all paths through the files level,
     # right now the output is just the survey/.json because that is the only example file we have in there
@@ -65,6 +73,7 @@ def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
     site = ampscz_id[:2]
     json_file_path = phoenix_root / 'PROTECTED' / f'Pronet{site}' / \
             'raw' / ampscz_id / 'surveys' / f'{ampscz_id}.Pronet.json'
+
     with open(json_file_path, 'r') as fp:
         json_data = json.load(fp)
     consent_date = json_data[0]['chric_consent_date']
@@ -74,7 +83,7 @@ def consent_date_extraction(ampscz_id: str, phoenix_root: Path) -> str:
 def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
     '''Get consent date string for a given Prescient AMP-SCZ subject'''
     site = ampscz_id[:2]
-    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \ 
+    csv_file_path = phoenix_root / 'PROTECTED' / f'Prescient{site}' / \
         'raw' / ampscz_id / 'surveys' / \
         f'{ampscz_id}_informed_consent_run_sheet.csv'
     df = pd.read_csv(csv_file_path)
