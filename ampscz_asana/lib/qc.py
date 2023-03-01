@@ -22,12 +22,11 @@ def get_entry_date_from_run_sheet(run_sheet: Path) -> str:
 
     entry_date = df.set_index('field_name').loc['chrmri_entry_date',
                                                 'field_value']
-
-    if 'Prescient' in str(run_sheet):
-        entry_date = convert_AU_to_US_date(entry_date)
-
     if pd.isna(entry_date):
         return ''
+    
+    if 'Prescient' in str(run_sheet):
+        entry_date = convert_AU_to_US_date(entry_date)
 
     entry_date = re.sub('-', '_', entry_date)
 
