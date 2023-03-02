@@ -266,6 +266,7 @@ def infotodict(seqinfo):
             ds = dcmread(s.example_dcm_file_path)
             sv = str(ds.SoftwareVersions)
             xa30 = True if 'xa30' in sv.lower() else False
+            xa31 = True if 'xa31' in sv.lower() else False
             ge_machine = True if 'ge' in sv.lower() else False
             print(f'Is it XA30: {xa30}')
             print(f'Is it GE: {ge_machine}')
@@ -276,7 +277,7 @@ def infotodict(seqinfo):
     for s in seqinfo:
         if 't1w' in s.series_description.lower():
             # XA30
-            if xa30:
+            if xa30 or xa31:
                 if 't1w_mpr_nd' in s.series_description.lower():
                     # Siemens XA30 has no 'NORM' in ImageType, but stores
                     # the norm label in one of the private tag.
@@ -305,7 +306,7 @@ def infotodict(seqinfo):
 
         if 't2w' in s.series_description.lower():
             # XA30
-            if xa30:
+            if xa30 or xa31:
                 if 't2w_spc_nd' in s.series_description.lower():
                     # Siemens XA30 has no 'NORM' in ImageType, but stores
                     # the norm label in one of the private tag.
