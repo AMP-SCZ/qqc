@@ -152,7 +152,10 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     # squeeze
     series_order_df_all['series_num_target'] = series_order_df_all['series_num']
-    series_order_df_all = series_order_df_all.dropna().reset_index(drop=True)
+    series_order_df_all = pd.concat([
+        series_order_df_all[['series_num_target', 'series_order_target']].dropna().reset_index(drop=True),
+        series_order_df_all[['series_num', 'series_order']].dropna().reset_index(drop=True),
+        ], axis=1)
 
     series_order_df_all['order_diff'] = series_order_df_all['series_order'] \
             != series_order_df_all['series_order_target']
