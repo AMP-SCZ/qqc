@@ -419,6 +419,8 @@ def get_dicom_df(dicom_input_dir: Path,
             '_fa', flags=re.IGNORECASE, regex=True)]
     df_full = df_full[~df_full['series_desc'].str.contains(
             '_colfa', flags=re.IGNORECASE, regex=True)]
+    df_full = df_full[~df_full['series_desc'].str.contains(
+            'phoenixzipreport', flags=re.IGNORECASE, regex=True)]
 
     return df_full
 
@@ -478,9 +480,7 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
         print('No pydicom information in df_with_one_series')
 
     # load json information from the user givin standard BIDS directory
-    print(standard_dir)
     df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
-    print(df_full_std)
     df_full_std.sort_values('series_num', inplace=True)
 
     logger.info('Checking number and order of scan series')
