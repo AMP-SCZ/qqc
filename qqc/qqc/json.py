@@ -35,8 +35,8 @@ def jsons_from_bids_to_df(session_dir: Path) -> pd.DataFrame:
     json_paths_input = get_all_files_walk(session_dir, 'json')
     num = 0
     for num, file in enumerate(json_paths_input):
-    	if '_fa' in str(file).lower() or '_colfa' in str(file).lower():
-	    continue
+        if '_fa' in str(file).lower() or '_colfa' in str(file).lower():
+            continue
 
         with open(file, 'r') as json_file:
             data = ampscz_json_load(json_file)
@@ -714,7 +714,9 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     
     # ignore FA and colFA maps
     json_paths_input = [x for x in json_paths_input 
-            if not '_fa' in x.name.lower() or not '_colfa' in x.name.lower()]
+            if not '_fa' in x.name.lower() or
+               not '_colfa' in x.name.lower() or
+               not 'phoenixzipreport' in x.name.lower()]
 
     non_ignore_json_paths_input = [x for x in json_paths_input
                                  if (x.parent.name != 'ignore')]
