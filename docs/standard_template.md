@@ -11,7 +11,7 @@ The following list shows criteria for a good standard dataset to compare the new
 2. All series taken with the correct protocol.
 3. No duplication of any series.
 4. BIDS structured output with BIDS sidecar json files.
-5. Scanned shortly 
+5. Scanned near the beginning of the study 
 
 
 Each AMP-SCZ site should have a standard dataset, so any changes in the new scan can be detected by QQC. We will use "Standard template" to describe
