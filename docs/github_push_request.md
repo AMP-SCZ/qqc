@@ -75,8 +75,12 @@ git push
 ```
 
 10. Merge to a branch
-11. Delete the branch
+![This is an image](images/Pasted_Image_3_8_23__6_54_PM.png)
+![This is an image](images/Pasted_Image_3_8_23__6_54_PM-2.png)
 
+
+11. Delete the branch
+![This is an image](images/Pasted_Image_3_8_23__6_55_PM.png)
 
 
 
