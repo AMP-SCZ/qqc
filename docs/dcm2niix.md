@@ -32,6 +32,9 @@ If it returns a path of `dcm2niix`, your system has `dcm2niix` configured.
 If you want to use the `dcm2niix` above, add the following to your `~/.bashrc` and `source ~/.bashrc`
 ```sh
 export PATH=/data/predict1/home/kcho/software/dcm2niix_1d4413e_20230121/build/bin:${PATH}
+
+# then see if the command below returns the correct path of the dcm2niix
+which dcm2niix
 ```
 
 ## Setting up `dcm2niix` outside PNL
@@ -44,6 +47,6 @@ Once it is downloaded and compiled, add the `dcm2niix`'s bin directory to the `P
 # Add the following line to your ~/.bashrc 
 export PATH=/path/to/dcm2niix/root:${PATH}
 
-# save
-# then source ~/.bashrc before runnign QQC
+# then see if the command below returns the correct path of the dcm2niix
+which dcm2niix
 ```
