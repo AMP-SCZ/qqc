@@ -3,12 +3,21 @@
 QQC uses `heudiconv` to convert the raw dicom files to nifti files following the BIDS file structure. Since `heudiconv` calls `dcm2niix` in the conversion process, QQC users need to have `dcm2niix` in their shell environment.
 
 
-### Test if you have `dcm2niix` available already in your shell
+
+
+## Contents
+
+1. Test if you have `dcm2niix` available in your shell
+2. Setting up `dcm2niix` in PNL
+3. Setting up `dcm2niix` outside PNL
+
+
+
+## Test if you have `dcm2niix` available already in your shell
 
 ```sh
 which dcm2niix
 ```
-
 If it returns a path of `dcm2niix`, your system has `dcm2niix` configured.
 
 
