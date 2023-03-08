@@ -1,43 +1,52 @@
-# How to collaborate on Github from another person's branch
+# A short summary of steps required to collaborate with others on Github
+
 
 ## Contents
 
-1. How to create a new pull request
-2. How to make changes to another person's branch
-3. How to suggest changes to another person's branch
+1. [How to add a new function](https://github.com/AMP-SCZ/qqc/edit/main/docs/github_push_request.md#1-how-to-add-a-new-function)
+2. [How to make changes to another person's branch](https://github.com/AMP-SCZ/qqc/edit/main/docs/github_push_request.md#2-how-to-make-changes-to-another-persons-branch)
+3. [How to suggest changes to another person's branch](https://github.com/AMP-SCZ/qqc/edit/main/docs/github_push_request.md#3-how-to-suggest-changes-to-another-persons-branch)
 
 
-## 1. How to create a new pull request
+## 1. How to add a new function
 
 1. Pull the most recent version of the master branch
 
 ```sh
-git pull
+mkdir ~/tmp
+cd tmp
+git clone https://github.com/AMP-SCZ/qqc
+cd qqc
 ```
 
 
-2. Branch out
+2. Branch out to a new branch
 
 ```sh
-git checkout -b newfunction_kcho
+git checkout -b new_function_kcho
 ```
 
-3.  Edit the code
+3. Edit the code
 
-4. Add and Commit
+4. Select the files updated with `git add` and commit changes
 
 ```sh
-git add new_code.py
+git add new_code.py  # if you edited the new_code.py
 git commit -m "feat: new a_plus_one function is added"
 ```
 
 5. Push to github
 
 ```sh
-git push
+git push --set-upstream origin new_function_kcho
 ```
 
 6. Create push request
+![This is an image](images/Pasted_Image_3_8_23__6_34_PM.png)
+![This is an image](images/Pasted_Image_3_8_23__6_41_PM.png)
+
+
+
 7. Request review and get comments
 8. Pull any new changes added by collaborator
 
