@@ -1,7 +1,13 @@
-# How to collaborate on Github updating a code
+# How to collaborate on Github from another person's branch
+
+## Contents
+
+1. How to create a new pull request
+2. How to make changes to another person's branch
+3. How to suggest changes to another person's branch
 
 
-## Steps
+## Show to create a new pull request
 
 1. Pull the most recent version of the master branch
 
@@ -49,5 +55,14 @@ git push
 ```
 
 11. Repeat 6 to 9 until no more concerns
-12. Merge to a branch
-13. Delete the branch
+12. Pull the most change from the branch that you're trying to merge into. (just in case others have changed the `master` branch)
+
+```sh
+git checkout master
+git pull
+git checkout newfunction_kcho
+git merge master
+```
+
+14. Merge to a branch
+15. Delete the branch
