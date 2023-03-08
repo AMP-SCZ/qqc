@@ -21,7 +21,7 @@ the standard dataset.
 ## How to specify which standard template to use
 There are two ways to specify the standard template with QQC.
 
-1. Specify the location of the standard template when you exeucte `dicom_to_dpacc_bids.py`
+### 1. Specify the location of the standard template when you exeucte `dicom_to_dpacc_bids.py`
 
 eg)
 ```sh
@@ -32,7 +32,7 @@ dicom_to_dpacc_bids.py \
 ```
 
 
-2. Specify the location of the standard template for each site in a configuration file.
+### 2. Specify the location of the standard template for each site in a configuration file.
 
 `/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg`
 
