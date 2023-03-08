@@ -34,7 +34,9 @@ dicom_to_dpacc_bids.py \
 
 ### 2. Specify the location of the standard template for each site in a configuration file.
 
-`/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg`
+If `--standard_dir` is not specified from the shell command, QQC will look for the standard template in a configuration file. QQC will use the site code in the ID to match its standard template. The configuration file is structured in a way that different logics can be used to select different standard templates for a site eg) for an updated software version. The location of the configuration in the current PNL system is: `/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg`.
+
+Please make sure the permission of the configuration file is readable by the group, so others can read this configuration file when executing QQC.
 
 eg)
 ```cfg
