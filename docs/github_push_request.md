@@ -44,37 +44,38 @@ git push --set-upstream origin new_function_kcho
 6. Create push request
 ![This is an image](images/Pasted_Image_3_8_23__6_34_PM.png)
 ![This is an image](images/Pasted_Image_3_8_23__6_41_PM.png)
-![This is an image](images/Pasted_Image_3_8_23__6_47_PM.png)
 
 
 7. Request review and get comments
-8. Pull any new changes added by collaborator
 
+![This is an image](images/Pasted_Image_3_8_23__6_47_PM.png)
+
+
+8. Work on the comments (Edit the code following the suggestions)
 ```sh
+# pull if anyone pushed changes to the branch
 git pull
 ```
 
-9. Edit the code locally
-10. Commit and push the changes made
-
+Edit the code then,
 ```sh
 git add new_code.py
 git commit -m "fix: removed unnecessary loop"
 git push
 ```
 
-11. Repeat 6 to 9 until no more concerns
-12. Pull the most change from the branch that you're trying to merge into. (just in case others have changed the `master` branch)
+9. Once the review process is completed, pull the most recent changes from the branch that you're trying to merge into. (just in case others have changed the `master` branch)
 
 ```sh
 git checkout master
 git pull
-git checkout newfunction_kcho
+git checkout new_function_kcho
 git merge master
+git push
 ```
 
-14. Merge to a branch
-15. Delete the branch
+10. Merge to a branch
+11. Delete the branch
 
 
 
