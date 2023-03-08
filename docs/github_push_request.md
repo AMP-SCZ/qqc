@@ -44,7 +44,7 @@ git push --set-upstream origin new_function_kcho
 6. Create push request
 ![This is an image](images/Pasted_Image_3_8_23__6_34_PM.png)
 ![This is an image](images/Pasted_Image_3_8_23__6_41_PM.png)
-
+![This is an image](images/Pasted_Image_3_8_23__6_47_PM.png)
 
 
 7. Request review and get comments
