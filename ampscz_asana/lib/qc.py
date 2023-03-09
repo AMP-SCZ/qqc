@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 from ampscz_asana.lib.utils import convert_AU_to_US_date
 from datetime import datetime
+import os
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -132,6 +133,10 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
     df['datatype'] = df.file_path.apply(lambda x: x.name.split('_')[2])
+    df['other_files'] = df['file_loc'].apply(lambda x: os.listdir(Path(x).parent.absolute()))
+
+    
+
 
     datatype_index = df[df['datatype'] == datatype].index
     datatype_df = df.loc[datatype_index]
