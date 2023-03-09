@@ -115,6 +115,7 @@ git push
 1. Checkout to another person's branch and pull the most recent changes.
 
 ```sh
+git pull
 git checkout another_branch
 git pull
 ```
