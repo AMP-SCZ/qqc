@@ -14,6 +14,139 @@ git push --set-upstream origin pnldev_nick_new_api
 Then create a push request (PR), following step 6-11 of [How to add a new function](#1-how-to-add-a-new-function) below.
 
 
+## Quick tutorial on git
+
+### Branches
+
+Think of git branch as tree branches. Each branch has its head branch.
+
+> Simple example
+
+```sh
+--------X--------Y---------Z
+        │
+        └--------A---------B
+```
+
+- Y evolves from X
+- Z evolves from Y
+- A evolves from X
+- B evolves from A
+
+
+> QQC example 
+
+1. When we need to add different functions to QQC, we branch out from `pnldev`, which is the branch to have all of the most recent changes.
+
+```sh
+main--------pnldev-----nick_new_func
+              │
+              └--------kcho_new_func
+```
+
+- Nick adds a function to `pnldev` branch
+- Kevin adds a function to `pnldev` branch
+
+
+2. Once the edits are tested, push request (PR) to `pnldev` needs to be created to ask other members for the code review
+
+```sh
+main--------pnldev<----nick_new_func
+              │
+              └<-------kcho_new_func
+```
+
+- Nick creates PR from `nick_new_func` to `pnldev` and request code review.
+- Kevin create PR from `kcho_new_fucn` to `pnldev` and request code review.
+
+
+3. Others find issues with the PR and leave comments. Sometimes directly suggest changes.
+
+```sh
+main--------pnldev-----nick_new_func-----owen_fix_nick_new_func
+              │
+              └--------kcho_new_func
+                              │
+                              └--------nick_edit_kcho_new_func
+```
+
+- Owen finds a few errors in what Nick added in the `nick_new_func`. Owen branches out from `nick_new_func` to `owen_fix_nick_new_func` and
+edit the code. Once Owen finished editing, Owen creates PR to `nick_new_func` branch from `owne_fix_nick_new_func`, so Nick can review and
+accept the changes to `nick_new_func` branch.
+
+- Nick further develops the logics that kevin added in the `kcho_new_func`, by branching out from `kcho_new_func` to `nick_edit_kcho_new_func`.
+Nick creates PR from `nick_edit_kcho_new_func` to `kcho_new_func`, so Kevin can review and approve the suggested changes (into `kcho_new_func`
+
+
+4. Suggested changes are merged into each head branch
+
+```sh
+                                    
+main--------pnldev-----nick_new_func
+              │
+              └--------kcho_new_func
+```
+
+5. Once the review process is done, `nick_new_func` gets merged into `pnldev`
+
+```sh
+                                    
+                  merge
+main--------pnldev<----nick_new_func
+              │
+              └--------kcho_new_func
+```
+
+```sh
+main--------pnldev*
+              │
+              └--------kcho_new_func
+```
+
+6. Notice the `pnldev` branch, that `kcho_new_func` branched out from, is updated. So before `kcho_new_func` can get merged into `pnldev`,
+`kcho_new_func` branch needs to have all the updates that `pnldev` now has (from `nick_new_func`).
+
+```sh
+                                    
+main--------pnldev*
+              │
+              └------->kcho_new_func
+                 merge
+```
+
+6. `kcho_new_func` branch now has all edits that `nick_new_func` added to `pnldev`
+
+```sh
+                                    
+main--------pnldev*
+              │
+              └--------kcho_new_func*
+```
+
+7. `kcho_new_func` gets merged into `pnldev`
+
+```sh
+main--------pnldev*
+```
+
+
+1. How to pull repository from github
+```sh
+cd /go/to/any/directory
+git clone https://github.com/AMP-SCZ/qqc
+ls qqc
+```
+
+
+```sh
+cd qqc
+git branch  # see local branches
+git branch -a  # see all branches including branches on github
+```
+
+
+
+
 ## Git basics
 
 1. [How to add a new function](#1-how-to-add-a-new-function)
