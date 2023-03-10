@@ -1,5 +1,7 @@
 # A short summary of steps required to collaborate with others on Github
 
+For QQC development, we will use `pnldev` branch as the core branch to merge your updates to. Before making any edits to QQC repository, create a new branch from the `pnldev` branch. Once you finish editing the code, please merge it back to `pnldev`.
+
 
 ## Contents
 
