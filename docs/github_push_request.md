@@ -2,6 +2,17 @@
 
 For QQC development, we will use `pnldev` branch as the core branch to merge your updates to. Before making any edits to QQC repository, create a new branch from the `pnldev` branch. Once you finish editing the code, please merge it back to `pnldev`.
 
+```sh
+git clone https://github.com/AMP-SCZ/qqc
+cd qqc
+git checkout pnldev
+git pull
+git checkout pnldev_nick_new_api
+...
+git push --set-upstream origin pnldev_nick_new_api
+```
+Then follow 6-11 of [How to add a new function](#1-how-to-add-a-new-function) below.
+
 
 ## Contents
 
