@@ -1,7 +1,20 @@
 # A short summary of steps required to collaborate with others on Github
 
+For QQC development, we will use `pnldev` branch as the core branch to merge any of within PNL updates (new branches will be merged into `pnldev` branch). Before making any edits to QQC, please create a new branch from the `pnldev` branch and create a push request (PR) back to merge the changes back to `pnldev` for code review.
 
-## Contents
+```sh
+git clone https://github.com/AMP-SCZ/qqc
+cd qqc
+git checkout pnldev
+git pull
+git checkout pnldev_nick_new_api
+... # edit code / add updates
+git push --set-upstream origin pnldev_nick_new_api
+```
+Then create a push request (PR), following step 6-11 of [How to add a new function](#1-how-to-add-a-new-function) below.
+
+
+## Git basics
 
 1. [How to add a new function](#1-how-to-add-a-new-function)
 2. [How to make changes to another person's branch](#2-how-to-make-changes-to-another-persons-branch)
