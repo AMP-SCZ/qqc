@@ -1,6 +1,24 @@
+import os
+import re
+import pydicom
 import pandas as pd
 from pathlib import Path
 from qqc.dicom_files import get_diff_in_csa_for_all_measures
+
+
+def is_enhanced(qqc_input: Path) -> bool:
+    '''checks if the qqc_input has enhnaced XA30 dicom'''
+    for root, dirs, files in os.walk(qqc_input):
+        for file in files:
+            d = pydicom.read_file(Path(root) / file)
+
+            # TODO: update with more pythonic lines to extract 0002, 0002 tag
+            line_search = re.search(r'\(0002, 0002\).*(UI.*)', str(d))
+            if line_search:
+                if re.search('enhanced', line_search.group(1), re.IGNORECASE):
+                    return True
+                else:
+                    return False
 
 
 def check_image_fov_pos_ori_csa(csa_df_loc: pd.DataFrame,
