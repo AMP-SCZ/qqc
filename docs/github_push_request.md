@@ -1,5 +1,15 @@
 # A short summary of steps required to collaborate with others on Github
 
+
+## Contents
+
+- [Reminder](#reminder)
+- [Branches Tutorial](#brainches-tutorial)
+- [Git basics](#git-basics)
+
+
+## Reminder
+
 For QQC development, we will use `pnldev` branch as the core branch to merge any of within PNL updates (new branches will be merged into `pnldev` branch). Before making any edits to QQC, please create a new branch from the `pnldev` branch and create a push request (PR) back to merge the changes back to `pnldev` for code review.
 
 ```sh
@@ -14,13 +24,11 @@ git push --set-upstream origin pnldev_nick_new_api
 Then create a push request (PR), following step 6-11 of [How to add a new function](#1-how-to-add-a-new-function) below.
 
 
-## Quick tutorial on git
-
-### Branches
+## Branches tutorial
 
 Think of git branch as tree branches. Each branch has its head branch.
 
-> Simple example
+### Simple example
 
 ```sh
 --------X--------Y---------Z
@@ -34,7 +42,7 @@ Think of git branch as tree branches. Each branch has its head branch.
 - B evolves from A
 
 
-> QQC example 
+### QQC example 
 
 1. When we need to add different functions to QQC, we branch out from `pnldev`, which is the branch to have all of the most recent changes.
 
@@ -42,6 +50,9 @@ Think of git branch as tree branches. Each branch has its head branch.
 main--------pnldev-----nick_new_func
               │
               └--------kcho_new_func
+
+# git checkout pnldev
+# git checkout -b nick_new_func
 ```
 
 - Nick adds a function to `pnldev` branch
@@ -68,6 +79,10 @@ main--------pnldev-----nick_new_func-----owen_fix_nick_new_func
               └--------kcho_new_func
                               │
                               └--------nick_edit_kcho_new_func
+
+# git pull
+# git checkout nick_new_func
+# git checkout owen_fix_nick_new_func
 ```
 
 - Owen finds a few errors in what Nick added in the `nick_new_func`. Owen branches out from `nick_new_func` to `owen_fix_nick_new_func` and
@@ -112,18 +127,21 @@ main--------pnldev*
               │
               └------->kcho_new_func
                  merge
+# git checkout pnldev
+# git pull
+# git checkout kcho_new_func
+# git merge pnldev
 ```
 
 6. `kcho_new_func` branch now has all edits that `nick_new_func` added to `pnldev`
 
 ```sh
-                                    
 main--------pnldev*
               │
               └--------kcho_new_func*
 ```
 
-7. `kcho_new_func` gets merged into `pnldev`
+7. `kcho_new_func` gets merged into `pnldev` through the PR.
 
 ```sh
 main--------pnldev*
