@@ -1,15 +1,19 @@
+import os
+import re
+import json
 import nibabel as nb
 import numpy as np
 import pandas as pd
-import json
 from pathlib import Path
-import re
 
 from qqc.utils.files import get_all_files_walk
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
 from qqc.utils.files import ampscz_json_load
 
+
+class NoDwiException(Exception):
+    pass
 
 def compare_volume_to_standard_all_nifti(input_dir: str,
                                          standard_dir: str,
@@ -243,3 +247,30 @@ def compare_volume_to_standard_all_nifti_test(input_dir: str,
 
 
 
+def is_nifti_16bit(diffusion_nifti_file: Path) -> bool:
+    '''Estimates maximum intensity in the image and returns True if > 4096'''
+    data = nb.load(diffusion_nifti_file).get_fdata()
+    if np.max(data) > 4096:
+        return True
+    else:
+        return False
+
+
+def is_dwi_dir_16bit(dwi_nifti_dir: Path) -> bool:
+    for root, dirs, files in os.walk(dwi_nifti_dir):
+        for file in files:
+            if file.endswith('.nii.gz') and 'b0' in file.lower():
+                return is_nifti_16bit(Path(root) / file)
+                
+    raise NoDwiException
+
+
+def is_session_dir_16bit(nifti_root: Path) -> bool:
+    for root, dirs, files in os.walk(nifti_root):
+        for directory in dirs:
+            if directory == 'dwi':
+                return is_dwi_dir_16bit(Path(root) / directory)
+            else:
+                continue
+                
+    raise NoDwiException
