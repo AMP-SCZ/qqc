@@ -13,7 +13,7 @@ from qqc.run_sheet import get_run_sheet, get_matching_run_sheet_path
 from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms
 from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
-from qqc.qqc.dicom import check_num_order_of_series, save_csa
+from qqc.qqc.dicom import check_num_order_of_series, save_csa, is_enhanced
 from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
 from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash, \
         refresh_qqc_summary_for_subject
@@ -119,7 +119,12 @@ def dicom_to_bids_QQC(args) -> None:
         for root, dirs, files in os.walk(qqc_input):
             for subdir in dirs:
                 if 't1w_mpr_nd' in subdir.lower():
+                    # TODO add enhanced logic
                     standard_dir = Path(config.get('XA30 template', site))
+
+                    if is_enhanced(subdir):
+                        standard_dir = Path(config.get(
+                            'XA30 template enhanced', site))
                     break
                 elif '!' in subdir.lower():
                     # sys.exit()  # GE data  #TODO

@@ -6,9 +6,9 @@ from pathlib import Path
 from qqc.dicom_files import get_diff_in_csa_for_all_measures
 
 
-def is_enhanced(qqc_input: Path) -> bool:
-    '''checks if the qqc_input has enhnaced XA30 dicom'''
-    for root, dirs, files in os.walk(qqc_input):
+def is_enhanced(dicom_root: Path) -> bool:
+    '''checks if the dicom_root has enhnaced XA30 dicom'''
+    for root, dirs, files in os.walk(dicom_root):
         for file in files:
             d = pydicom.read_file(Path(root) / file)
 

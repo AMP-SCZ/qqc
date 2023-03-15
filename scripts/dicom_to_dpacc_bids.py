@@ -9,7 +9,6 @@ from qqc.pipeline import dicom_to_bids_QQC
 from pathlib import Path
 from datetime import datetime
 import re
-sys.path.append('/data/predict/phantom_data/kcho/devel_soft/qqc')
 
 logger = logging.getLogger(__name__)
 logging.getLogger().addHandler(logging.StreamHandler())
@@ -18,7 +17,7 @@ logging.getLogger().addHandler(logging.StreamHandler())
 def get_standard_dir(site: str) -> str:
     '''pass'''
     config = configparser.RawConfigParser()
-    config.read('/data/predict/data_from_nda/MRI_ROOT/standard_templates.cfg')
+    config.read('/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg')
 
 
 def parse_args(argv):
@@ -34,7 +33,6 @@ def parse_args(argv):
         --standard_dir ${bids_out_dir}/rawdata/sub-standard/ses-humanpilot''',
         formatter_class=RawTextHelpFormatter)
 
-    # image input related options
     parser.add_argument('--input', '-i', type=str,
                         help='Raw dicom root directory or zip file.')
 
@@ -83,7 +81,6 @@ def parse_args(argv):
                         action='store_true',
                         help='Force copy dicom files to sourcedata.')
 
-
     parser.add_argument('--skip_heudiconv', '-sh', default=False,
                         action='store_true',
                         help='Skip heudiconv step.')
@@ -113,12 +110,37 @@ def parse_args(argv):
                         action='store_true',
                         help='Run all sessions.')
 
-
-    # extra options
     args = parser.parse_args(argv)
 
     return args
 
+
+def reprocess_all_available_data(args):
+    root_dir = Path('/data/predict1/data_from_nda')
+    mri_root = root_dir / 'MRI_ROOT'
+    mri_paths = root_dir.glob('*/PHOENIX/*/*/raw/*/mri/*')
+    for i in [x for x in mri_paths if x.is_dir()]:
+        if re.search('[A-Z]{2}\d{5}_MR_\d{4}_\d{2}_\d{2}_\d', i.name):
+            subject_id = i.name.split('_')[0]
+            date = i.name.split('_MR_')[1]
+
+            # read standard template data
+            site = i.name[:2]
+            standard_dir = config.get('First Scan', site)
+
+            # update args
+            args.input = str(i)
+            args.subject_name = subject_id
+            args.session_name = date
+            args.bids_root = mri_root
+            args.standard_dir = standard_dir
+            args.mriqc = True
+            args.fmriprep = True
+            args.dwipreproc = True
+            args.skip_dicom_rearrange = True
+            print(args)
+            dicom_to_bids_QQC(args)
+    sys.exit('Finished with run all option')
 
 if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
@@ -126,34 +148,8 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read(args.config)
 
-    print(config)
-
     if args.run_all:
-        root_dir = Path('/data/predict1/data_from_nda')
-        mri_root = root_dir / 'MRI_ROOT'
-        mri_paths = root_dir.glob('*/PHOENIX/*/*/raw/*/mri/*')
-        for i in [x for x in mri_paths if x.is_dir()]:
-            if re.search('[A-Z]{2}\d{5}_MR_\d{4}_\d{2}_\d{2}_\d', i.name):
-                subject_id = i.name.split('_')[0]
-                date = i.name.split('_MR_')[1]
-
-                # read standard template data
-                site = i.name[:2]
-                standard_dir = config.get('First Scan', site)
-
-                # update args
-                args.input = str(i)
-                args.subject_name = subject_id
-                args.session_name = date
-                args.bids_root = mri_root
-                args.standard_dir = standard_dir
-                args.mriqc = True
-                args.fmriprep = True
-                args.dwipreproc = True
-                args.skip_dicom_rearrange = True
-                print(args)
-                dicom_to_bids_QQC(args)
-        sys.exit('Finished with run all option')
+        RawTextHelpFormatter(args)
 
     logging.basicConfig(
         filename=args.bids_root + '/dicom_to_dpacc_bids.log',

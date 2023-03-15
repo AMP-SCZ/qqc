@@ -19,7 +19,7 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
         mri_data: location of lochness transferred MRI data root or zip file,
                   str.
                   'PHOENIX/PROTECTED/PronetAA/raw/AB012345/mri/' \
-                          'AB012345_MR_2022_09_20_1'
+                          'AB012345_MR_2022_09_20_1.zip'
 
     Returns:
         csv: path of the matching CSV file
@@ -39,6 +39,11 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
                  'chrmri_session_month',
                  'chrmri_session_day']]['field_value'].astype(str).to_dict()
 
+        if all([x == 'nan' for x in run_sheet_dict.values()]):
+            print(f'Empty num, year, month, day in {run_sheet_tmp}')
+            print('Skipping this file')
+            continue
+
         session_str_search = re.search(
                 r'[A-Z]{2}\d{5}_MR_(\d{4}_\d{1,2}_\d{1,2}_\d)',
                 Path(mri_data).name)
@@ -48,9 +53,10 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
             return run_sheet
 
         sp = session_str.split('_')
-        print(sp)
-        print(run_sheet_dict)
-        #run_sheet_dict['chrmri_session_num'] == sp[-1] and \
+
+        for k, v in run_sheet_dict.items():  # prescient table had '2023.0'
+            run_sheet_dict[k] = int(float(v))
+
         if int(run_sheet_dict['chrmri_session_year']) == int(sp[0]) and \
                 int(run_sheet_dict['chrmri_session_month']) == int(sp[1]) and \
                 int(run_sheet_dict['chrmri_session_day']) == int(sp[2]):
