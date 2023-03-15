@@ -8,11 +8,19 @@ The new dataset is compared to another dataset in the QQC process.
 The following list shows criteria for a good standard dataset to compare the new data.
 
 1. Has all the required series.
-2. All series taken with the correct protocol.
-3. No duplication of any series.
-4. BIDS structured output with BIDS sidecar json files.
-5. Scanned near the beginning of the study 
+    -01_scan_order.csv should have no fails.
 
+2. No duplication of any series.
+    -02_series_count.csv should have no extras.
+
+3. All series taken with the correct protocol.
+    -03_volume_slice_number_comparison_log.csv should have no fails.
+
+4. BIDS structured output with BIDS sidecar json files.
+    -There should be one JSON per modality.
+
+5. Scanned near the beginning of the study. 
+    -This is a preference.
 
 Each AMP-SCZ site should have a standard dataset, so any changes in the new scan can be detected by QQC. We will use "Standard template" to describe
 the standard dataset.
