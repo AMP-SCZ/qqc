@@ -11,9 +11,12 @@
 
 - `qqc` in your `PYTHONPATH`
 - `dcm2niix` in your `PATH`
+- If ```--standard_dir``` is not specified, the program will search for a standard template in the configuration file. 
 
 
-## 2. Example command
+## 2. Example commands
+- Example of adding `qqc` to `PYTHONPATH`: ```export PYTHONPATH=/data/predict1/home/kcho/software/qqc:$PYTHONPATH```
+- Check for ```dcm2niix``` with ```which dcm2niix```
 
 ```sh
 /data/pnl/kcho/anaconda3/bin/python \
