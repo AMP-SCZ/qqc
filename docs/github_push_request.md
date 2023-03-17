@@ -19,7 +19,7 @@ Then create a push request (PR), following step 6-11 of [How to add a new functi
 1. [How to add a new function](#1-how-to-add-a-new-function)
 2. [How to make changes to another person's branch](#2-how-to-make-changes-to-another-persons-branch)
 3. [How to suggest changes to another person's branch](#3-how-to-suggest-changes-to-another-persons-branch)
-4. [How to show changes of a commit](#1-how-to-show-changes-of-a-commit)
+4. [How to show changes of a commit](#4-how-to-show-changes-of-a-commit)
 
 
 ## 1. How to add a new function
