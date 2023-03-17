@@ -81,6 +81,40 @@ def is_qqc_executed(subject, entry_date) -> bool:
     else:
         return False
 
+    
+    
+def date_of_zip(subject, entry_date):
+    base_dir = Path(f'/data/predict1/data_from_nda/Pronet/PHOENIX/PROTECTED')
+    prefix = subject[:2]
+    pronet_dir = None
+    for dir_name in os.listdir(base_dir):
+        if dir_name.startswith(f'Pronet{prefix}'):
+            pronet_dir = dir_name
+            break
+    zip_file = Path(base_dir, pronet_dir, 'raw', subject, 'mri', f'{subject}_MR_{entry_date}_1.zip')
+    if zip_file.exists():
+        stat = zip_file.stat()
+        timestamp = stat.st_mtime
+        date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+        return date_str     
+    else:
+        return ''
+
+def date_of_qqc(subject, entry_date) -> str:
+    mri_root = Path('/data/predict/data_from_nda/MRI_ROOT')
+    source_root = mri_root / 'sourcedata'
+    date_numbers_only = re.sub('[-_]', '', entry_date)
+    subject_dir = source_root / subject
+    qqc_first_outputs = list(subject_dir.glob(f'*{date_numbers_only}*'))
+    if qqc_first_outputs:
+        qqc_first_output = qqc_first_outputs[0]
+        ctime = qqc_first_output.stat().st_ctime
+        date_str = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d')
+        return date_str
+    else:
+        return ''
+
+
 
 def is_mri_done(subject, entry_date) -> bool:
     mri_root = Path('/data/predict/data_from_nda/MRI_ROOT')
@@ -146,6 +180,8 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
             get_entry_date_from_run_sheet)
 
     # MRI
+    
+    
     datatype_df['mri_data_exist'] = datatype_df.apply(lambda x:
             check_mri_data(x['file_path'], x['entry_date']), axis=1)
     
@@ -166,7 +202,13 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
 
     datatype_df['dwipreproc_done'] = datatype_df.apply(lambda x:
             is_dwipreproc_done(x['subject'], x['entry_date']), axis=1)
-
+    
+    datatype_df['qqc_date'] = datatype_df.apply(lambda x:
+            date_of_qqc(x['subject'], x['entry_date']), axis=1)
+    
+    datatype_df['zip_date'] = datatype_df.apply(lambda x:
+            date_of_zip(x['subject'], x['entry_date']), axis=1)
+    
     return datatype_df
 
     # for _, i in datatype_df[~datatype_df.check_data].iterrows():
