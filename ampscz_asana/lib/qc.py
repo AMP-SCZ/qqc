@@ -83,12 +83,15 @@ def is_qqc_executed(subject, entry_date) -> bool:
 
     
     
-def date_of_zip(subject, entry_date):
-    base_dir = Path(f'/data/predict1/data_from_nda/Pronet/PHOENIX/PROTECTED')
-    prefix = subject[:2]
+def date_of_zip(subject, entry_date, phoenix_dir):
+    if 'Pronet' in phoenix_dir:
+        prefix = 'Pronet'
+    else:
+        prefix = 'Prescient'
+    base_dir = Path(f'/data/predict1/data_from_nda/{prefix}/PHOENIX/PROTECTED')
     pronet_dir = None
     for dir_name in os.listdir(base_dir):
-        if dir_name.startswith(f'Pronet{prefix}'):
+        if dir_name.startswith(f'{prefix}{subject[:2]}'):
             pronet_dir = dir_name
             break
     zip_file = Path(base_dir, pronet_dir, 'raw', subject, 'mri', f'{subject}_MR_{entry_date}_1.zip')
@@ -96,7 +99,7 @@ def date_of_zip(subject, entry_date):
         stat = zip_file.stat()
         timestamp = stat.st_mtime
         date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
-        return date_str     
+        return date_str
     else:
         return ''
 
@@ -205,9 +208,9 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     
     datatype_df['qqc_date'] = datatype_df.apply(lambda x:
             date_of_qqc(x['subject'], x['entry_date']), axis=1)
-    
-    datatype_df['zip_date'] = datatype_df.apply(lambda x:
-            date_of_zip(x['subject'], x['entry_date']), axis=1)
+ 
+    datatype_df['zip_date'] = datatype_df.apply(lambda x, param:
+            date_of_zip(x['subject'], x['entry_date'], param), axis=1, param=str(phoenix_dir))
     
     return datatype_df
 
