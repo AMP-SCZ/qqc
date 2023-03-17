@@ -19,6 +19,7 @@ Then create a push request (PR), following step 6-11 of [How to add a new functi
 1. [How to add a new function](#1-how-to-add-a-new-function)
 2. [How to make changes to another person's branch](#2-how-to-make-changes-to-another-persons-branch)
 3. [How to suggest changes to another person's branch](#3-how-to-suggest-changes-to-another-persons-branch)
+4. [How to show changes of a commit](#4-how-to-show-changes-of-a-commit)
 
 
 ## 1. How to add a new function
@@ -156,8 +157,8 @@ git push
 ```
 
 6. Create push request
-11. Repeat 6 to 9 of item 1 at the top until no more concerns
-12. Pull the most change from the branch that you're trying to merge into. (just in case others have changed the `master` branch)
+7. Repeat 6 to 9 of item 1 at the top until no more concerns
+7. Pull the most change from the branch that you're trying to merge into. (just in case others have changed the `master` branch)
 
 ```sh
 git checkout another_branch
@@ -166,5 +167,28 @@ git checkout another_branch_suggestion
 git merge another_branch
 ```
 
-14. Merge to a branch
-15. Delete the branch
+9. Merge to a branch
+10. Delete the branch
+
+
+
+## 4. How to show changes of a commit
+
+1. Check out to a branch in interest
+
+```sh
+git branch
+git checkout mybranch
+```
+
+2. Look at the list of commits and note the commit ID that you want to view changes for.
+
+```sh
+git log
+```
+
+3. Show changes of a commit
+
+```sh
+git show 914e5d9808cb118f36283bc144de9e7e367e8103
+```
