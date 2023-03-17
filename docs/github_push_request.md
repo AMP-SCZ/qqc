@@ -86,11 +86,11 @@ main--------pnldev-----nick_new_func-----owen_fix_nick_new_func
 ```
 
 - Owen finds a few errors in what Nick added in the `nick_new_func`. Owen branches out from `nick_new_func` to `owen_fix_nick_new_func` and
-edit the code. Once Owen finished editing, Owen creates PR to `nick_new_func` branch from `owne_fix_nick_new_func`, so Nick can review and
+edit the code. Once Owen finished editing, Owen creates PR to `nick_new_func` branch from `owen_fix_nick_new_func`, so Nick can review and
 accept the changes to `nick_new_func` branch.
 
-- Nick further develops the logics that kevin added in the `kcho_new_func`, by branching out from `kcho_new_func` to `nick_edit_kcho_new_func`.
-Nick creates PR from `nick_edit_kcho_new_func` to `kcho_new_func`, so Kevin can review and approve the suggested changes (into `kcho_new_func`
+- Nick further develops the logics that Kevin added in the `kcho_new_func`, by branching out from `kcho_new_func` to `nick_edit_kcho_new_func`.
+Nick creates PR from `nick_edit_kcho_new_func` to `kcho_new_func`, so Kevin can review and approve the suggested changes (into `kcho_new_func`)
 
 
 4. Suggested changes are merged into each head branch
