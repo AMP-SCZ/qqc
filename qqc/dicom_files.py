@@ -210,7 +210,7 @@ def get_series_info(dicom: pydicom.dataset.FileDataset):
     '''Extract series information from pydicom dataset'''
     num = dicom.get(('0020', '0011')).value
     description = dicom.get(('0008', '103e')).value
-    instance_uid = dicom.get(('0020', '000e')).value
+    instance_uid = dicom.get(('0008', '0018')).value
 
     return num, description, instance_uid
 
@@ -353,5 +353,7 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
 
         series_dir_path.mkdir(exist_ok=True, parents=True)
         for _, row in table.iterrows():
-            shutil.copy(row['file_path'], series_dir_path)
+            dicom_out = series_dir_path / row['series_uid']
+            shutil.copy(row['pydicom'],
+                        dicom_out)
             # os.chmod(series_dir_path, 665)
