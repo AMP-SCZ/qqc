@@ -28,7 +28,7 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
 
     for run_sheet_tmp in Path(mri_data).parent.glob('*Run_sheet_mri*.csv'):
         run_sheet_df_tmp = pd.read_csv(run_sheet_tmp)
-        
+
         if not 'field_name' in run_sheet_df_tmp.columns:
             run_sheet_df_tmp = run_sheet_df_tmp.T.reset_index()
             run_sheet_df_tmp.columns = ['field_name', 'field_value']
