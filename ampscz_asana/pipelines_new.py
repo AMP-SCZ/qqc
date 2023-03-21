@@ -8,10 +8,12 @@ from ampscz_asana.lib.asana_api import get_asana_ready, get_all_task, \
         get_subtask_with_str
 from ampscz_asana.lib.qc import get_run_sheet_df
 from ampscz_asana.lib.utils import add_days_to_str_date
+from typing import Union
 
 
-def mri_asana_pipeline(phoenix_dir: Path) -> None:
+def mri_asana_pipeline(phoenix_dir: Union[Path, str]) -> None:
     '''Run MRI pipeline through Asana'''
+    phoenix_dir = Path(phoenix_dir)
     client, workspace_gid, project_gid = get_asana_ready(
         project_name='AMP-SCZ MRI dataflow & QC')
     run_sheet_df = get_run_sheet_df(phoenix_dir)
