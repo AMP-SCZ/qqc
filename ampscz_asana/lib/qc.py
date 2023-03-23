@@ -285,10 +285,15 @@ def compare_dates(df):
 
 
     
-    
-    
-    
-    
+def format_days(day_amount):
+    import math
+    if isinstance(day_amount, float) and not math.isnan(day_amount) :
+        day_amount = int(day_amount)
+        if day_amount == 1:
+            day_amount = str(day_amount) + ' day'
+        else:
+            day_amount = str(day_amount) + ' days'
+    return day_amount    
     
     
 def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
@@ -355,6 +360,17 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     new_cols = ['subject', 'entry_date','timepoint'] + [col for col in cols if col not in ['subject', 'entry_date', 'timepoint', 'file_loc']]
     datatype_df = datatype_df[new_cols]
     datatype_df = datatype_df.reset_index()
+    datatype_df['qqc_date'] = pd.to_datetime(datatype_df['qqc_date'])
+    datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'])
+    datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
+    arrival_qqc_time = lambda row: abs((row['zip_date'] - row['qqc_date']).days)
+    arrival_scan_time = lambda row: abs((row['zip_date'] - row['entry_date']).days)
+    datatype_df['Time between QQC and data arrival'] = datatype_df.apply(arrival_qqc_time, axis=1)
+    datatype_df['Time between scan and data arrival'] = datatype_df.apply(arrival_scan_time, axis=1)
+    datatype_df[['Time between QQC and data arrival', 'Time between scan and data arrival']] = datatype_df[['Time between QQC and data arrival', 'Time between scan and data arrival']].applymap(format_days)
+    
+    
+    
     return datatype_df
 
     # for _, i in datatype_df[~datatype_df.check_data].iterrows():
