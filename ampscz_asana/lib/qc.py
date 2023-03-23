@@ -348,6 +348,7 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
 
     new_cols = ['subject', 'entry_date','timepoint'] + [col for col in cols if col not in ['subject', 'entry_date', 'timepoint', 'file_loc']]
     datatype_df = datatype_df[new_cols]
+    datatype_df = datatype_df.reset_index()
     return datatype_df
 
     # for _, i in datatype_df[~datatype_df.check_data].iterrows():
