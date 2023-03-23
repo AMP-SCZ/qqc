@@ -1,4 +1,4 @@
-from ampscz_asana.lib.qc import date_of_zip
+from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates
 
 
 def test_date_of_zip():
@@ -15,4 +15,27 @@ def test_date_of_zip():
          
          
 
+    
+
+
+
+def test_extract_missing_data_information():  #will also test the extract_variable_information function since this one uses it 
+  dir = '/data/predict1/data_from_nda/Prescient/PHOENIX'
+  try:
+    assert (extract_missing_data_information('ME97666', str(dir))[0] == 
+            "'Timepoint: baseline_arm_1 | Date: 2022-10-14 | clinical measures', 'Timepoint: month_3_arm_1 | Date: | digital biomarkers'")
+  except AssertionError:
+    print("Assertion failed!")                            
+    
+  try:
+    assert (extract_missing_data_information('ME97666', str(dir))[1] == 
+            "'Timepoint: month_3_arm_1 | Date: | Other reason', 'Timepoint: baseline_arm_1 | Date: 2022-10-14 | Other reason'")
+  except AssertionError:
+    print("Assertion failed!")
   
+
+  
+  
+  
+  
+#def test_compare_dates():
