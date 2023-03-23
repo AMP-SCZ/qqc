@@ -264,14 +264,20 @@ def compare_dates(df):
             df.drop(index, inplace=True)
             continue
         for col in ['domain_type_missing', 'reason_for_missing_data', 'domain_missing', 'missing_data_form_complete', 'comments']:
-            string_list = row[col].split(',')
+            string_list = row[col].split(",'")
             for i in range(len(string_list)):
                 string_list[i] = string_list[i].replace('"', '').replace("'", '')
                 if string_list[i].count('|') >= 2:
                     date_str = string_list[i].split('|')[1].strip()[6:]
                     date_str = date_str.replace('_', '-')
-                    if date_str != entry_date or date_str == '':
+                     if date_str == '' or entry_date == '':
                         string_list[i] = ''
+                    else:
+                        d1 = datetime.strptime(date_str, '%Y-%m-%d')
+                        d2 =datetime.strptime(entry_date, '%Y-%m-%d')
+                        if (d1-d2).days > 10:
+                            string_list[i] = ''
+                            
             string_list = [s for s in string_list if s != '']
             row[col] = ','.join(string_list)
         df.loc[index] = row
