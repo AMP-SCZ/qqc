@@ -6,6 +6,7 @@ from ampscz_asana.lib.utils import convert_AU_to_US_date
 from datetime import datetime
 import os
 import math
+import json
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -165,27 +166,34 @@ def is_dwipreproc_done(subject, entry_date) -> bool:
     else:
         return False
 
-    
 
-def extract_variable_information(row, col, variable_name, excluded_values,value_list):
-    domain_type_dict = {'1': 'clinical measures', '2': 'EEG', '3': 'Neuroimaging', '4': 'cognition', '5': 'genetic and fluid biomarkers', '6': 'digital biomarkers', '7': 'speech sampling'}
-    reason_dict = {'M1' : 'Refusal - no reason provided',
- 'M2' : 'Refusal - reason: had an unpleasant experience last time',
- 'M3' : 'Refusal - reason: anxiety associated with the assessment domain',
- 'M4' : 'Refusal - reason: too much time commitment - AMP SCZ assessments',
- 'M5' : 'Refusal - reason: too much time commitment - other studies',
- 'M6' : 'No show',
- 'M7' : 'Not booked',
- 'M8' : 'Not applicable',
- 'M9' : 'Uncontrollable circumstance',
- 'M10':  'Other reason'}
+def extract_variable_information(row, col, variable_name: str,
+                                 excluded_values: list, value_list: list):
+    domain_type_dict = {'1': 'clinical measures',
+                        '2': 'EEG',
+                        '3': 'Neuroimaging',
+                        '4': 'cognition',
+                        '5': 'genetic and fluid biomarkers',
+                        '6': 'digital biomarkers',
+                        '7': 'speech sampling'}
+
+    reason_dict = {'M1': 'Refusal - no reason provided',
+                   'M2': 'Refusal - reason: had an unpleasant experience last time',
+                   'M3': 'Refusal - reason: anxiety associated with the assessment domain',
+                   'M4': 'Refusal - reason: too much time commitment - AMP SCZ assessments',
+                   'M5': 'Refusal - reason: too much time commitment - other studies',
+                   'M6': 'No show',
+                   'M7': 'Not booked',
+                   'M8': 'Not applicable',
+                   'M9': 'Uncontrollable circumstance',
+                   'M10':  'Other reason'}
 
     value = row[col]
     date = row['chrmri_entry_date']
 
     if col == variable_name and row[col] not in excluded_values:
         if variable_name == 'missing_data_complete':
-            if row[col]=='2':
+            if row[col] == '2':
                 value = 'Complete'
             elif row[col] == '0':
                 value = 'Incomplete'
@@ -201,59 +209,89 @@ def extract_variable_information(row, col, variable_name, excluded_values,value_
             for key, item in reason_dict.items():
                 if key in row[col]:
                     value = item
-        value_list.append(f"Timepoint: {row['redcap_event_name']} | Date: {date} | {value}")
-    elif (variable_name == 'comment') and (('mri' in col and 'comment' in col) and row[col] != '')  or (col == 'chrmri_missing'and row[col] != '') or (col == 'chrmri_missing_spec'and row[col] != ''):
+        value_list.append(f"Timepoint: {row['redcap_event_name']} | "
+                          f"Date: {date} | {value}")
+    elif (variable_name == 'comment') and \
+            (('mri' in col and 'comment' in col) and row[col] != '') or \
+            (col == 'chrmri_missing' and row[col] != '') or \
+            (col == 'chrmri_missing_spec' and row[col] != ''):
         if row[col] in row.values():
             if ('mri' in col and 'comment' in col and row[col] != ''):
-                value_list.append(f"Timepoint: {row['redcap_event_name']} | Date: {date} | {row[col]}")
+                value_list.append(f"Timepoint: {row['redcap_event_name']} | "
+                                  f"Date: {date} | {row[col]}")
     return value_list
 
 
-
-
-
-def extract_missing_data_information(subject, directory):
+def extract_missing_data_information(subject: str, directory: str):
     if 'Pronet' in directory:
         directory = 'Pronet'
     else:
         directory = 'Prescient'
-    json_path = Path(f'/data/predict1/data_from_nda/{directory}/PHOENIX/PROTECTED/{directory}{subject[:2]}/raw/{subject}/surveys/{subject}.{directory}.json')
+
+    json_path = Path(f'/data/predict1/data_from_nda/{directory}/PHOENIX/'
+                     f'PROTECTED/{directory}{subject[:2]}/raw/{subject}/'
+                     f'surveys/{subject}.{directory}.json')
+
     if json_path.exists():
         with open(json_path, 'r') as f:
             json_data = json.load(f)
     else:
         print(json_path)
-        return ['Json not found','Json not found','Json not found','Json not found','Json not found' ]
+        return ['Json not found', 'Json not found', 'Json not found',
+                'Json not found', 'Json not found']
+
     comments_list = []
-    missing_data_form_complete_list = []  #missing_data_complete
-    domain_missing_list = []   #chrmiss_domain
-    reason_for_missing_data_list = []   #chrmiss_domain_spec
-    domain_type_missing_list = [] #chrmiss_domain_type
+    missing_data_form_complete_list = []  # missing_data_complete
+    domain_missing_list = []   # chrmiss_domain
+    reason_for_missing_data_list = []   # chrmiss_domain_spec
+    domain_type_missing_list = [] # chrmiss_domain_type
     variables = []
-    for x in range(1,8):
+
+    for x in range(1, 8):
         variables.append('chrmiss_domain_type' + f'___{x}')
-    variable_dict = {'variables':[{'missing_data_complete':['']},{'chrmiss_domain':['']},{'chrmiss_domain_spec':['']}]}
-    for x in range(0,len(variables)):
-        variable_dict['variables'].append({variables[x]:['','0']})
-    value_lists = [missing_data_form_complete_list,domain_missing_list,reason_for_missing_data_list]
+    variable_dict = {
+            'variables': [
+                {'missing_data_complete': ['']},
+                {'chrmiss_domain': ['']},
+                {'chrmiss_domain_spec': ['']}
+                ]
+            }
+    for x in range(0, len(variables)):
+        variable_dict['variables'].append({variables[x]: ['', '0']})
+    value_lists = [missing_data_form_complete_list,
+                   domain_missing_list,
+                   reason_for_missing_data_list]
     for row in json_data:
         print(row['chric_record_id'])
         for col in row:
-            comments_list = extract_variable_information(row,col,'comment','',comments_list)
-            for x in range(0,len(variable_dict['variables'])):
+            comments_list = extract_variable_information(
+                    row, col, 'comment', '', comments_list)
+            for x in range(0, len(variable_dict['variables'])):
                 for key, item in variable_dict['variables'][x].items():
                     if 'miss_domain_type' not in key:
-                        value_lists[x] = extract_variable_information(row,col,key,item,value_lists[x])
+                        value_lists[x] = extract_variable_information(
+                                row, col, key, item, value_lists[x])
                     else:
-                        domain_type_missing_list = extract_variable_information(row,col,key,item,domain_type_missing_list)
-    list_of_lists = [domain_type_missing_list, reason_for_missing_data_list, domain_missing_list,missing_data_form_complete_list, comments_list]
-    for x in range(0,len(list_of_lists)):
+                        domain_type_missing_list = \
+                                extract_variable_information(
+                                        row, col, key,
+                                        item, domain_type_missing_list)
+    list_of_lists = [domain_type_missing_list,
+                     reason_for_missing_data_list,
+                     domain_missing_list,
+                     missing_data_form_complete_list,
+                     comments_list]
+
+    for x in range(0, len(list_of_lists)):
         list_of_lists[x] = list(set(list_of_lists[x]))
-        list_of_lists[x] = str(list_of_lists[x]).replace(']','').replace('[','').replace('\r\n','').replace('N\\A','').replace('\n','')
+        list_of_lists[x] = str(list_of_lists[x]).replace(']', '').replace(
+                '[', '').replace(
+                        '\r\n', '').replace(
+                                'N\\A', '').replace(
+                                        '\n', '')
         list_of_lists[x] = re.sub(r'\s+', ' ', list_of_lists[x])
 
     return list_of_lists
-
 
 
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
