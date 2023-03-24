@@ -5,6 +5,7 @@ from pathlib import Path
 from ampscz_asana.lib.utils import convert_AU_to_US_date
 from datetime import datetime
 import os
+import math
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -284,18 +285,18 @@ def compare_dates(df):
     return df
 
 
-    
-def format_days(day_amount):
-    import math
-    if isinstance(day_amount, float) and not math.isnan(day_amount) :
+def format_days(day_amount: int) -> str:
+    '''Get 'day' or 'days' appended to the day_amount'''
+    if isinstance(day_amount, float) and not math.isnan(day_amount):
         day_amount = int(day_amount)
         if day_amount == 1:
             day_amount = str(day_amount) + ' day'
         else:
             day_amount = str(day_amount) + ' days'
-    return day_amount    
-    
-    
+
+    return day_amount
+
+
 def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     run_sheets = grep_run_sheets(phoenix_dir)
 
