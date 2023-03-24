@@ -1,4 +1,4 @@
-from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates
+from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 
 
 def test_date_of_zip():
@@ -63,3 +63,11 @@ def test_compare_dates():
     
     print("All tests passed")
     
+def test_format_days():
+  try:
+    assert format_days(5.0) == '5 days'
+    assert format_days(1.0) == '1 day'
+  except AssertionError:
+         raise AssertionError(f"Assertion error: {AssertionError}")
+    
+
