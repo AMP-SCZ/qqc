@@ -1,4 +1,5 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
+import pandas as pd
 
 
 def test_date_of_zip():
@@ -28,12 +29,6 @@ def test_extract_missing_data_information():  #will also test the extract_variab
   except AssertionError:
     print("Assertion failed!")
   
-
-  
-  
-  
-  
-import pandas as pd
 
 def test_compare_dates():
     data = {
