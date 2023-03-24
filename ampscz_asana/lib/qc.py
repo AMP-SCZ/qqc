@@ -179,7 +179,7 @@ def is_dwipreproc_done(subject, entry_date) -> bool:
 
 
 def extract_variable_information(row, col, variable_name: str,
-                                 excluded_values: list, value_list: list):
+                                 excluded_values: list, value_list: list) -> list:
     domain_type_dict = {'1': 'clinical measures',
                         '2': 'EEG',
                         '3': 'Neuroimaging',
@@ -233,7 +233,7 @@ def extract_variable_information(row, col, variable_name: str,
     return value_list
 
 
-def extract_missing_data_information(subject: str, directory: str):
+def extract_missing_data_information(subject: str, directory: str) -> list:
     if 'Pronet' in directory:
         directory = 'Pronet'
     else:
