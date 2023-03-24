@@ -59,10 +59,9 @@ def test_compare_dates():
     print("All tests passed")
     
 def test_format_days():
-  try:
-    assert format_days(5.0) == '5 days'
-    assert format_days(1.0) == '1 day'
-  except AssertionError:
-         raise AssertionError(f"Assertion error: {AssertionError}")
-    
+    try:
+        assert format_days(5.0) == '5 days'
+        assert format_days(1.0) == '1 day'
+    except AssertionError:
+        raise AssertionError(f"Assertion error: {AssertionError}")
 
