@@ -12,11 +12,6 @@ def test_date_of_zip():
 
   assert(date_of_zip('ME04934', '2022_12_02', dir)) == '2023-03-13'
   assert(date_of_zip('CP01128', '2023_02_23', dir)) == '2023-03-02'
-         
-         
-
-    
-
 
 
 def test_extract_missing_data_information():  #will also test the extract_variable_information function since this one uses it 

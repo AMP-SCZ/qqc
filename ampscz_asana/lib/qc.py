@@ -256,32 +256,39 @@ def extract_missing_data_information(subject, directory):
 
 
 
-def compare_dates(df):
+def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
     df['entry_date'] = df['entry_date'].str.replace('_', '-')
+
     for index, row in df.iterrows():
         entry_date = row['entry_date']
         print(entry_date)
+
         if pd.isna(entry_date):
             df.drop(index, inplace=True)
             continue
-        for col in ['domain_type_missing', 'reason_for_missing_data', 'domain_missing', 'missing_data_form_complete', 'comments']:
+
+        for col in ['domain_type_missing', 'reason_for_missing_data',
+                    'domain_missing', 'missing_data_form_complete',
+                    'comments']:
             string_list = row[col].split(",'")
             for i in range(len(string_list)):
-                string_list[i] = string_list[i].replace('"', '').replace("'", '')
+                string_list[i] = string_list[i].replace('"', '').replace(
+                        "'", '')
                 if string_list[i].count('|') >= 2:
                     date_str = string_list[i].split('|')[1].strip()[6:]
                     date_str = date_str.replace('_', '-')
-                     if date_str == '' or entry_date == '':
+                    if date_str == '' or entry_date == '':
                         string_list[i] = ''
                     else:
                         d1 = datetime.strptime(date_str, '%Y-%m-%d')
-                        d2 =datetime.strptime(entry_date, '%Y-%m-%d')
-                        if (d1-d2).days > 10:
+                        d2 = datetime.strptime(entry_date, '%Y-%m-%d')
+                        if (d1 - d2).days > 10:
                             string_list[i] = ''
-                            
+
             string_list = [s for s in string_list if s != '']
             row[col] = ','.join(string_list)
         df.loc[index] = row
+
     return df
 
 
