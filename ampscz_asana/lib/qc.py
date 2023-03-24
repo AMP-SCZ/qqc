@@ -305,10 +305,7 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
     df['datatype'] = df.file_path.apply(lambda x: x.name.split('_')[2])
     df['other_files'] = df['file_loc'].apply(lambda x: os.listdir(Path(x).parent.absolute()))
-    df['other_files'] = df['other_files'].apply(lambda x: ', '.join(x))     
-
-    
-
+    df['other_files'] = df['other_files'].apply(lambda x: ', '.join(x))
 
     datatype_index = df[df['datatype'] == datatype].index
     datatype_df = df.loc[datatype_index]
@@ -318,11 +315,9 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
             get_entry_date_from_run_sheet)
 
     # MRI
-    
-    
     datatype_df['mri_data_exist'] = datatype_df.apply(lambda x:
             check_mri_data(x['file_path'], x['entry_date']), axis=1)
-    
+
     index_with_mri_data = datatype_df[
             datatype_df['mri_data_exist'] == True].index
     datatype_df.loc[index_with_mri_data, 'mri_arrival_date'] = \
@@ -331,13 +326,13 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     missing_data_info = datatype_df.apply(lambda x: pd.Series(extract_missing_data_information(x['subject'], str(phoenix_dir))), axis=1)
     datatype_df[['domain_type_missing', 'reason_for_missing_data', 'domain_missing', 'missing_data_form_complete', 'comments']] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
     cols_to_split = ['domain_type_missing', 'reason_for_missing_data', 'domain_missing', 'missing_data_form_complete', 'comments']
-    for x in range(0,len(cols_to_split)):
+
+    for x in range(0, len(cols_to_split)):
         mask = datatype_df[cols_to_split[x]].notnull() & (datatype_df[cols_to_split[x]] != '')
         datatype_df.loc[mask, 'timepoint'] = datatype_df[mask][cols_to_split[x]].str.split('|').str[0].str.split(': ').str[1]
 
     for col in cols_to_split:
         datatype_df[col] = datatype_df[col].str.replace(r'^.*\|([^|]*$)', r'\1', regex=True)
-
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
             is_qqc_executed(x['subject'], x['entry_date']), axis=1)
@@ -354,31 +349,24 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['qqc_date'] = datatype_df.apply(lambda x:
             date_of_qqc(x['subject'], x['entry_date']), axis=1)
  
-    datatype_df['zip_date'] = datatype_df.apply(lambda x, param:
-            date_of_zip(x['subject'], x['entry_date'], param), axis=1, param=str(phoenix_dir))
+    datatype_df['zip_date'] = datatype_df.apply(
+            lambda x, param: date_of_zip(x['subject'], x['entry_date'], param),
+            axis=1, param=str(phoenix_dir))
     cols = datatype_df.columns.tolist()
 
-    new_cols = ['subject', 'entry_date','timepoint'] + [col for col in cols if col not in ['subject', 'entry_date', 'timepoint', 'file_loc']]
+    new_cols = ['subject', 'entry_date', 'timepoint'] + [col for col in cols if col not in ['subject', 'entry_date', 'timepoint', 'file_loc']]
     datatype_df = datatype_df[new_cols]
     datatype_df = datatype_df.reset_index()
     datatype_df['qqc_date'] = pd.to_datetime(datatype_df['qqc_date'])
     datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'])
     datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
-    arrival_qqc_time = lambda row: abs((row['zip_date'] - row['qqc_date']).days)
-    arrival_scan_time = lambda row: abs((row['zip_date'] - row['entry_date']).days)
-    datatype_df['Time between QQC and data arrival'] = datatype_df.apply(arrival_qqc_time, axis=1)
-    datatype_df['Time between scan and data arrival'] = datatype_df.apply(arrival_scan_time, axis=1)
-    datatype_df[['Time between QQC and data arrival', 'Time between scan and data arrival']] = datatype_df[['Time between QQC and data arrival', 'Time between scan and data arrival']].applymap(format_days)
-    
-    
-    
+
+    # estimate time difference
+    arrival_qqc_time = lambda x: abs((x['zip_date'] - x['qqc_date']).days)
+    arrival_scan_time = lambda x: abs((x['zip_date'] - x['entry_date']).days)
+    datatype_df['Time between QQC and data arrival'] = datatype_df.apply(
+            arrival_qqc_time, axis=1).apply(format_days)
+    datatype_df['Time between scan and data arrival'] = datatype_df.apply(
+            arrival_scan_time, axis=1).apply(format_days)
+
     return datatype_df
-
-    # for _, i in datatype_df[~datatype_df.check_data].iterrows():
-        # print(i.subject)
-        # print(f'Entry date on the run sheet: {i.entry_date}')
-        # for j in i.file_path.parent.glob('*'):
-            # print(j)
-
-        # print('-'*80)
-
