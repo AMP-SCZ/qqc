@@ -25,7 +25,7 @@ def test_extract_missing_data_information():  #will also test the extract_variab
     
   try:
     assert (extract_missing_data_information('ME97666', str(dir))[1] == 
-            "'Timepoint: month_3_arm_1 | Date: | Other reason', 'Timepoint: baseline_arm_1 | Date: 2022-10-14 | Other reason'")
+            "'Timepoint: baseline_arm_1 | Date: 2022-10-14 | Other reason', 'Timepoint: month_3_arm_1 | Date: | Other reason'")
   except AssertionError:
     print("Assertion failed!")
   
