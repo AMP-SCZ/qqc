@@ -323,16 +323,26 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df.loc[index_with_mri_data, 'mri_arrival_date'] = \
             datatype_df.loc[index_with_mri_data].apply(lambda x:
                 check_when_transferred(x['subject'], x['entry_date']), axis=1)
-    missing_data_info = datatype_df.apply(lambda x: pd.Series(extract_missing_data_information(x['subject'], str(phoenix_dir))), axis=1)
-    datatype_df[['domain_type_missing', 'reason_for_missing_data', 'domain_missing', 'missing_data_form_complete', 'comments']] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
-    cols_to_split = ['domain_type_missing', 'reason_for_missing_data', 'domain_missing', 'missing_data_form_complete', 'comments']
+    missing_data_info = datatype_df.apply(
+            lambda x: pd.Series(
+                extract_missing_data_information(x['subject'],
+                                                 str(phoenix_dir))), axis=1)
+    datatype_df[['domain_type_missing', 'reason_for_missing_data',
+                 'domain_missing', 'missing_data_form_complete',
+                 'comments']] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
+    cols_to_split = ['domain_type_missing', 'reason_for_missing_data',
+                     'domain_missing', 'missing_data_form_complete',
+                     'comments']
 
     for x in range(0, len(cols_to_split)):
-        mask = datatype_df[cols_to_split[x]].notnull() & (datatype_df[cols_to_split[x]] != '')
-        datatype_df.loc[mask, 'timepoint'] = datatype_df[mask][cols_to_split[x]].str.split('|').str[0].str.split(': ').str[1]
+        mask = datatype_df[cols_to_split[x]].notnull() & \
+                (datatype_df[cols_to_split[x]] != '')
+        datatype_df.loc[mask, 'timepoint'] = datatype_df[mask][
+                cols_to_split[x]].str.split('|').str[0].str.split(': ').str[1]
 
     for col in cols_to_split:
-        datatype_df[col] = datatype_df[col].str.replace(r'^.*\|([^|]*$)', r'\1', regex=True)
+        datatype_df[col] = datatype_df[col].str.replace(
+                r'^.*\|([^|]*$)', r'\1', regex=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
             is_qqc_executed(x['subject'], x['entry_date']), axis=1)
@@ -354,7 +364,10 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
             axis=1, param=str(phoenix_dir))
     cols = datatype_df.columns.tolist()
 
-    new_cols = ['subject', 'entry_date', 'timepoint'] + [col for col in cols if col not in ['subject', 'entry_date', 'timepoint', 'file_loc']]
+    new_cols = ['subject', 'entry_date', 'timepoint'] + [
+            col for col in cols if col not in
+            ['subject', 'entry_date', 'timepoint', 'file_loc']]
+
     datatype_df = datatype_df[new_cols]
     datatype_df = datatype_df.reset_index()
     datatype_df['qqc_date'] = pd.to_datetime(datatype_df['qqc_date'])
