@@ -84,27 +84,38 @@ def is_qqc_executed(subject, entry_date) -> bool:
         return False
 
     
-    
-def date_of_zip(subject, entry_date, phoenix_dir):
+def date_of_zip(subject, entry_date, phoenix_dir) -> str:
     formatted_entry_date = entry_date.replace("-", "_")
     if 'Pronet' in phoenix_dir:
         prefix = 'Pronet'
     else:
         prefix = 'Prescient'
     base_dir = Path(f'/data/predict1/data_from_nda/{prefix}/PHOENIX/PROTECTED')
-    pronet_dir = None
+    site_dir = None
     for dir_name in os.listdir(base_dir):
         if dir_name.startswith(f'{prefix}{subject[:2]}'):
-            pronet_dir = dir_name
+            site_dir = dir_name
             break
-    zip_file = Path(base_dir, pronet_dir, 'raw', subject, 'mri', f'{subject}_MR_{formatted_entry_date}_1.zip')
-    if zip_file.exists():
-        stat = zip_file.stat()
-        timestamp = stat.st_mtime
-        date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
-        return date_str
-    else:
-        return ''
+    zip_file_path = Path(base_dir, site_dir, 'raw', subject, 'mri')
+    date_pattern = r'\d{4}_\d{1,2}_\d{1,2}'
+    for filename in os.listdir(zip_file_path):
+        date_match = re.search(date_pattern, filename)
+        if date_match and entry_date != '':
+            extracted_date = date_match.group(0)
+            extracted_date = datetime.strptime(extracted_date, '%Y_%m_%d')
+            formatted_entry_date = datetime.strptime(formatted_entry_date,  '%Y_%m_%d')
+            if formatted_entry_date == extracted_date and filename[-4:] == '.zip' and 'MR' in filename:
+                zip_file_path = Path(base_dir, sire_dir, 'raw', subject, 'mri',filename)
+            if zip_file_path.exists():
+                print(zip_file_path)
+                stat = zip_file_path.stat()
+                timestamp = stat.st_mtime
+                date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+                return date_str
+            else:
+                return ''
+
+
 
 def date_of_qqc(subject, entry_date) -> str:
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
