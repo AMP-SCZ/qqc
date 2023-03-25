@@ -402,7 +402,6 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df.loc[index_with_mri_data, 'mri_arrival_date'] = \
             datatype_df.loc[index_with_mri_data].apply(lambda x:
                 check_when_transferred(x['subject'], x['entry_date']), axis=1)
-    datatype_df = compare_dates(datatype_df)
     missing_data_info = datatype_df.apply(
             lambda x: pd.Series(
                 extract_missing_data_information(x['subject'],
@@ -410,6 +409,7 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df[['domain_type_missing', 'reason_for_missing_data',
                  'domain_missing', 'missing_data_form_complete',
                  'comments']] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
+    datatype_df = compare_dates(datatype_df)
     cols_to_split = ['domain_type_missing', 'reason_for_missing_data',
                      'domain_missing', 'missing_data_form_complete',
                      'comments']
