@@ -178,8 +178,18 @@ def is_dwipreproc_done(subject, entry_date) -> bool:
         return False
 
 
-def extract_variable_information(row, col, variable_name: str,
+def extract_variable_information(row: dict, col: str, variable_name: str,
                                  excluded_values: list, value_list: list) -> list:
+    
+    """This function takes a specific row and column from the given json file as input. Each 
+    row is a dictionary and each column is a specific key in that dictionary.
+    For a given subject's json file, there is a dictionary for each timepoint that
+    contains the values for every variable within that timepoint. This function is used by the
+    extract_missing_data_information function to loop through a given row (dictionary/timepoint) to
+    search for the column (key/variable) that matches the variable name that it is searching for. It then 
+    creates a string that contains the date from that row, the timepoint from that row, and
+    the value for the specific variable that was being searched for."""
+    
     domain_type_dict = {'1': 'clinical measures',
                         '2': 'EEG',
                         '3': 'Neuroimaging',
@@ -233,15 +243,22 @@ def extract_variable_information(row, col, variable_name: str,
     return value_list
 
 
-def extract_missing_data_information(subject: str, directory: str) -> list:
-    if 'Pronet' in directory:
-        directory = 'Pronet'
+def extract_missing_data_information(subject: str, network: str) -> list:
+    
+    """This function is given a specific subject and network as input. It then creates
+    a path for the json file that is associated with that subject and network. For each variable
+    that is being searched for in the json file, there is a list that will contain each value
+    for that variable, along with its the date and timepoint."""
+    
+    
+    if 'Pronet' in network:
+        network = 'Pronet'
     else:
-        directory = 'Prescient'
+        network = 'Prescient'
 
-    json_path = Path(f'/data/predict1/data_from_nda/{directory}/PHOENIX/'
-                     f'PROTECTED/{directory}{subject[:2]}/raw/{subject}/'
-                     f'surveys/{subject}.{directory}.json')
+    json_path = Path(f'/data/predict1/data_from_nda/{network}/PHOENIX/'
+                     f'PROTECTED/{network}{subject[:2]}/raw/{subject}/'
+                     f'surveys/{subject}.{network}.json')
 
     if json_path.exists():
         with open(json_path, 'r') as f:
@@ -295,17 +312,18 @@ def extract_missing_data_information(subject: str, directory: str) -> list:
 
     for x in range(0, len(list_of_lists)):
         list_of_lists[x] = list(set(list_of_lists[x]))
-        list_of_lists[x] = str(list_of_lists[x]).replace(']', '').replace(
-                '[', '').replace(
-                        '\r\n', '').replace(
-                                'N\\A', '').replace(
-                                        '\n', '')
+        list_of_lists[x] = re.sub(r'[\[\]]|\r?\n|\\N\\\\A|\n', '', str(list_of_lists[x]))
         list_of_lists[x] = re.sub(r'\s+', ' ', list_of_lists[x])
 
     return list_of_lists
 
 
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
+    """This function is used to match the variables that were found 
+    in the json files with the specific subject dates in the main
+    pandas dataframe. If there are no variable dates that match the entry dates, the 
+    variables are removed from the dataframe."""
+    
     df['entry_date'] = df['entry_date'].str.replace('_', '-')
 
     for index, row in df.iterrows():
