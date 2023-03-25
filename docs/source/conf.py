@@ -17,7 +17,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    'sphinx_copybutton'
+    'sphinx_copybutton',
+    'myst_parser'
 ]
 
 intersphinx_mapping = {
@@ -35,3 +36,9 @@ html_logo = 'images/AMP SCZ Logo.png'
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}

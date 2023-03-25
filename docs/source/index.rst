@@ -1,38 +1,18 @@
-Welcome to Phantom_check's documentation!
+Welcome to Quick-QC's documentation!
 =========================================
 
-**Phantom_check** is a Python library for converting U24 MRI dicoms to BIDS 
-format and running quick quality check (QC) pipelines. 
+**Quick-QC** (QQC) is a Python library for detecting protocol deviations in
+each newly acquired MRI dataset for a study. The main functions of QQC are
 
+#. Finds deviations in the newly acquired data.
+#. Clean up the dicom files.
+#. Convert to BIDS nifti using `heudiconv <https://heudiconv.readthedocs.io/en/latest/>`_.
+#. Executes different MRI QC pipelines.
+#. Curates the report of each new MRI data into different databases.
 
-#. Copy and clean up the dicoms according to unique series number and names
-#. Convert dicoms to BIDS nifti using `heudiconv <https://heudiconv.readthedocs.io/en/latest/>`_
-#. Quick QC pipeline
-
-   * Compares series information to another template BIDS datasource.
-
-   * MRIQC
-
-   * FMRIPREP
-
-      * Freesurfer
-
-   * Quick diffusion preprecssing
-
-      * Topup
-
-      * Eddy
-
-      * eddy_squeeze
-
-      * MKCurve
-
-Check out the :doc:`installation` and :doc:`usage` section for further 
-information.
 
 .. note::
-
-   This project is under active development.
+   QQC is under an active development in the AMP-SCZ project.
 
 
 Contents
@@ -44,3 +24,4 @@ Contents
    usage
    steps_in_detail
    qqc_outputs
+   development_notes
