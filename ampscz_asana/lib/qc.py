@@ -354,7 +354,7 @@ def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
                     else:
                         d1 = datetime.strptime(date_str, '%Y-%m-%d')
                         d2 = datetime.strptime(entry_date, '%Y-%m-%d')
-                        if (d1 - d2).days > 10:
+                        if abs((d1 - d2).days) > 10:
                             string_list[i] = ''
 
             string_list = [s for s in string_list if s != '']
