@@ -462,6 +462,6 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['Time between scan and data arrival'] = datatype_df.apply(
             arrival_scan_time, axis=1).apply(format_days)
     datatype_df.reset_index(drop=True,inplace=True)
-    datatype_df['index'] = ''
+    del datatype_df['index']
 
     return datatype_df
