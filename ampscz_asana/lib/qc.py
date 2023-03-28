@@ -109,9 +109,8 @@ def date_of_zip(subject, entry_date, phoenix_dir):
             extracted_date = date_match.group(0)
             extracted_date = datetime.strptime(extracted_date, '%Y_%m_%d')
             if formatted_entry_date == extracted_date and filename[-4:] == '.zip' and 'MR' in filename:
-                zip_file = Path(base_dir, pronet_dir, 'raw', subject, 'mri',filename)
+                zip_file = zip_file_path / filename
                 if zip_file.exists():
-                    print(zip_file)
                     stat = zip_file.stat()
                     timestamp = stat.st_mtime
                     date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
