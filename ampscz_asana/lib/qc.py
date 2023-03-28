@@ -85,7 +85,12 @@ def is_qqc_executed(subject, entry_date) -> bool:
 
     
 def date_of_zip(subject, entry_date, phoenix_dir):
+    if entry_date == '':
+        return None
+
     formatted_entry_date = entry_date.replace("-", "_")
+    formatted_entry_date = datetime.strptime(formatted_entry_date, '%Y_%m_%d')
+
     if 'Pronet' in phoenix_dir:
         prefix = 'Pronet'
     else:
@@ -103,10 +108,6 @@ def date_of_zip(subject, entry_date, phoenix_dir):
         if date_match and entry_date != '':
             extracted_date = date_match.group(0)
             extracted_date = datetime.strptime(extracted_date, '%Y_%m_%d')
-            print(extracted_date)
-            print(formatted_entry_date)
-            if not isinstance(formatted_entry_date, datetime):
-                formatted_entry_date = datetime.strptime(formatted_entry_date,  '%Y_%m_%d')
             if formatted_entry_date == extracted_date and filename[-4:] == '.zip' and 'MR' in filename:
                 zip_file = Path(base_dir, pronet_dir, 'raw', subject, 'mri',filename)
                 if zip_file.exists():
