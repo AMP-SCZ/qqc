@@ -83,14 +83,12 @@ def is_qqc_executed(subject, entry_date) -> bool:
     else:
         return False
 
-    
+
 def date_of_zip(subject, entry_date, phoenix_dir):
     if entry_date == '':
         return None
-
     formatted_entry_date = entry_date.replace("-", "_")
     formatted_entry_date = datetime.strptime(formatted_entry_date, '%Y_%m_%d')
-
     if 'Pronet' in phoenix_dir:
         prefix = 'Pronet'
     else:
@@ -111,17 +109,13 @@ def date_of_zip(subject, entry_date, phoenix_dir):
             if formatted_entry_date == extracted_date and \
                     filename[-4:] == '.zip' and 'MR' in filename:
                 zip_file = zip_file_path / filename
-                if zip_file.exists():
-                    stat = zip_file.stat()
-                    timestamp = stat.st_mtime
-                    date_str = datetime.fromtimestamp(timestamp).strftime(
-                            '%Y-%m-%d')
-                    return date_str
-                else:
-                    return ''
+                stat = zip_file.stat()
+                timestamp = stat.st_mtime
+                date_str = datetime.fromtimestamp(timestamp).strftime(
+                        '%Y-%m-%d')
+                return date_str
             else:
                 continue
-
 
 
 def date_of_qqc(subject, entry_date) -> str:
