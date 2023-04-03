@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import math
 import json
+from typing import Union
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -107,19 +108,11 @@ def check_mri_data(run_sheet: Path, entry_date: str) -> bool:
     return False
 
 
-def check_when_transferred(subject: str, entry_date: str) -> bool:
-    ''''return if there is MR data and entry date'''
-    mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
-    source_root = mri_root / 'sourcedata'
-    date_numbers_only = re.sub('[-_]', '', entry_date)
-    subject_dir = source_root / subject
-    qqc_first_outputs = list(subject_dir.glob(f'*{date_numbers_only}*'))
-
-    if len(qqc_first_outputs) >= 1:
-        qqc_first_output = qqc_first_outputs[0]
-        ctime = qqc_first_output.stat().st_ctime
-        date_str = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d')
-        return date_str
+def check_when_transferred(expected_mri_path: Union[Path, str]) -> bool:
+    ''''return the ctime of a file'''
+    ctime = Path(expected_mri_path).stat().st_ctime
+    date_str = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d')
+    return date_str
 
 
 def is_qqc_executed(subject, entry_date) -> bool:
@@ -312,21 +305,21 @@ def extract_variable_information(row: dict, col: str,
     return value_list
 
 
-def extract_missing_data_information(subject: str, network: str) -> list:
+def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
     """This function is given a specific subject and network as input. It then creates
     a path for the json file that is associated with that subject and network. For each variable
     that is being searched for in the json file, there is a list that will contain each value
     for that variable, along with its the date and timepoint."""
     
     
-    if 'Pronet' in network:
+    if 'Pronet' in str(phoenix_dir):
         network = 'Pronet'
     else:
         network = 'Prescient'
 
-    json_path = Path(f'/data/predict1/data_from_nda/{network}/PHOENIX/'
-                     f'PROTECTED/{network}{subject[:2]}/raw/{subject}/'
-                     f'surveys/{subject}.{network}.json')
+    site = network + subject[:2]
+    subject_dir = Path(phoenix_dir) / f'PROTECTED/{site}/raw/{subject}'
+    json_path = subject_dir / 'surveys' / f'{subject}.{network}.json'
 
     if json_path.exists():
         with open(json_path, 'r') as f:
@@ -338,9 +331,9 @@ def extract_missing_data_information(subject: str, network: str) -> list:
 
     comments_list = []
     missing_data_form_complete_list = []  # missing_data_complete
-    domain_missing_list = []   # chrmiss_domain
-    reason_for_missing_data_list = []   # chrmiss_domain_spec
-    domain_type_missing_list = [] # chrmiss_domain_type
+    domain_missing_list = []  # chrmiss_domain
+    reason_for_missing_data_list = []  # chrmiss_domain_spec
+    domain_type_missing_list = []  # chrmiss_domain_type
     variables = []
 
     for x in range(1, 8):
@@ -354,11 +347,12 @@ def extract_missing_data_information(subject: str, network: str) -> list:
             }
     for x in range(0, len(variables)):
         variable_dict['variables'].append({variables[x]: ['', '0']})
+
     value_lists = [missing_data_form_complete_list,
                    domain_missing_list,
                    reason_for_missing_data_list]
+
     for row in json_data:
-        print(row['chric_record_id'])
         for col in row:
             comments_list = extract_variable_information(
                     row, col, 'comment', '', comments_list)
@@ -391,12 +385,11 @@ def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
     in the json files with the specific subject dates in the main
     pandas dataframe. If there are no variable dates that match the entry
     dates, the variables are removed from the dataframe."""
-    
+
     df['entry_date'] = df['entry_date'].str.replace('_', '-')
 
     for index, row in df.iterrows():
         entry_date = row['entry_date']
-        print(entry_date)
 
         if pd.isna(entry_date):
             df.drop(index, inplace=True)
@@ -473,18 +466,25 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['mri_data_exist'] = datatype_df.apply(lambda x:
             check_mri_data(x['file_path'], x['entry_date']), axis=1)
 
+    # index of run sheets with matching MRI file
     index_with_mri_data = datatype_df[
             datatype_df['mri_data_exist'] == True].index
+
+    # estimate MRI zip file arrival date
     datatype_df.loc[index_with_mri_data, 'mri_arrival_date'] = \
-            datatype_df.loc[index_with_mri_data].apply(lambda x:
-                check_when_transferred(x['subject'], x['entry_date']), axis=1)
+            datatype_df.loc[index_with_mri_data].expected_mri_path.apply(
+                check_when_transferred)
+
+    # extract missing data information from the full REDCap data
     missing_data_info = datatype_df.apply(
             lambda x: pd.Series(
-                extract_missing_data_information(x['subject'],
-                                                 str(phoenix_dir))), axis=1)
-    datatype_df[['domain_type_missing', 'reason_for_missing_data',
-                 'domain_missing', 'missing_data_form_complete',
-                 'comments']] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
+                extract_missing_data_information(x['subject'], phoenix_dir)),
+            axis=1)
+    datatype_df[
+            ['domain_type_missing', 'reason_for_missing_data',
+             'domain_missing', 'missing_data_form_complete', 'comments']
+                ] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
+
     datatype_df = compare_dates(datatype_df)
     cols_to_split = ['domain_type_missing', 'reason_for_missing_data',
                      'domain_missing', 'missing_data_form_complete',
@@ -539,5 +539,6 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
             arrival_scan_time, axis=1).apply(format_days)
     datatype_df.reset_index(drop=True,inplace=True)
     datatype_df.drop('index', axis=1, inplace=True)
+
 
     return datatype_df
