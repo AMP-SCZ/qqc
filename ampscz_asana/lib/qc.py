@@ -85,7 +85,12 @@ def is_qqc_executed(subject, entry_date) -> bool:
 
     
 def date_of_zip(subject, entry_date, phoenix_dir):
+    if entry_date == '':
+        return None
+
     formatted_entry_date = entry_date.replace("-", "_")
+    formatted_entry_date = datetime.strptime(formatted_entry_date, '%Y_%m_%d')
+
     if 'Pronet' in phoenix_dir:
         prefix = 'Pronet'
     else:
@@ -103,17 +108,14 @@ def date_of_zip(subject, entry_date, phoenix_dir):
         if date_match and entry_date != '':
             extracted_date = date_match.group(0)
             extracted_date = datetime.strptime(extracted_date, '%Y_%m_%d')
-            print(extracted_date)
-            print(formatted_entry_date)
-            if not isinstance(formatted_entry_date, datetime):
-                formatted_entry_date = datetime.strptime(formatted_entry_date,  '%Y_%m_%d')
-            if formatted_entry_date == extracted_date and filename[-4:] == '.zip' and 'MR' in filename:
-                zip_file = Path(base_dir, pronet_dir, 'raw', subject, 'mri',filename)
+            if formatted_entry_date == extracted_date and \
+                    filename[-4:] == '.zip' and 'MR' in filename:
+                zip_file = zip_file_path / filename
                 if zip_file.exists():
-                    print(zip_file)
                     stat = zip_file.stat()
                     timestamp = stat.st_mtime
-                    date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+                    date_str = datetime.fromtimestamp(timestamp).strftime(
+                            '%Y-%m-%d')
                     return date_str
                 else:
                     return ''
@@ -183,18 +185,30 @@ def is_dwipreproc_done(subject, entry_date) -> bool:
         return False
 
 
-def extract_variable_information(row: dict, col: str, variable_name: str,
-                                 excluded_values: list, value_list: list) -> list:
-    
-    """This function takes a specific row and column from the given json file as input. Each 
-    row is a dictionary and each column is a specific key in that dictionary.
-    For a given subject's json file, there is a dictionary for each timepoint that
-    contains the values for every variable within that timepoint. This function is used by the
-    extract_missing_data_information function to loop through a given row (dictionary/timepoint) to
-    search for the column (key/variable) that matches the variable name that it is searching for. It then 
-    creates a string that contains the date from that row, the timepoint from that row, and
-    the value for the specific variable that was being searched for."""
-    
+def extract_variable_information(row: dict, col: str,
+                                 variable_name: str, excluded_values: list,
+                                 value_list: list) -> list:
+    """Extract info from the 'row' dictionary, which is from REDCap json.
+
+    This function takes a specific row and column from the given json file as
+    input. Each row is a dictionary and each column is a specific key in that
+    dictionary. For a given subject's json file, there is a dictionary for
+    each timepoint that contains the values for every variable within that
+    timepoint. This function is used by the extract_missing_data_information
+    function to loop through a given row (dictionary/timepoint) to search for
+    the column (key/variable) that matches the variable name that it is
+    searching for. It then creates a string that contains the date from that
+    row, the timepoint from that row, and the value for the specific variable
+    that was being searched for.
+
+    Key Arguments:
+        row: data from REDCap json, dict.
+        col: key of the dictionary, str.
+        variable_name: variable name, str.
+        excluded_values: list of excluded values, list of str.
+        value_list: list of values, list of str.
+    """
+
     domain_type_dict = {'1': 'clinical measures',
                         '2': 'EEG',
                         '3': 'Neuroimaging',
@@ -203,16 +217,19 @@ def extract_variable_information(row: dict, col: str, variable_name: str,
                         '6': 'digital biomarkers',
                         '7': 'speech sampling'}
 
-    reason_dict = {'M1': 'Refusal - no reason provided',
-                   'M2': 'Refusal - reason: had an unpleasant experience last time',
-                   'M3': 'Refusal - reason: anxiety associated with the assessment domain',
-                   'M4': 'Refusal - reason: too much time commitment - AMP SCZ assessments',
-                   'M5': 'Refusal - reason: too much time commitment - other studies',
-                   'M6': 'No show',
-                   'M7': 'Not booked',
-                   'M8': 'Not applicable',
-                   'M9': 'Uncontrollable circumstance',
-                   'M10':  'Other reason'}
+    reason_dict = {
+        'M1': 'Refusal - no reason provided',
+        'M2': 'Refusal - reason: had an unpleasant experience last time',
+        'M3': 'Refusal - reason: anxiety associated with the '
+              'assessment domain',
+        'M4': 'Refusal - reason: too much time commitment '
+              '- AMP SCZ assessments',
+        'M5': 'Refusal - reason: too much time commitment - other studies',
+        'M6': 'No show',
+        'M7': 'Not booked',
+        'M8': 'Not applicable',
+        'M9': 'Uncontrollable circumstance',
+        'M10':  'Other reason'}
 
     value = row[col]
     date = row['chrmri_entry_date']
@@ -249,7 +266,6 @@ def extract_variable_information(row: dict, col: str, variable_name: str,
 
 
 def extract_missing_data_information(subject: str, network: str) -> list:
-    
     """This function is given a specific subject and network as input. It then creates
     a path for the json file that is associated with that subject and network. For each variable
     that is being searched for in the json file, there is a list that will contain each value
@@ -326,8 +342,8 @@ def extract_missing_data_information(subject: str, network: str) -> list:
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
     """This function is used to match the variables that were found 
     in the json files with the specific subject dates in the main
-    pandas dataframe. If there are no variable dates that match the entry dates, the 
-    variables are removed from the dataframe."""
+    pandas dataframe. If there are no variable dates that match the entry
+    dates, the variables are removed from the dataframe."""
     
     df['entry_date'] = df['entry_date'].str.replace('_', '-')
 
@@ -383,7 +399,8 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
     df['datatype'] = df.file_path.apply(lambda x: x.name.split('_')[2])
-    df['other_files'] = df['file_loc'].apply(lambda x: os.listdir(Path(x).parent.absolute()))
+    df['other_files'] = df['file_loc'].apply(lambda x: os.listdir(
+        Path(x).parent.absolute()))
     df['other_files'] = df['other_files'].apply(lambda x: ', '.join(x))
 
     datatype_index = df[df['datatype'] == datatype].index
@@ -462,6 +479,6 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['Time between scan and data arrival'] = datatype_df.apply(
             arrival_scan_time, axis=1).apply(format_days)
     datatype_df.reset_index(drop=True,inplace=True)
-    del datatype_df['index']
+    datatype_df.drop('index', axis=1, inplace=True)
 
     return datatype_df
