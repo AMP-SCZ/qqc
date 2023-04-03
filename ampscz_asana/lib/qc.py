@@ -37,19 +37,37 @@ def get_entry_date_from_run_sheet(run_sheet: Path) -> str:
 
 
 def check_mri_data(run_sheet: Path, entry_date: str) -> bool:
-    ''''return if there is MR data and entry date'''
+    ''''return if there is MR data and entry date
+
+    Key argument:
+        run_sheet: Path of the run sheet file, Path
+        entry_date: date in YYYY_MM_DD format, str.
+
+
+    Notes:
+        The function will work regardless of zero padding in month and day of
+        the entry_date, eg) 2000_03_03, 2000_3_3, 2000_03_3, and 2000_3_03
+        will all be matched to 2022_03_03 pattern in the file name.
+    '''
     if entry_date == '':
         return False
 
-    # pronet
-    for i in run_sheet.parent.glob(f'*{entry_date}*'):
-        if i.is_dir():
-            print(i)
-            return True
-
-    # prescient
-    for i in run_sheet.parent.glob(f'*{entry_date}*.[Zz][Ii][Pp]'):
+    # exact match
+    for zip_file in run_sheet.parent.glob(f'*{entry_date}*.[Zz][Ii][Pp]'):
         return True
+
+    # date match
+    for zip_file in run_sheet.parent.glob('*.[Zz][Ii][Pp]'):
+        zip_filename_pattern = r'[A-Z]{2}\d{5}_MR_(\d{4}_\d{1,2}_\d{1,2})_'
+        matching_pattern = re.search(zip_filename_pattern, zip_file.name)
+        if matching_pattern:
+            date_from_filename_str = matching_pattern.group(1)
+            date_from_filename_date = datetime.strptime(date_from_filename_str,
+                                                        '%Y_%m_%d')
+            entry_date_date = datetime.strptime(entry_date, '%Y_%m_%d')
+
+            if date_from_filename_date == entry_date_date:
+                return True
 
     return False
 
@@ -387,16 +405,26 @@ def format_days(day_amount: int) -> str:
 
 
 def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
+    '''Summarize the raw data files based on the lochness created run sheets
+
+    Key Arguments:
+        phoenix_dir: Root of a PHOENIX directory, Path.
+        datatype: data type, eg) 'mri', str.
+    '''
+    # get all run sheets extracted from RPMS or REDCap by lochness from
     run_sheets = grep_run_sheets(phoenix_dir)
 
+    # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
+    # AB00001.Pronet.Run_sheet_mri_1.csv
     df['datatype'] = df.file_path.apply(lambda x: x.name.split('_')[2])
-    df['other_files'] = df['file_loc'].apply(lambda x: os.listdir(
-        Path(x).parent.absolute()))
+    df['other_files'] = df['file_loc'].apply(lambda x: [x for x in os.listdir(
+        Path(x).parent.absolute()) if re.search(r'zip', x, re.IGNORECASE)])
     df['other_files'] = df['other_files'].apply(lambda x: ', '.join(x))
 
+    # select given datatype
     datatype_index = df[df['datatype'] == datatype].index
     datatype_df = df.loc[datatype_index]
 
