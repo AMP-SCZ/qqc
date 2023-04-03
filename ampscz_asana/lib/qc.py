@@ -36,6 +36,41 @@ def get_entry_date_from_run_sheet(run_sheet: Path) -> str:
     return entry_date
 
 
+def get_mri_data(run_sheet: Path, entry_date: str) -> bool:
+    ''''return the matching MRI zip file based on the entry_date
+
+    Key argument:
+        run_sheet: Path of the run sheet file used to get MRI folder, Path
+        entry_date: date in YYYY_MM_DD format, str.
+
+    Notes:
+        The function will work regardless of zero padding in month and day of
+        the entry_date, eg) 2000_03_03, 2000_3_3, 2000_03_3, and 2000_3_03
+        will all be matched to 2022_03_03 pattern in the file name.
+    '''
+    if entry_date == '':
+        return None
+
+    # exact match
+    for zip_file in run_sheet.parent.glob(f'*{entry_date}*.[Zz][Ii][Pp]'):
+        return zip_file
+
+    # date match
+    for zip_file in run_sheet.parent.glob('*.[Zz][Ii][Pp]'):
+        zip_filename_pattern = r'[A-Z]{2}\d{5}_MR_(\d{4}_\d{1,2}_\d{1,2})_'
+        matching_pattern = re.search(zip_filename_pattern, zip_file.name)
+        if matching_pattern:
+            date_from_filename_str = matching_pattern.group(1)
+            date_from_filename_date = datetime.strptime(date_from_filename_str,
+                                                        '%Y_%m_%d')
+            entry_date_date = datetime.strptime(entry_date, '%Y_%m_%d')
+
+            if date_from_filename_date == entry_date_date:
+                return zip_file
+
+    return None
+
+
 def check_mri_data(run_sheet: Path, entry_date: str) -> bool:
     ''''return if there is MR data and entry date
 
@@ -432,7 +467,9 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['entry_date'] = datatype_df.file_path.apply(
             get_entry_date_from_run_sheet)
 
-    # MRI
+    # for each run sheet, return the matching zip file
+    datatype_df['expected_mri_path'] = datatype_df.apply(lambda x:
+            get_mri_data(x['file_path'], x['entry_date']), axis=1)
     datatype_df['mri_data_exist'] = datatype_df.apply(lambda x:
             check_mri_data(x['file_path'], x['entry_date']), axis=1)
 
