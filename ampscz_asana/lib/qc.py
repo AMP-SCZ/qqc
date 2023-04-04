@@ -120,7 +120,6 @@ def is_qqc_executed(subject, entry_date) -> bool:
     source_root = mri_root / 'sourcedata'
 
     date_numbers_only = re.sub('[-_]', '', entry_date)
-    print(date_numbers_only)
     subject_dir = source_root / subject
     qqc_first_outputs = subject_dir.glob(f'*{date_numbers_only}*')
 
@@ -382,10 +381,11 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
 
 def extract_missing_data_info_new(subject: str,
                                   phoenix_dir: str,
-                                  scan_date: str) -> tuple:
+                                  scan_date: str,
+                                  timepoint: Union['1', '2']) -> tuple:
     '''Extract missing info and timepoint from REDCap'''
-    if scan_date == '' or pd.isna(scan_date):
-        return None
+    # if scan_date == '' or pd.isna(scan_date):
+        # return None
 
     if 'Pronet' in str(phoenix_dir):
         network = 'Pronet'
@@ -417,11 +417,19 @@ def extract_missing_data_info_new(subject: str,
              'chrmri_entry_date',
              'chrmiss_domain_spec'] + domain_type_cols]
 
-    # only leave the event where there is matching chrmri_entry_date
-    scan_date = datetime.strptime(scan_date, '%Y_%m_%d').strftime('%Y-%m-%d')
+    if scan_date == '' or pd.isna(scan_date):
+        timepoint_to_index_dict = {'1': 'baseline',
+                                   '2': 'month_2'}
+        timepoint_str = timepoint_to_index_dict[timepoint]
+        scan_date_index = df[
+                df.redcap_event_name.str.contains(timepoint_str)].index[0]
+    else:
+        # only leave the event where there is matching chrmri_entry_date
+        scan_date = datetime.strptime(scan_date,
+                                      '%Y_%m_%d').strftime('%Y-%m-%d')
 
-    # [0] added at the end because it returns list of a singe item
-    scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
+        # [0] added at the end because it returns list of a singe item
+        scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
 
     missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
     timepoint = df.loc[scan_date_index]['redcap_event_name']
@@ -494,6 +502,9 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
+    # YA08362.Pronet.Run_sheet_mri_2.csv
+    df['run_sheet_num'] = df.file_path.apply(lambda x: x.name).str.extract(
+            '[A-Z]{2}\d{5}\.P\w+\.Run_sheet_\w+_(\d).csv')
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
     # AB00001.Pronet.Run_sheet_mri_1.csv
     df['datatype'] = df.file_path.apply(lambda x: x.name.split('_')[2])
@@ -528,7 +539,8 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['vars'] = datatype_df.apply(
             lambda x: extract_missing_data_info_new(x['subject'],
                                                     phoenix_dir,
-                                                    x['entry_date']),
+                                                    x['entry_date'],
+                                                    x['run_sheet_num']),
             axis=1)
 
     datatype_df['missing_info'] = datatype_df.vars.str[0]
