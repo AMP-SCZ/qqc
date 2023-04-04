@@ -134,7 +134,7 @@ def is_qqc_executed(subject, entry_date) -> bool:
 
 def date_of_zip(subject, entry_date, phoenix_dir):
     if entry_date == '' or pd.isna(entry_date):
-        return False
+        return None
     formatted_entry_date = entry_date.replace("-", "_")
     formatted_entry_date = datetime.strptime(formatted_entry_date, '%Y_%m_%d')
     if 'Pronet' in phoenix_dir:
@@ -225,7 +225,6 @@ def is_dwipreproc_done(subject, entry_date) -> bool:
 
     date_numbers_only = re.sub('[-_]', '', entry_date)
     subject_dir = deriv_root / f'sub-{subject}'
-    print(subject_dir)
     mriqc_first_outputs = subject_dir.glob(f'*{date_numbers_only}*')
 
     if len(list(mriqc_first_outputs)) >= 1:
@@ -333,7 +332,6 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
         with open(json_path, 'r') as f:
             json_data = json.load(f)
     else:
-        print(json_path)
         return ['Json not found', 'Json not found', 'Json not found',
                 'Json not found', 'Json not found']
 
@@ -586,27 +584,23 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['zip_date'] = datatype_df.apply(
             lambda x, param: date_of_zip(x['subject'], x['entry_date'], param),
             axis=1, param=str(phoenix_dir))
-    # cols = datatype_df.columns.tolist()
-
-    # new_cols = ['subject', 'entry_date', 'timepoint'] + [
-            # col for col in cols if col not in
-            # ['subject', 'entry_date', 'timepoint', 'file_loc']]
-
-    # datatype_df = datatype_df[new_cols]
     datatype_df['entry_date'] = datatype_df['entry_date'].str.replace('_', '-')
 
     datatype_df = datatype_df.reset_index()
     datatype_df['qqc_date'] = pd.to_datetime(datatype_df['qqc_date'])
-    datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'])
+    datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'],
+                                             errors='ignore')
     datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
 
     # estimate time difference
     arrival_qqc_time = lambda x: abs((x['zip_date'] - x['qqc_date']).days)
     arrival_scan_time = lambda x: abs((x['zip_date'] - x['entry_date']).days)
-    datatype_df['Time between QQC and data arrival'] = datatype_df.apply(
-            arrival_qqc_time, axis=1).apply(format_days)
-    datatype_df['Time between scan and data arrival'] = datatype_df.apply(
-            arrival_scan_time, axis=1).apply(format_days)
+    delay_time = lambda x: abs((datetime.today() - x['entry_date']).days)
+    datatype_df['days_arrival_to_qqc'] = datatype_df.apply(arrival_qqc_time,
+                                                           axis=1)
+    datatype_df['days_scan_to_arrival'] = datatype_df.apply(arrival_scan_time,
+                                                            axis=1)
+    datatype_df['days_scans_to_today'] = datatype_df.apply(delay_time, axis=1)
     datatype_df.reset_index(drop=True,inplace=True)
     datatype_df.drop('index', axis=1, inplace=True)
 
