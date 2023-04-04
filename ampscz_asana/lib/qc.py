@@ -392,9 +392,6 @@ def extract_missing_data_info_new(subject: str,
                                   scan_date: str,
                                   timepoint: Union['1', '2']) -> tuple:
     '''Extract missing info and timepoint from REDCap'''
-    # if scan_date == '' or pd.isna(scan_date):
-        # return None
-
     if 'Pronet' in str(phoenix_dir):
         network = 'Pronet'
     else:
@@ -430,8 +427,11 @@ def extract_missing_data_info_new(subject: str,
         timepoint_to_index_dict = {'1': 'baseline',
                                    '2': 'month_2'}
         timepoint_str = timepoint_to_index_dict[timepoint]
-        scan_date_index = df[
-                df.redcap_event_name.str.contains(timepoint_str)].index[0]
+        try:
+            scan_date_index = df[
+                    df.redcap_event_name.str.contains(timepoint_str)].index[0]
+        except IndexError:
+            return None
     else:
         # only leave the event where there is matching chrmri_entry_date
         scan_date = datetime.strptime(scan_date,
@@ -574,6 +574,9 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['missing_info'] = datatype_df.vars.str[0]
     datatype_df['timepoint'] = datatype_df.vars.str[1]
     datatype_df['missing_timepoint'] = datatype_df.vars.str[2]
+    datatype_df['missing_marked'] = (
+            (datatype_df['missing_info'] == 1) |
+            (datatype_df['missing_timepoint'])).map({True: 1, False: None})
     datatype_df.drop('vars', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
@@ -601,7 +604,6 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'],
                                              errors='ignore')
     datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
-
 
     # estimate time difference
     arrival_qqc_time = lambda x: abs((x['zip_date'] - x['qqc_date']).days)
