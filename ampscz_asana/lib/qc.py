@@ -606,3 +606,8 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
 
 
     return datatype_df
+
+
+def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
+    '''Convert datatype_df to DPDash importable format and save as csv files'''
+    pass
