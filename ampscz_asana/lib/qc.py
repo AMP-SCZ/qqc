@@ -185,7 +185,6 @@ def is_mri_done(subject, entry_date) -> bool:
 
     date_numbers_only = re.sub('[-_]', '', entry_date)
     subject_dir = deriv_root / f'sub-{subject}'
-    print(subject_dir)
     mriqc_first_outputs = subject_dir.glob(f'*{date_numbers_only}*')
 
     if len(list(mriqc_first_outputs)) >= 1:
@@ -200,7 +199,6 @@ def is_fmriprep_done(subject, entry_date) -> bool:
 
     date_numbers_only = re.sub('[-_]', '', entry_date)
     subject_dir = deriv_root / f'sub-{subject}'
-    print(subject_dir)
     mriqc_first_outputs = subject_dir.glob(f'*{date_numbers_only}*')
 
     if len(list(mriqc_first_outputs)) >= 1:
@@ -408,14 +406,15 @@ def extract_missing_data_info_new(subject: str,
     # column names to extract
     domain_type_cols = [x for x in df.columns
                         if re.search(r'chrmiss_domain_type___3', x)]
+    miss_time_cols = [x for x in df.columns if 'chrmiss_time' == x]
 
-    if len(domain_type_cols) == 0:
+    if len(domain_type_cols) == 0 and len(miss_time_cols) == 0:
         return None
 
     # select columns in interest
     df = df[['redcap_event_name',
              'chrmri_entry_date',
-             'chrmiss_domain_spec'] + domain_type_cols]
+             'chrmiss_domain_spec'] + domain_type_cols + miss_time_cols]
 
     if scan_date == '' or pd.isna(scan_date):
         timepoint_to_index_dict = {'1': 'baseline',
@@ -431,10 +430,19 @@ def extract_missing_data_info_new(subject: str,
         # [0] added at the end because it returns list of a singe item
         scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
 
-    missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
     timepoint = df.loc[scan_date_index]['redcap_event_name']
 
-    return (missing_info, timepoint,)
+    if 'chrmiss_domain_type___3' in df.columns:
+        missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
+    else:
+        missing_info = None
+
+    if 'chrmiss_time' in df.columns:
+        miss_time = df.loc[scan_date_index]['chrmiss_time']
+    else:
+        miss_time = None
+
+    return (missing_info, timepoint, miss_time)
 
 
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
@@ -545,6 +553,7 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
 
     datatype_df['missing_info'] = datatype_df.vars.str[0]
     datatype_df['timepoint'] = datatype_df.vars.str[1]
+    datatype_df['missing_timepoint'] = datatype_df.vars.str[2]
     datatype_df.drop('vars', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
