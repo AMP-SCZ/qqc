@@ -438,14 +438,13 @@ def extract_missing_data_info_new(subject: str,
                                       '%Y_%m_%d').strftime('%Y-%m-%d')
 
         # [0] added at the end because it returns list of a singe item
-        scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
+        try:
+            scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
+        except IndexError:
+            return None
 
     timepoint = df.loc[scan_date_index]['redcap_event_name']
-
-    if 'chrmiss_domain_type___3' in df.columns:
-        missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
-    else:
-        missing_info = None
+    missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
 
     if 'chrmiss_time' in df.columns:
         miss_time = df.loc[scan_date_index]['chrmiss_time']
@@ -658,9 +657,15 @@ def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
 
     # save CSV files
     # combined
-    all_df['day'] = range(1, len(all_df)+1)
     filename = f'combined-AMPSCZ-mridataflow-day1to{len(all_df)}.csv'
+    nodate_df = all_df[all_df.scan_date.isnull()]
+    date_df = all_df[~all_df.scan_date.isnull()]
+    date_df.sort_values(['data_at_dpacc', 'days_scan_to_today', 'scan_date'],
+                       inplace=True)
+    all_df = pd.concat([date_df, nodate_df])
+    all_df['day'] = range(1, len(all_df)+1)
     all_df.to_csv(outdir / filename, index=False)
+    return
 
     # for each network
     for network, table in all_df.groupby('network'):
@@ -677,6 +682,7 @@ def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
 
     # for each subject
     for subject, table in all_df.groupby('subject_id'):
+        site = subject[:2]
         filename = f'{site}-{subject}-mridataflow-day1to{len(table)}.csv'
         table['day'] = range(1, len(table)+1)
         table.to_csv(outdir / filename, index=False)

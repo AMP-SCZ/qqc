@@ -82,8 +82,13 @@ def test_extract_missing_data_info_new():
     subject = 'YA08362'
     scan_date = ''
 
-    print(extract_missing_data_info_new(subject, phoenix_root, scan_date))
+    print(extract_missing_data_info_new(subject, phoenix_root, scan_date, '1'))
 
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    subject = 'BM60731'
+    scan_date = ''
+
+    print(extract_missing_data_info_new(subject, phoenix_root, scan_date, '2'))
 
 def test_is_qqc_executed():
     subject = 'YA08362'
@@ -106,6 +111,5 @@ def test_dataflow_dpdash():
         df2 = get_run_sheet_df(phoenix_root)
         df2.to_csv('test_full_df_prescient.csv')
 
-
-    # df = pd.concat([df1, df2])
-    # dataflow_dpdash(df)
+    df = pd.concat([df1, df2])
+    dataflow_dpdash(df)
