@@ -525,6 +525,11 @@ def get_run_sheet_df(phoenix_dir: Path,
     # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
+    # add network
+    df['network'] = df.file_loc.str.contains('Prescient').map(
+            {True: 'Prescient',
+             False: 'Pronet'})
+
     # YA08362.Pronet.Run_sheet_mri_2.csv
     df['run_sheet_num'] = df.file_path.apply(lambda x: x.name).str.extract(
             '[A-Z]{2}\d{5}\.P\w+\.Run_sheet_\w+_(\d).csv')
@@ -597,6 +602,7 @@ def get_run_sheet_df(phoenix_dir: Path,
                                              errors='ignore')
     datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
 
+
     # estimate time difference
     arrival_qqc_time = lambda x: abs((x['zip_date'] - x['qqc_date']).days)
     arrival_scan_time = lambda x: abs((x['zip_date'] - x['entry_date']).days)
@@ -615,36 +621,59 @@ def get_run_sheet_df(phoenix_dir: Path,
 
 def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
     '''Convert datatype_df to DPDash importable format and save as csv files'''
+    outdir = Path('/data/predict1/data_from_nda/MRI_ROOT/flow_check')
 
-    # loop through each subject
+    # flush existing files
+    for i in outdir.glob('*csv'):
+        os.remove(i)
+
+    # loop through each subject to build database
+    all_df = pd.DataFrame()
     for subject, table in datatype_df.groupby('subject'):
-        print(subject)
-        print(table)
-        site = subject[:2]
-        n_timepoint = len(table)
-        filename = f'{site}-{subject}-mridataflow-day1to{n_timepoint}.csv'
-        df = pd.DataFrame()
-
         for num, (timepoint, t_table) in enumerate(
-                table.sort_values('timepoint').groupby('run_sheet_num')):
+                table.sort_values('timepoint').groupby('run_sheet_num'), 1):
             row = t_table.iloc[0]
-            
+
             df_tmp = pd.DataFrame({
                 'day': [num],
                 'reftime': '',
                 'timeofday': '',
                 'weekday': '',
                 'subject_id': subject,
+                'site': subject[:2],
+                'network': row['network'],
                 'timepoint': row['run_sheet_num'],
                 'scan_date': row['entry_date'],
+                'missing_info': row['missing_info'],
                 'quick_qc': int(row['qqc_executed']),
-                'manul_qc': 3,
+                'manual_qc': 3,
                 'data_at_dpacc': int(row['mri_data_exist']),
                 'days_arrival_to_qqc': row['days_arrival_to_qqc'],
                 'days_scan_to_arrival': row['days_scan_to_arrival'],
                 'days_scan_to_today': row['days_scan_to_today']})
-            df = pd.concat([df, df_tmp])
 
-        df.to_csv(filename)
-        print(df)
-        break
+            all_df = pd.concat([all_df, df_tmp])
+
+    # combined
+    all_df['day'] = range(1, len(all_df)+1)
+    filename = f'combined-AMPSCZ-mridataflow-day1to{len(all_df)}.csv'
+    all_df.to_csv(outdir / filename, index=False)
+
+    # for each network
+    for network, table in all_df.groupby('network'):
+        filename = f'combined-{network.upper()}-' \
+                   f'mridataflow-day1to{len(table)}.csv'
+        table['day'] = range(1, len(table)+1)
+        table.to_csv(outdir / filename, index=False)
+
+    # for each site
+    for site, table in all_df.groupby('site'):
+        filename = f'combined-{site}-mridataflow-day1to{len(table)}.csv'
+        table['day'] = range(1, len(table)+1)
+        table.to_csv(outdir / filename, index=False)
+
+    # for each subject
+    for subject, table in all_df.groupby('subject'):
+        filename = f'{site}-{subject}-mridataflow-day1to{len(table)}.csv'
+        table['day'] = range(1, len(table)+1)
+        table.to_csv(outdir / filename, index=False)

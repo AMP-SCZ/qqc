@@ -13,7 +13,7 @@ def grep_run_sheets(phoenix_dir: Path) -> list:
     '''Grab run sheets from PHOENIX'''
     protected_dir = phoenix_dir / 'PROTECTED'
     subject_directories_under_phoenix = protected_dir.glob(
-            '*YA/raw/*/*/*Run_sheet*csv')
+            '*/raw/*/*/*Run_sheet*csv')
     return list(subject_directories_under_phoenix)
 
 

@@ -93,5 +93,17 @@ def test_is_qqc_executed():
 
 def test_dataflow_dpdash():
     phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
-    df = get_run_sheet_df(phoenix_root, test=True)
+    if Path('test_full_df_pronet.csv').is_file():
+        df = pd.read_csv('test_full_df_pronet.csv')
+    else:
+        df = get_run_sheet_df(phoenix_root)
+        df.to_csv('test_full_df.csv')
+    dataflow_dpdash(df)
+
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    if Path('test_full_df_prescient.csv').is_file():
+        df = pd.read_csv('test_full_df_prescient.csv')
+    else:
+        df = get_run_sheet_df(phoenix_root)
+        df.to_csv('test_full_df.csv')
     dataflow_dpdash(df)
