@@ -507,7 +507,9 @@ def format_days(day_amount: int) -> str:
     return day_amount
 
 
-def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
+def get_run_sheet_df(phoenix_dir: Path,
+                     datatype: str = 'mri',
+                     test: bool = False) -> pd.DataFrame:
     '''Summarize the raw data files based on the lochness created run sheets
 
     Key Arguments:
@@ -516,6 +518,9 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     '''
     # get all run sheets extracted from RPMS or REDCap by lochness from
     run_sheets = grep_run_sheets(phoenix_dir)
+
+    # if test:
+        # run_sheets = run_sheets[:5]
 
     # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})
@@ -600,7 +605,7 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
                                                            axis=1)
     datatype_df['days_scan_to_arrival'] = datatype_df.apply(arrival_scan_time,
                                                             axis=1)
-    datatype_df['days_scans_to_today'] = datatype_df.apply(delay_time, axis=1)
+    datatype_df['days_scan_to_today'] = datatype_df.apply(delay_time, axis=1)
     datatype_df.reset_index(drop=True,inplace=True)
     datatype_df.drop('index', axis=1, inplace=True)
 
@@ -610,4 +615,36 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
 
 def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
     '''Convert datatype_df to DPDash importable format and save as csv files'''
-    pass
+
+    # loop through each subject
+    for subject, table in datatype_df.groupby('subject'):
+        print(subject)
+        print(table)
+        site = subject[:2]
+        n_timepoint = len(table)
+        filename = f'{site}-{subject}-mridataflow-day1to{n_timepoint}.csv'
+        df = pd.DataFrame()
+
+        for num, (timepoint, t_table) in enumerate(
+                table.sort_values('timepoint').groupby('run_sheet_num')):
+            row = t_table.iloc[0]
+            
+            df_tmp = pd.DataFrame({
+                'day': [num],
+                'reftime': '',
+                'timeofday': '',
+                'weekday': '',
+                'subject_id': subject,
+                'timepoint': row['run_sheet_num'],
+                'scan_date': row['entry_date'],
+                'quick_qc': int(row['qqc_executed']),
+                'manul_qc': 3,
+                'data_at_dpacc': int(row['mri_data_exist']),
+                'days_arrival_to_qqc': row['days_arrival_to_qqc'],
+                'days_scan_to_arrival': row['days_scan_to_arrival'],
+                'days_scan_to_today': row['days_scan_to_today']})
+            df = pd.concat([df, df_tmp])
+
+        df.to_csv(filename)
+        print(df)
+        break

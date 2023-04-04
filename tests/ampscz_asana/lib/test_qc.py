@@ -1,6 +1,6 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 from ampscz_asana.lib.qc import get_run_sheet_df, extract_missing_data_info_new
-from ampscz_asana.lib.qc import is_qqc_executed
+from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash
 import pandas as pd
 from pathlib import Path
 
@@ -89,3 +89,9 @@ def test_is_qqc_executed():
     subject = 'YA08362'
     scan_date = ''
     assert is_qqc_executed(subject, scan_date) == False
+
+
+def test_dataflow_dpdash():
+    phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+    df = get_run_sheet_df(phoenix_root, test=True)
+    dataflow_dpdash(df)
