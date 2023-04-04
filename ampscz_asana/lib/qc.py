@@ -311,7 +311,6 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
     that is being searched for in the json file, there is a list that will contain each value
     for that variable, along with its the date and timepoint."""
     
-    
     if 'Pronet' in str(phoenix_dir):
         network = 'Pronet'
     else:
@@ -338,6 +337,7 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
 
     for x in range(1, 8):
         variables.append('chrmiss_domain_type' + f'___{x}')
+
     variable_dict = {
             'variables': [
                 {'missing_data_complete': ['']},
@@ -380,6 +380,55 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
     return list_of_lists
 
 
+def extract_missing_data_info_new(subject: str,
+                                  phoenix_dir: str,
+                                  scan_date: str) -> tuple:
+    '''Extract missing info and timepoint from REDCap'''
+    if scan_date == '' or pd.isna(scan_date):
+        return None
+
+    if 'Pronet' in str(phoenix_dir):
+        network = 'Pronet'
+    else:
+        network = 'Prescient'
+
+    site = network + subject[:2]
+    subject_dir = Path(phoenix_dir) / f'PROTECTED/{site}/raw/{subject}'
+    json_path = subject_dir / 'surveys' / f'{subject}.{network}.json'
+
+    if json_path.exists():
+        with open(json_path, 'r') as f:
+            json_data = json.load(f)
+    else:
+        return None
+
+    # load json file into json
+    df = pd.DataFrame(json_data)
+
+    # column names to extract
+    domain_type_cols = [x for x in df.columns
+                        if re.search(r'chrmiss_domain_type___3', x)]
+
+    if len(domain_type_cols) == 0:
+        return None
+
+    # select columns in interest
+    df = df[['redcap_event_name',
+             'chrmri_entry_date',
+             'chrmiss_domain_spec'] + domain_type_cols]
+
+    # only leave the event where there is matching chrmri_entry_date
+    scan_date = datetime.strptime(scan_date, '%Y_%m_%d').strftime('%Y-%m-%d')
+
+    # [0] added at the end because it returns list of a singe item
+    scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
+
+    missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
+    timepoint = df.loc[scan_date_index]['redcap_event_name']
+
+    return (missing_info, timepoint,)
+
+
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
     """This function is used to match the variables that were found 
     in the json files with the specific subject dates in the main
@@ -391,9 +440,9 @@ def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
     for index, row in df.iterrows():
         entry_date = row['entry_date']
 
-        if pd.isna(entry_date):
-            df.drop(index, inplace=True)
-            continue
+        # if pd.isna(entry_date):
+            # df.drop(index, inplace=True)
+            # continue
 
         for col in ['domain_type_missing', 'reason_for_missing_data',
                     'domain_missing', 'missing_data_form_complete',
@@ -475,30 +524,16 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
             datatype_df.loc[index_with_mri_data].expected_mri_path.apply(
                 check_when_transferred)
 
-    # extract missing data information from the full REDCap data
-    missing_data_info = datatype_df.apply(
-            lambda x: pd.Series(
-                extract_missing_data_information(x['subject'], phoenix_dir)),
+    # extract missing data information and timepoint from the full REDCap data
+    datatype_df['vars'] = datatype_df.apply(
+            lambda x: extract_missing_data_info_new(x['subject'],
+                                                    phoenix_dir,
+                                                    x['entry_date']),
             axis=1)
-    datatype_df[
-            ['domain_type_missing', 'reason_for_missing_data',
-             'domain_missing', 'missing_data_form_complete', 'comments']
-                ] = missing_data_info.iloc[:, [0, 1, 2, 3, 4]]
 
-    datatype_df = compare_dates(datatype_df)
-    cols_to_split = ['domain_type_missing', 'reason_for_missing_data',
-                     'domain_missing', 'missing_data_form_complete',
-                     'comments']
-
-    for x in range(0, len(cols_to_split)):
-        mask = datatype_df[cols_to_split[x]].notnull() & \
-                (datatype_df[cols_to_split[x]] != '')
-        datatype_df.loc[mask, 'timepoint'] = datatype_df[mask][
-                cols_to_split[x]].str.split('|').str[0].str.split(': ').str[1]
-
-    for col in cols_to_split:
-        datatype_df[col] = datatype_df[col].str.replace(
-                r'^.*\|([^|]*$)', r'\1', regex=True)
+    datatype_df['missing_info'] = datatype_df.vars.str[0]
+    datatype_df['timepoint'] = datatype_df.vars.str[1]
+    datatype_df.drop('vars', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
             is_qqc_executed(x['subject'], x['entry_date']), axis=1)
@@ -518,13 +553,15 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['zip_date'] = datatype_df.apply(
             lambda x, param: date_of_zip(x['subject'], x['entry_date'], param),
             axis=1, param=str(phoenix_dir))
-    cols = datatype_df.columns.tolist()
+    # cols = datatype_df.columns.tolist()
 
-    new_cols = ['subject', 'entry_date', 'timepoint'] + [
-            col for col in cols if col not in
-            ['subject', 'entry_date', 'timepoint', 'file_loc']]
+    # new_cols = ['subject', 'entry_date', 'timepoint'] + [
+            # col for col in cols if col not in
+            # ['subject', 'entry_date', 'timepoint', 'file_loc']]
 
-    datatype_df = datatype_df[new_cols]
+    # datatype_df = datatype_df[new_cols]
+    datatype_df['entry_date'] = datatype_df['entry_date'].str.replace('_', '-')
+
     datatype_df = datatype_df.reset_index()
     datatype_df['qqc_date'] = pd.to_datetime(datatype_df['qqc_date'])
     datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'])

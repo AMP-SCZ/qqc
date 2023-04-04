@@ -1,5 +1,7 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
+from ampscz_asana.lib.qc import get_run_sheet_df
 import pandas as pd
+from pathlib import Path
 
 
 def test_date_of_zip():
@@ -38,8 +40,8 @@ def test_compare_dates():
                                 '"Timepoint: month_6_arm_1 | Date: 2022-11-15 | clinical measures"'],
         'reason_for_missing_data': ['','',''],
         'domain_missing' : ['','',''],
-        'comments':['','',''],
-        'missing_data_form_complete':['','','']
+        'comments': ['','',''],
+        'missing_data_form_complete': ['','','']
     }
     df = pd.DataFrame(data)
 
@@ -64,4 +66,11 @@ def test_format_days():
         assert format_days(1.0) == '1 day'
     except AssertionError:
         raise AssertionError(f"Assertion error: {AssertionError}")
+
+
+def test_get_run_sheet_df():
+    phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+    df = get_run_sheet_df(phoenix_root)
+    df.to_csv('pronet_test.csv')
+    print(df)
 
