@@ -654,6 +654,7 @@ def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
 
             all_df = pd.concat([all_df, df_tmp])
 
+    # save CSV files
     # combined
     all_df['day'] = range(1, len(all_df)+1)
     filename = f'combined-AMPSCZ-mridataflow-day1to{len(all_df)}.csv'
@@ -673,7 +674,7 @@ def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
         table.to_csv(outdir / filename, index=False)
 
     # for each subject
-    for subject, table in all_df.groupby('subject'):
+    for subject, table in all_df.groupby('subject_id'):
         filename = f'{site}-{subject}-mridataflow-day1to{len(table)}.csv'
         table['day'] = range(1, len(table)+1)
         table.to_csv(outdir / filename, index=False)
