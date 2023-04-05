@@ -623,7 +623,7 @@ def get_run_sheet_df(phoenix_dir: Path,
 def dataflow_dpdash(datatype_df: pd.DataFrame, outdir: Path) -> None:
     '''Convert datatype_df to DPDash importable format and save as csv files'''
     # flush existing files
-    for i in outdir.glob('*csv'):
+    for i in outdir.glob('*mridataflow-day*csv'):
         os.remove(i)
 
     # loop through each subject to build database

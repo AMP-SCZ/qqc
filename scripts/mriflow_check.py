@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
 
     csv_out = args.outdir / 'mri_data_flow.csv'
-    print(csv_out)
+
     if args.skip_db_build and csv_out.is_file():
         df = pd.read_csv(csv_out)
 
@@ -69,3 +69,5 @@ if __name__ == '__main__':
     if args.dpdash:
         print(f'Creating dpdash loadable csv files')
         dataflow_dpdash(df, args.outdir)
+
+
