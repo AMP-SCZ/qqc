@@ -51,17 +51,19 @@ def parse_args(argv):
 if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
 
-    df = pd.DataFrame()
 
     csv_out = args.outdir / 'mri_data_flow.csv'
+    print(csv_out)
     if args.skip_db_build and csv_out.is_file():
         df = pd.read_csv(csv_out)
+
     else:
+        df = pd.DataFrame()
         for phoenix_root in args.phoenix_roots:
             print(f'Summarizing dataflow in {phoenix_root}')
-            df_tmp = get_run_sheet_df(phoenix_root, test=args.test)
+            df_tmp = get_run_sheet_df(phoenix_root,
+                                      test=args.test)
             df = pd.concat([df, df_tmp])
-
         df.to_csv(csv_out)
 
     if args.dpdash:
