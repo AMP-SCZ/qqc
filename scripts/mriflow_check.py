@@ -32,6 +32,10 @@ def parse_args(argv):
                         action='store_true',
                         help='Create DPDash importable CSVs')
 
+    parser.add_argument('--skip_db_build', '-s', default=False,
+                        action='store_true',
+                        help='Skip re-building dataflow database')
+
     parser.add_argument('--test', '-t', default=False,
                         action='store_true', help='Test')
 
@@ -48,11 +52,18 @@ if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
 
     df = pd.DataFrame()
-    for phoenix_root in args.phoenix_roots:
-        df_tmp = get_run_sheet_df(phoenix_root)
-        df = pd.concat([df, df_tmp])
 
-    df.to_csv(args.outdir / 'mri_data_flow.csv')
+    csv_out = args.outdir / 'mri_data_flow.csv'
+    if args.skip_db_build and csv_out.is_file():
+        df = pd.read_csv(csv_out)
+    else:
+        for phoenix_root in args.phoenix_roots:
+            print(f'Summarizing dataflow in {phoenix_root}')
+            df_tmp = get_run_sheet_df(phoenix_root, test=args.test)
+            df = pd.concat([df, df_tmp])
+
+        df.to_csv(csv_out)
 
     if args.dpdash:
-        dataflow_dpdash(df)
+        print(f'Creating dpdash loadable csv files')
+        dataflow_dpdash(df, args.outdir)
