@@ -75,13 +75,23 @@ def json_check_for_a_session(json_files: List[str],
                                    'ImageOrientationPatientDICOM'
 
     Returns:
-        Tuple of pd.DataFrames. 
+        Tuple of pd.DataFrames.
             - df_all
             - df_all_diff
             - df_all_shared
     '''
-
+    debug = kwargs.get('debug', False)
     specific_field = kwargs.get('specific_field', '')
+
+    if debug:
+        logger.info(f'debug: {debug}')
+        logger.info(f'specific_field: {specific_field}')
+        logger.info(f'json_files: {json_files}')
+        for json_file in json_files:
+            with open(json_file, 'r') as fp:
+                data = json.load(fp)
+            is_in_json = specific_field in data.keys()
+            logger.info(f'is {specific_field} in the json file?: {is_in_json}')
 
     dicts = []
     bn_snum_dict = {}
@@ -693,7 +703,8 @@ def compare_bval_files(bval_files: List[str]):
     return bval_df
 
 
-def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
+def within_phantom_qc(session_dir: Path, qc_out_dir: Path,
+                      debug: bool = False) -> None:
     '''Compare headers of serieses from the scan
 
     Compare ShimSettings across different serieses,
@@ -713,7 +724,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     json_paths_input = get_all_files_walk(session_dir, 'json')
     
     # ignore FA and colFA maps
-    json_paths_input = [x for x in json_paths_input 
+    json_paths_input = [x for x in json_paths_input
             if not '_fa' in x.name.lower() or
                not '_colfa' in x.name.lower() or
                not 'phoenixzipreport' in x.name.lower()]
@@ -741,10 +752,18 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
              'image orientation in anat'],
             ['c', 'b', 'a']):
 
+        if debug and specific_field == 'ShimSetting':
+            logger.info(specific_field)
+            logger.info(f"json_input: {json_input}")
+            pass
+        else:
+            continue
+
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
             print_diff=False, print_shared=False,
-            specific_field=specific_field)
+            specific_field=specific_field,
+            debug=debug)
 
         csv_suffix = re.sub('[ ]+', '_', title)
 
@@ -768,6 +787,9 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                 summary_df[col] = ''
 
         df_all = pd.concat([summary_df, df_all])
+
+        # if debug:
+            # logger.info(f'df_all: {df_all}')
         df_all.to_csv(qc_out_dir / f'05{letter}_{csv_suffix}.csv')
 
 

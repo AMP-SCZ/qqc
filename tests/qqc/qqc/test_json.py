@@ -12,6 +12,11 @@ import socket
 import json
 
 
+import logging
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(format=formatter, handlers=[logging.StreamHandler()])
+logging.getLogger().setLevel(logging.INFO)
+
 if socket.gethostname() == 'mbp16':
     raw_dicom_dir = Path(__file__).parent.parent.parent / 'data' / \
             'dicom_raw_source'
@@ -31,13 +36,6 @@ def test_json_check_for_a_session():
 
 
 def test_compare_data_to_standard_all_bvals():
-
-    import logging
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-    logging.basicConfig(
-        format=formatter,
-        handlers=[logging.StreamHandler()])
-    logging.getLogger().setLevel(logging.INFO)
 
     data_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     input_dir = data_root / 'rawdata/sub-CP01128/ses-202302231/dwi'
@@ -312,4 +310,17 @@ def test_compare_jsons_to_std():
     standard_dir = Path('/data/predict1/home/kcho/MRI_site_cert/qqc_output/rawdata/sub-LS/ses-202211071')
     qqc_out_dir = 'qc_test'
     compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
+
+
+def test_within_phantom_qc_cp():
+    data_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    input_dir = data_root / 'rawdata/sub-CP01128/ses-202302231/dwi'
+
+    std_root = Path('/data/predict1/home/kcho/MRI_site_cert/CP_data') / \
+            'lochness_transfer_2023_02'
+    standard_dir = std_root / 'CP01128_MR_2023_02_23_1/CP01128' / \
+            'heudiconv_out_new_new_MathiasHelp/sub-CP01128/ses-clean_up/dwi'
+    qc_output_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-CP01128/ses-202302231')
+
+    within_phantom_qc(input_dir.parent, qc_output_dir, debug=True)
 
