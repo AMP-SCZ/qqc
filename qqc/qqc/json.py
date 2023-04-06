@@ -934,7 +934,6 @@ def compare_data_to_standard_all_bvals(input_dir: str,
         logger.info(f'input bvals: {bval_paths_input}')
         logger.info(f'std bvals: {bval_paths_std}')
         
-
     bval_df = pd.DataFrame()
     for bval_path_input in bval_paths_input:
         _, _, bval_suffix_input = get_naming_parts_bids(bval_path_input.name)
@@ -945,7 +944,8 @@ def compare_data_to_standard_all_bvals(input_dir: str,
         for bval_path_std in bval_paths_std:
             _, _, bval_suffix_std = get_naming_parts_bids(bval_path_std.name)
             if not bval_suffix_std.startswith('acq-'):
-                bval_suffix_std = bval_suffix_std[3:]
+                acq_index = bval_suffix_std.index('acq-')
+                bval_suffix_std = bval_suffix_std[acq_index:]
             if debug:
                 logger.info(f'bval_suffix_std: {bval_suffix_std}')
             if bval_suffix_input == bval_suffix_std:
