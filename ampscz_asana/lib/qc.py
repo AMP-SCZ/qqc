@@ -661,11 +661,10 @@ def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
     nodate_df = all_df[all_df.scan_date.isnull()]
     date_df = all_df[~all_df.scan_date.isnull()]
     date_df.sort_values(['data_at_dpacc', 'days_scan_to_today', 'scan_date'],
-                       inplace=True)
+                        inplace=True)
     all_df = pd.concat([date_df, nodate_df])
     all_df['day'] = range(1, len(all_df)+1)
     all_df.to_csv(outdir / filename, index=False)
-    return
 
     # for each network
     for network, table in all_df.groupby('network'):
