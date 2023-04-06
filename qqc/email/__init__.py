@@ -157,7 +157,9 @@ def send_detail(sender: str, recipients: List[str],
 def extract_info_for_qqc_report(raw_input_given: Path,
                                 qqc_out_dir: Path,
                                 standard_dir: Path,
-                                run_sheet_df: pd.DataFrame) -> tuple:
+                                run_sheet_df: pd.DataFrame,
+                                dicom_count_input_df: pd.DataFrame = None) \
+                                        -> tuple:
     '''Extract and clean up information from QQC for email
 
     Key arguments:
@@ -280,13 +282,17 @@ def extract_info_for_qqc_report(raw_input_given: Path,
         'Run sheet',
         run_sheet_df.to_html(na_rep='', justify='center'))
 
+    dicom_count_str = str_tmp.format(
+        f'Dicom file counts (rearranged by QQC)',
+        dicom_count_input_df.to_html(na_rep='', justify='center'))
+
     comparison_str = str_tmp.format(
         'Comparing series protocols to standard',
         protocol_df.to_html(na_rep='', justify='center'))
 
     top_message = raw_zip_loc_str + dicom_loc_str + nifti_loc_str + \
             std_data_loc + qc_data_loc + quick_qc_summary + \
-            run_sheet_summary + comparison_str
+            run_sheet_summary + dicom_count_str + comparison_str
 
 
     # second_message: QC detail of the container
@@ -316,13 +322,15 @@ def send_out_qqc_results(raw_input_given: Path,
                          standard_dir: Path,
                          run_sheet_df: pd.DataFrame,
                          additional_recipients: list,
+                         dicom_count_input_df,
                          test: bool = False,
                          mailx: bool = True):
     '''Send Quick QC summary'''
     sender, recipients, title, subtitle, top_message, qc_detail, \
                 code, image_paths, qqc_html_list, in_mail_footer = \
         extract_info_for_qqc_report(raw_input_given, qqc_out_dir,
-                                    standard_dir, run_sheet_df)
+                                    standard_dir, run_sheet_df,
+                                    dicom_count_input_df)
 
     admin_recipient = 'kc244@research.partners.org'
     user_id = getpass.getuser()
