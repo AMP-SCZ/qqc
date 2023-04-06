@@ -944,7 +944,7 @@ def compare_data_to_standard_all_bvals(input_dir: str,
 
         for bval_path_std in bval_paths_std:
             _, _, bval_suffix_std = get_naming_parts_bids(bval_path_std.name)
-            if bval_suffix_std.startswith('up_'):
+            if not bval_suffix_std.startswith('acq-'):
                 bval_suffix_std = bval_suffix_std[3:]
             if debug:
                 logger.info(f'bval_suffix_std: {bval_suffix_std}')
