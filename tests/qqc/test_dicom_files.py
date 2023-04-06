@@ -9,13 +9,19 @@ import time
 import numpy as np
 import shutil
 import re
+import logging
 
 from qqc.dicom_files import get_dicom_files_walk, \
         get_series_info, get_csa_header, rearange_dicoms, \
         get_diff_in_csa_for_all_measures, all_elements_to_extract, \
         get_additional_info, get_additional_info_by_elem, \
-        add_detailed_info_to_summary_df
+        add_detailed_info_to_summary_df, get_dicom_counts
         
+import logging
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(format=formatter, handlers=[logging.StreamHandler()])
+logging.getLogger().setLevel(logging.INFO)
+
 
 pd.set_option('max_columns', 10)
 
@@ -69,7 +75,30 @@ def test_read_dicom_header(get_test_dicom_df):
     pydicom.read_file(dicom_file_loc)
 
 
-# def test_get_dicom_object(get_test_dicom_df):
+def test_rearrange_dicom_CP():
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    logging.basicConfig(
+        format=formatter,
+        handlers=[logging.StreamHandler()])
+    logging.getLogger().setLevel(logging.INFO)
+
+    tmp_loc = Path('/data/predict1/home/kcho/tmp/tmptmp')
+    dicom_example_root = tmp_loc / 'CP01128_MR_2023_02_23_1/DICOM'
+    dicom_example_root = tmp_loc / 'CP88631_MR_2023_03_23_1'
+
+    df_full = get_dicom_files_walk(dicom_example_root)
+    # if Path('cp_test_df.csv').is_file():
+        # df_full = pd.read_csv('cp_test_df.csv')
+    # else:
+        # df_full = get_dicom_files_walk(dicom_example_root)
+        # df_full.to_csv('cp_test_df.csv')
+
+    rearange_dicoms(df_full,
+                    'test_cp_root',
+                    'CP',
+                    'test2',
+                    force=False,
+                    rename_dicoms=True)
     # _ = get_test_dicom_df
     
 
@@ -291,3 +320,9 @@ def test_read_dicom_header(get_test_dicom_df):
 
 
     # # print(df_full.head())
+
+
+def test_get_dicom_counts():
+    data_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    input_dir = data_root / 'sourcedata/CP01128/ses-202302231'
+    get_dicom_counts(input_dir, debug=True)

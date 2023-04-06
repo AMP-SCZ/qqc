@@ -15,6 +15,7 @@ from qqc.utils.files import ampscz_json_load
 class NoDwiException(Exception):
     pass
 
+
 def compare_volume_to_standard_all_nifti(input_dir: str,
                                          standard_dir: str,
                                          qc_out_dir: Path):
@@ -28,13 +29,12 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
     num = 0
 
     for nifti_input in nifti_paths_input:
-        _, _, nifti_suffix_input = \
-            get_naming_parts_bids(nifti_input.name)
+        _, _, nifti_suffix_input = get_naming_parts_bids(nifti_input.name)
 
-        input_json = nifti_input.parent / (
-                nifti_input.name.split('.')[0] + '.json')
-        if not input_json.is_file():
-            # likely be from partial data
+        input_json_file_name = nifti_input.name.split('.')[0] + '.json'
+        input_json = nifti_input.parent / input_json_file_name
+
+        if not input_json.is_file():  # likely be from partial data
             volume_comparison_df.loc[num, 'nifti_suffix'] = nifti_suffix_input
             volume_comparison_df.loc[num, 'series_num'] = 1000 + num
             continue
@@ -42,63 +42,37 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
         with open(input_json, 'r') as json_file:
             data = ampscz_json_load(json_file)
 
-            series_num = data['SeriesNumber']
-            series_desc = data['SeriesDescription'].lower()
-            if 'ImageTypeText' in data.keys():
-                image_type = data['ImageTypeText']
-            else:
-                image_type = data['ImageType']
-            if 'PhaseEncodingDirection' in data.keys():
-                encoding_dir = data['PhaseEncodingDirection']
-            else:
-                encoding_dir = ''
+        series_num = data['SeriesNumber']
+        series_desc = data['SeriesDescription'].lower()
+        if 'ImageTypeText' in data.keys():
+            image_type = data['ImageTypeText']
+        else:
+            image_type = data['ImageType']
+        if 'PhaseEncodingDirection' in data.keys():
+            encoding_dir = data['PhaseEncodingDirection']
+        else:
+            encoding_dir = ''
 
         for nifti_std in nifti_paths_std:
-            _, _, nifti_suffix_std = \
-                get_naming_parts_bids(nifti_std.name)
-            # if partial_rescan:
-            std_json = nifti_std.parent / (
-                    nifti_std.name.split('.')[0] + '.json')
+            _, _, nifti_suffix_std = get_naming_parts_bids(nifti_std.name)
+
+            std_json_filename = nifti_std.name.split('.')[0] + '.json'
+            std_json = nifti_std.parent / std_json_filename
 
             with open(std_json, 'r') as json_file:
                 data = ampscz_json_load(json_file)
 
-                std_series_num = data['SeriesNumber']
-                std_series_desc = data['SeriesDescription'].lower()
-                if 'ImageTypeText' in data.keys():
-                    std_image_type = data['ImageTypeText']
-                else:
-                    std_image_type = data['ImageType']
-                if 'PhaseEncodingDirection' in data.keys():
-                    std_encoding_dir = data['PhaseEncodingDirection']
-                else:
-                    std_encoding_dir = ''
+            std_series_num = data['SeriesNumber']
+            std_series_desc = data['SeriesDescription'].lower()
+            if 'ImageTypeText' in data.keys():
+                std_image_type = data['ImageTypeText']
+            else:
+                std_image_type = data['ImageType']
+            if 'PhaseEncodingDirection' in data.keys():
+                std_encoding_dir = data['PhaseEncodingDirection']
+            else:
+                std_encoding_dir = ''
 
-            # print('===='*20)
-            # print('input')
-            # print(series_desc)
-            # print(image_type)
-            # print('------')
-            # print('output')
-            # print(std_series_desc)
-            # print(std_image_type)
-            # print('===='*20)
-
-            # # for JE site, extracted image type is different
-            # if (series_desc == std_series_desc):
-                # pass
-                # # print(series_desc, std_series_desc)
-                # # print(image_type, std_image_type)
-
-            # for var_to_remove in 'RESAMPLED', 'FMRI', 'NONE', 'MOSAIC':
-                # if var_to_remove in image_type:
-                    # image_type.pop(image_type.index(var_to_remove))
-                # if var_to_remove in std_image_type:
-                    # std_image_type.pop(std_image_type.index(var_to_remove))
-            # ###
-
-            # if (series_desc == std_series_desc) & \
-                    # (all([x in std_image_type for x in image_type])):
             if (series_desc == std_series_desc):
                 if ('localizer' in series_desc.lower()) or \
                         ('scout' in series_desc.lower()):
@@ -130,25 +104,26 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
         print('No matching series name - GE data')
         return
 
+
     volume_comparison_df['check'] = (volume_comparison_df['input shape'] ==
             volume_comparison_df['standard shape']).map(
                     {True: 'Pass', False: 'Fail'})
-    volume_comparison_df.at[
-            volume_comparison_df[
-                volume_comparison_df.series_desc.str.contains(
-                    'localizer')].index,
-            'check'] = volume_comparison_df[
-                volume_comparison_df.series_desc.str.contains(
-                    'localizer')]['check'].map({'Pass': 'Pass',
-                                                'Fail': 'Warning'})
-    volume_comparison_df.at[
-            volume_comparison_df[
-                volume_comparison_df.series_desc.str.contains(
-                    'scout')].index,
-            'check'] = volume_comparison_df[
-                volume_comparison_df.series_desc.str.contains(
-                    'scout')]['check'].map({'Pass': 'Pass',
-                                                'Fail': 'Warning'})
+
+    if volume_comparison_df.series_desc.str.contains('localizer').any():
+        if_localizer = volume_comparison_df.series_desc.str.contains(
+                'localizer', na=False)
+        localizer_index = volume_comparison_df[if_localizer].index
+        volume_comparison_df.at[localizer_index, 'check'] = \
+            volume_comparison_df[if_localizer]['check'].map(
+                    {'Pass': 'Pass', 'Fail': 'Warning'})
+
+    if volume_comparison_df.series_desc.str.contains('scout').any():
+        if_scout = volume_comparison_df.series_desc.str.contains(
+                'scout', na=False)
+        scout_index = volume_comparison_df[if_scout].index
+        volume_comparison_df.at[scout_index, 'check'] = volume_comparison_df[
+            if_scout]['check'].map({'Pass': 'Pass', 'Fail': 'Warning'})
+
     volume_comparison_df.series_num = \
             volume_comparison_df.series_num.astype(int)
 

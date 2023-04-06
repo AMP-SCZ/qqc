@@ -143,15 +143,18 @@ def json_check_for_a_session(json_files: List[str],
     for col in df_all_diff.columns:
         if col not in all_cols:
             all_cols.append(col) 
-        df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all_diff[f'{col}_unique_rank'] = df_all[col].rank().round(
+                0).astype(int)
 
     for col in df_all_shared.columns:
         if col not in all_cols:
             all_cols.append(col)
-        df_all_shared[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all_shared[f'{col}_unique_rank'] = df_all[col].rank().round(
+                0).astype(int)
 
     for col in all_cols:
-        df_all[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all[f'{col}_unique_rank'] = df_all[col].rank().round(
+            0).astype(int)
 
     if print_diff:
         print_diff_shared(
@@ -752,12 +755,9 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path,
              'image orientation in anat'],
             ['c', 'b', 'a']):
 
-        if debug and specific_field == 'ShimSetting':
+        if debug:
             logger.info(specific_field)
             logger.info(f"json_input: {json_input}")
-            pass
-        else:
-            continue
 
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
@@ -768,12 +768,12 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path,
         csv_suffix = re.sub('[ ]+', '_', title)
 
         # label summary
-        print('-'*70)
-        print(specific_field)
-        print(df_all)
-        print('-'*70)
+        if debug:
+            logger.info(specific_field)
+            logger.info(df_all)
         if len(df_all) > 1:
             summary_df = df_all.iloc[[0]].copy()
+            summary_df.iloc[0] = ''
         else:
             summary_df = pd.DataFrame()
         summary_df.index = pd.MultiIndex.from_tuples(

@@ -10,9 +10,6 @@ from pathlib import Path
 from datetime import datetime
 import re
 
-logger = logging.getLogger(__name__)
-logging.getLogger().addHandler(logging.StreamHandler())
-
 
 def get_standard_dir(site: str) -> str:
     '''pass'''
@@ -76,6 +73,10 @@ def parse_args(argv):
     parser.add_argument('--skip_dicom_rearrange', '-sdr',
                         action='store_true', default=False,
                         help='Skip dicom rearrange step.')
+
+    parser.add_argument('--rename_dicoms', '-rd',
+                        action='store_true', default=False,
+                        help='Rename dicoms when rearranging dicoms')
 
     parser.add_argument('--force_copy_dicom_to_source', '-fc', default=False,
                         action='store_true',
@@ -151,21 +152,24 @@ if __name__ == '__main__':
     if args.run_all:
         RawTextHelpFormatter(args)
 
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
     logging.basicConfig(
-        filename=args.bids_root + '/dicom_to_dpacc_bids.log',
-        format=f'%(asctime):: {getpass.getuser()}:: %(name)s :: '
-               '%(levelname)s :: %(message)s',
-        datefmt = '%Y-%m-%d %H:%M:%S',
-        level=logging.DEBUG)
+        format=formatter,
+        handlers=[logging.StreamHandler()])
+    logging.getLogger().setLevel(logging.INFO)
+        # filename=args.bids_root + '/dicom_to_dpacc_bids.log',
+        # datefmt='%Y-%m-%d %H:%M:%S',
+        # filemode='a',
+
 
     # build up input command to include in the log
-    logger.info('*'*80)
+    logging.info('*'*80)
     args_reconstruct = ''
     for d in [x for x in dir(args) if not x.startswith('_')]:
         args_reconstruct += f' --{d}={getattr(args, d)}'
-    logger.info(f'command used: \ndicom_to_dpacc_bids.py {args_reconstruct}')
-    logger.info('Dicom to DPACC BIDS conversion started')
+    logging.info(f'command used: \ndicom_to_dpacc_bids.py {args_reconstruct}')
+    logging.info('Dicom to DPACC BIDS conversion started')
 
     dicom_to_bids_QQC(args)
-    logger.info('Completed')
+    logging.info('Completed')
 

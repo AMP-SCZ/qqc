@@ -83,10 +83,15 @@ def check_num_of_series(df_full_input: pd.DataFrame,
     Returns:
         number of series in pd.DataFrame
     '''
-    count_df = df_full_input[['series_num', 'series_desc', 'series_uid']
-            ].drop_duplicates().groupby(
-                    ['series_desc']
-                    ).count().drop('series_num', axis=1)
+    if 'series_uid' in df_full_input.columns:
+        cols_to_use = ['series_num', 'series_desc', 'series_uid']
+        count_df = df_full_input[cols_to_use].drop_duplicates().groupby(
+            ['series_desc']).count().drop('series_num', axis=1)
+    else:
+        cols_to_use = ['series_num', 'series_desc']
+        count_df = df_full_input[cols_to_use].drop_duplicates().groupby(
+            ['series_desc']).count()
+
     count_df.columns = ['series_num']
 
     count_target_df = df_full_std.groupby('series_desc').count()[
@@ -169,10 +174,14 @@ def check_order_of_series(df_full_input: pd.DataFrame,
                 'phoenix', na=False)]
 
     # squeeze
-    series_order_df_all['series_num_target'] = series_order_df_all['series_num']
+    series_order_df_all['series_num_target'] = series_order_df_all[
+            'series_num']
     series_order_df_all = pd.concat([
-        series_order_df_all[['series_num_target', 'series_order_target']].dropna().reset_index(drop=True),
-        series_order_df_all[['series_num', 'series_order']].dropna().reset_index(drop=True),
+        series_order_df_all[
+            ['series_num_target', 'series_order_target']
+            ].dropna().reset_index(drop=True),
+        series_order_df_all[
+            ['series_num', 'series_order']].dropna().reset_index(drop=True),
         ], axis=1)
 
     series_order_df_all['order_diff'] = series_order_df_all['series_order'] \
@@ -182,6 +191,7 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     # summary row at the top
     series_order_summary = series_order_df_all.iloc[[0]].copy()
+    series_order_summary.iloc[0] = ''
     series_order_summary.index = ['Summary']
     series_order_summary['series_order_target'] = ''
     series_order_summary['series_order'] = ''
@@ -190,8 +200,9 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     series_order_df_all = pd.concat([series_order_summary,
                                      series_order_df_all])
-    series_order_df_all = series_order_df_all[['series_num', 'series_order_target', 'series_order',
-       'series_num_target', 'order_diff']]
+    series_order_df_all = series_order_df_all[
+            ['series_num', 'series_order_target', 'series_order',
+             'series_num_target', 'order_diff']]
     return series_order_df_all
 
 

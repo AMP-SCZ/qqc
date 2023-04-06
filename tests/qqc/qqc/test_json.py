@@ -323,4 +323,3 @@ def test_within_phantom_qc_cp():
     qc_output_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-CP01128/ses-202302231')
 
     within_phantom_qc(input_dir.parent, qc_output_dir, debug=True)
-

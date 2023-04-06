@@ -48,6 +48,21 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
 
         if df_loc.is_file():
             df_tmp = pd.read_csv(df_loc)
+
+            # convert to integer for visibility
+            digit_columns = df_tmp.select_dtypes(include='number').columns
+            for col in digit_columns:
+                df_tmp[col] = pd.to_numeric(
+                        df_tmp[col], errors='ignore').astype('Int64').apply(
+                                lambda x: '' if pd.isna(x) else x)
+
+            # if Unnamed: 0 is null, drop the row
+            if 'Unnamed: 0' in df_tmp.columns:
+                df_tmp.drop(df_tmp[df_tmp['Unnamed: 0'].isnull()].index,
+                        inplace=True)
+
+            # 'Summary' rows to be empty
+
         else:
             df_tmp = pd.DataFrame()
             
@@ -66,11 +81,6 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
                     df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
                 except:
                     print(df)
-            # elif 'series_count' in df_loc.name:
-                # print(df_tmp)
-                # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_num.dropna().unique())
-            # elif 'scan_order' in df_loc.name:
-                # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_order.dropna().unique())
             else:
                 pass
 
