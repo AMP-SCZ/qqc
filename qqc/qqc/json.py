@@ -806,7 +806,8 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
         'global', 'TxRefAmp',
         'dcmmeta_affine', 'WipMemBlock',
         'SAR', 'time',
-        'ShimSetting', 'SeriesNumber', 'ImageOrientationText']
+        'ShimSetting', 'SeriesNumber', 'ImageOrientationText',
+        'ConversionSoftware', 'ImagingFrequency', 'ConversionSoftwareVersion']
 
     dicts = []
     cols = []
@@ -827,6 +828,40 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
 
     if diff_only:
         df_tmp = df_tmp[(df_tmp[cols[0]] != df_tmp[cols[1]])]
+
+    return df_tmp
+
+
+def check_column_values(df: pd.DataFrame) -> pd.DataFrame:
+    """Check if the differences between the column values are below threshold
+
+    Key Arguments:
+        df: pd.DataFrame with two columns, pd.DataFrame
+
+    Returns:
+        pd.DataFrame only the rows that show difference between columns
+
+    Check that values in each row of a pandas dataframe are the same, or,
+    if they are floats, that their difference is less than 0.01.  Raises an
+    AssertionError if a row contains non-comparable data types or if the
+    difference between float values is greater than 0.01.
+    """
+
+    df['diff'] = False
+    for i, row in df.iterrows():
+        if isinstance(row[0], str) and isinstance(row[1], str):
+            # if both columns contain strings, check if they're the same
+            if row.iloc[0] != row.iloc[1]:
+                df.iloc[i, 'diff'] = True
+        elif isinstance(row[0], float) and isinstance(row[1], float):
+            # if both columns contain floats, check that the absolute
+            # difference is less than 0.01
+            if abs(row.iloc[0] - row.iloc[1]) > 0.01:
+                df.iloc[i, 'diff'] = True
+        else:
+            df.iloc[i, 'diff'] = True
+
+    df_tmp = df[df['diff']].drop('diff', axis=1, inplace=True)
 
     return df_tmp
 
@@ -890,22 +925,39 @@ def compare_jsons_to_std(input_dir: str,
 
 def compare_data_to_standard_all_bvals(input_dir: str,
                                        standard_dir: str,
-                                       qc_out_dir: Path):
+                                       qc_out_dir: Path,
+                                       debug: bool = False):
     bval_paths_input = get_all_files_walk(input_dir, 'bval')
     bval_paths_std = get_all_files_walk(standard_dir, 'bval')
+
+    if debug:
+        logger.info(f'input bvals: {bval_paths_input}')
+        logger.info(f'std bvals: {bval_paths_std}')
+        
 
     bval_df = pd.DataFrame()
     for bval_path_input in bval_paths_input:
         _, _, bval_suffix_input = get_naming_parts_bids(bval_path_input.name)
 
+        if debug:
+            logger.info(f'bval_suffix_input: {bval_suffix_input}')
+
         for bval_path_std in bval_paths_std:
             _, _, bval_suffix_std = get_naming_parts_bids(bval_path_std.name)
+            if bval_suffix_std.startswith('up_'):
+                bval_suffix_std = bval_suffix_std[3:]
+            if debug:
+                logger.info(f'bval_suffix_std: {bval_suffix_std}')
             if bval_suffix_input == bval_suffix_std:
                 bval_df_tmp = compare_bval_files(
                         [bval_path_input, bval_path_std])
                 bval_df_tmp['suffix'] = bval_suffix_input
                 bval_df = pd.concat([bval_df, bval_df_tmp.reset_index().set_index(['suffix', 'index'])])
 
+    if debug:
+        logger.info('bval_df')
+        logger.info(bval_df)
+    
     if 'check' not in bval_df.columns:
         return
 
