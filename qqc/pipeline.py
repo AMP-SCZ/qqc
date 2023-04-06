@@ -218,6 +218,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         dicom_count_input_df = update_dicom_counts(dicom_count_input_df,
                                                    session_dir,
                                                    debug=debug)
+        dicom_count_input_df.to_csv(qc_out_dir / 'dicom_count.csv')
 
     # run sheet
     if run_sheet.is_file():
