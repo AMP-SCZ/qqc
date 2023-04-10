@@ -403,7 +403,7 @@ def extract_mri_comments(run_sheet: Path) -> str:
     text = ''
     for comment, table in comment_df.groupby('field_value'):
         text += f'{comment} :'
-        text += ', '.join(table['field_name'].to_list())
+        text += ', '.join(table['field_name'].to_list()) + '\n'
 
     return text
 
