@@ -304,66 +304,6 @@ def create_dpdash_zip_df_pivot(
     logger.debug('Reformat zip_df_pivot for DPDash and save csv files')
 
 
-
-
-def create_dpdash_eeg_zip_df_pivot(
-        eeg_zip_df_pivot: pd.DataFrame,
-        outpath: Path =
-        Path('/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count')) -> None:
-    '''Reformat and save eeg_zip_df_pivot'''
-    logger.debug('Reformat eeg_zip_df_pivot for DPDash and save csv files')
-
-    # create dpdash loadable table
-    eeg_zip_df_pivot = eeg_zip_df_pivot.reset_index()
-    eeg_zip_df_pivot['day'] = 1
-    eeg_zip_df_pivot['reftime'] = ''
-    eeg_zip_df_pivot['timeofday'] = ''
-    eeg_zip_df_pivot['weekday'] = ''
-    eeg_zip_df_pivot = eeg_zip_df_pivot[[
-        'day', 'reftime', 'timeofday', 'weekday', 'network',
-        'baseline_eeg', 'followup_eeg', 'subject_id']]
-
-    # codify baseline and follow up eeg
-    eeg_zip_df_pivot['baseline_followup_eeg'] = (
-        eeg_zip_df_pivot['baseline_eeg'].astype(str) +
-        eeg_zip_df_pivot['followup_eeg'].astype(str)
-        ).map({'00': 0, '10': 1, '01': 2, '11': 3})
-
-    # flush out
-    for i in outpath.glob('*-eegcount-day1to*csv'):
-        os.remove(i)
-
-    # all combined
-    filename = f'combined-AMPSCZ-eegcount-day1to{len(eeg_zip_df_pivot)}.csv'
-    eeg_zip_df_pivot['day'] = range(1, len(eeg_zip_df_pivot)+1)
-    eeg_zip_df_pivot.to_csv(outpath / filename, index=False)
-
-    # for each network
-    for network, table in eeg_zip_df_pivot.groupby('network'):
-        filename = f'combined-{network.upper()}-' \
-                   f'eegcount-day1to{len(table)}.csv'
-        table['day'] = range(1, len(table)+1)
-        table.to_csv(outpath / filename, index=False)
-
-    # for each site
-    eeg_zip_df_pivot.drop('network', axis=1, inplace=True)
-    eeg_zip_df_pivot['site'] = eeg_zip_df_pivot['subject_id'].str[:2]
-    for site, table in eeg_zip_df_pivot.groupby('site'):
-        filename = f'combined-{site}-eegcount-day1to{len(table)}.csv'
-        table['day'] = range(1, len(table)+1)
-        table.to_csv(outpath / filename, index=False)
-
-    eeg_zip_df_pivot.drop('site', axis=1, inplace=True)
-    # for each subject
-    for index, row in eeg_zip_df_pivot.iterrows():
-        subject = row['subject_id']
-        site = subject[:2]
-        outfile_path = outpath / f'{site}-{subject}-eegcount-day1to1.csv'
-        eeg_zip_df_pivot.loc[[index]].to_csv(outfile_path, index=False)
-
-    logger.debug('Reformat eeg_zip_df_pivot for DPDash and save csv files')
-
-
 def add_qc_measures(mri_zip_df: pd.DataFrame,
                     mriqc_value_loc: Path) -> pd.DataFrame:
     '''To zip file.debug df, add mriqc_value from google drive'''
@@ -484,3 +424,9 @@ def note_used():
         for file in other_files:
             logger.debug(f'\t{file.name}')
 
+
+if __name__ == '__main__':
+    zip_df = get_mri_zip_df()
+    no_timepoint = zip_df[zip_df['timepoint'].isnull()]
+    print(zip_df)
+    print(no_timepoint)
