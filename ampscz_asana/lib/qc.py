@@ -646,12 +646,10 @@ def get_run_sheet_df(phoenix_dir: Path,
     return datatype_df
 
 
-def dataflow_dpdash(datatype_df: pd.DataFrame) -> None:
+def dataflow_dpdash(datatype_df: pd.DataFrame, outdir: Path) -> None:
     '''Convert datatype_df to DPDash importable format and save as csv files'''
-    outdir = Path('/data/predict1/data_from_nda/MRI_ROOT/flow_check')
-
     # flush existing files
-    for i in outdir.glob('*csv'):
+    for i in outdir.glob('*mridataflow-day*csv'):
         os.remove(i)
 
     # loop through each subject to build database
