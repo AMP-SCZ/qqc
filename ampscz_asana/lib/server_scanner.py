@@ -1,7 +1,9 @@
-from pathlib import Path
+import re
 import os
 import json
-import pandas as pd 
+import pandas as pd
+from pathlib import Path
+from datetime import datetime
 
 '''
 #this is a prototype of a function built to grab subject IDs from pheonix and send to asana
@@ -9,11 +11,83 @@ import pandas as pd
 #example caselist
 '''
 
+def get_most_recent_file(root: Path,
+                         file_prefix: str = 'df_to_dpdash_',
+                         date_format: str = '%Y_%m_%d') -> Path:
+    '''Get most recently created file based on the date in the file name'''
+    files = root.glob(f'{file_prefix}*')
+
+    most_recent_date = datetime.strptime('1990_01_01', date_format)
+    most_recent_file = ''
+    for file in files:
+        date_str = re.search('(\d{4}_\d{1,2}_\d{1,2})', file.name).group(1)
+        date_time = datetime.strptime(date_str, date_format)
+        if date_time > most_recent_date:
+            most_recent_file = file
+
+    return most_recent_file
+
+
+def get_all_eeg_zip(phoenix_root: Path, **kwargs) -> list:
+    # PHOENIX/PROTECTED/PronetIR/raw/IR01451/eeg/IR01451.Pronet.Run_sheet_eeg_2.csv
+    test = kwargs.get('test', False)
+    if test:
+        prefix = 'PROTECTED/*YA/raw/YA16*/eeg/*[zZ][iI][pP]'
+    else:
+        prefix = 'PROTECTED/*/raw/*/mri/*[zZ][iI][pP]'
+
+    zip_files = list(phoenix_root.glob(prefix))
+
+    return zip_files
+
+
+
+def get_all_mri_zip(phoenix_root: Path, **kwargs) -> list:
+    # PHOENIX/PROTECTED/PronetIR/raw/IR01451/eeg/IR01451.Pronet.Run_sheet_eeg_2.csv
+    test = kwargs.get('test', False)
+    if test:
+        prefix = 'PROTECTED/*YA/raw/YA16*/mri/*_MR_*[zZ][iI][pP]'
+    else:
+        prefix = 'PROTECTED/*/raw/*/mri/*_MR_*[zZ][iI][pP]'
+
+    zip_files = list(phoenix_root.glob(prefix))
+
+    return zip_files
+
+
+def get_all_subjects_with_consent(phoenix_root: Path) -> list:
+    metadata_files = (phoenix_root / 'GENERAL').glob('*/*metadata.csv')
+    subject_ids = []
+    for metadata_file in metadata_files:
+        df = pd.read_csv(metadata_file)
+        subject_ids += df['Subject ID'].tolist()
+        
+    return subject_ids
+
+
+def get_site_network_dict(phoenix_roots) -> dict:
+    '''Get site network matching dictionary'''
+    metadata_files = []
+    for phoenix_root in phoenix_roots:
+        metadata_files += list((phoenix_root / 'GENERAL').glob(
+            '*/*metadata.csv'))
+
+    site_net_dict = {}
+
+    for metadata_file in metadata_files:
+        network_dir = metadata_file.parent.name
+        network = 'Prescient' if 'Prescient' in network_dir else 'Pronet'
+        site = network_dir[-2:]
+        site_net_dict[site] = network
+
+    return site_net_dict
+
+
 def grep_run_sheets(phoenix_dir: Path) -> list:
     '''Grab run sheets from PHOENIX'''
     protected_dir = phoenix_dir / 'PROTECTED'
     subject_directories_under_phoenix = protected_dir.glob(
-            '*YA/raw/*/*/*Run_sheet*csv')
+            '*/raw/*/*/*Run_sheet*csv')
     return list(subject_directories_under_phoenix)
 
 

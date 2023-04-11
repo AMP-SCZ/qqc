@@ -1,6 +1,7 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 from ampscz_asana.lib.qc import get_run_sheet_df, extract_missing_data_info_new
-from ampscz_asana.lib.qc import is_qqc_executed
+from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash, \
+        extract_mri_comments
 import pandas as pd
 from pathlib import Path
 
@@ -82,10 +83,42 @@ def test_extract_missing_data_info_new():
     subject = 'YA08362'
     scan_date = ''
 
-    print(extract_missing_data_info_new(subject, phoenix_root, scan_date))
+    print(extract_missing_data_info_new(subject, phoenix_root, scan_date, '1'))
 
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    subject = 'BM60731'
+    scan_date = ''
+
+    print(extract_missing_data_info_new(subject, phoenix_root, scan_date, '2'))
 
 def test_is_qqc_executed():
     subject = 'YA08362'
     scan_date = ''
     assert is_qqc_executed(subject, scan_date) == False
+
+
+def test_dataflow_dpdash():
+    phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+    if Path('test_full_df_pronet.csv').is_file():
+        df1 = pd.read_csv('test_full_df_pronet.csv')
+    else:
+        df1 = get_run_sheet_df(phoenix_root)
+        df1.to_csv('test_full_df_pronet.csv')
+
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    if Path('test_full_df_prescient.csv').is_file():
+        df2 = pd.read_csv('test_full_df_prescient.csv')
+    else:
+        df2 = get_run_sheet_df(phoenix_root)
+        df2.to_csv('test_full_df_prescient.csv')
+
+    df = pd.concat([df1, df2])
+    dataflow_dpdash(df)
+
+
+def test_mricomment():
+    run_sheet_path = Path('/data/predict1/data_from_nda/Pronet/PHOENIX/PROTECTED/PronetYA/raw/YA08362/mri/YA08362.Pronet.Run_sheet_mri_1.csv')
+    extract_mri_comments(run_sheet_path)
+
+    run_sheet_path = Path('/data/predict1/data_from_nda/Prescient/PHOENIX/PROTECTED/PrescientME/raw/ME98165/mri/ME98165.Prescient.Run_sheet_mri_1.csv')
+    extract_mri_comments(run_sheet_path)

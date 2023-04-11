@@ -387,14 +387,32 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
     return list_of_lists
 
 
+def extract_mri_comments(run_sheet: Path) -> str:
+    '''Extract comments from MRI run sheet'''
+
+    if 'Prescient' in str(run_sheet):
+        df = pd.read_csv(run_sheet).T.reset_index()
+        df.columns = ['field_name', 'field_value']
+    else:
+        df = pd.read_csv(run_sheet)
+
+    comment_df = df[df['field_name'].str.contains('_comment')]
+    comment_df = comment_df[~comment_df['field_value'].isnull()]
+    comment_df = comment_df[comment_df['field_value'] != -3]
+
+    text = ''
+    for comment, table in comment_df.groupby('field_value'):
+        text += f'{comment} :'
+        text += ', '.join(table['field_name'].to_list()) + '\n'
+
+    return text
+
+
 def extract_missing_data_info_new(subject: str,
                                   phoenix_dir: str,
                                   scan_date: str,
                                   timepoint: Union['1', '2']) -> tuple:
     '''Extract missing info and timepoint from REDCap'''
-    # if scan_date == '' or pd.isna(scan_date):
-        # return None
-
     if 'Pronet' in str(phoenix_dir):
         network = 'Pronet'
     else:
@@ -430,22 +448,24 @@ def extract_missing_data_info_new(subject: str,
         timepoint_to_index_dict = {'1': 'baseline',
                                    '2': 'month_2'}
         timepoint_str = timepoint_to_index_dict[timepoint]
-        scan_date_index = df[
-                df.redcap_event_name.str.contains(timepoint_str)].index[0]
+        try:
+            scan_date_index = df[
+                    df.redcap_event_name.str.contains(timepoint_str)].index[0]
+        except IndexError:
+            return None
     else:
         # only leave the event where there is matching chrmri_entry_date
         scan_date = datetime.strptime(scan_date,
                                       '%Y_%m_%d').strftime('%Y-%m-%d')
 
         # [0] added at the end because it returns list of a singe item
-        scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
+        try:
+            scan_date_index = df[df.chrmri_entry_date == scan_date].index[0]
+        except IndexError:
+            return None
 
     timepoint = df.loc[scan_date_index]['redcap_event_name']
-
-    if 'chrmiss_domain_type___3' in df.columns:
-        missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
-    else:
-        missing_info = None
+    missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
 
     if 'chrmiss_time' in df.columns:
         miss_time = df.loc[scan_date_index]['chrmiss_time']
@@ -507,7 +527,9 @@ def format_days(day_amount: int) -> str:
     return day_amount
 
 
-def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
+def get_run_sheet_df(phoenix_dir: Path,
+                     datatype: str = 'mri',
+                     test: bool = False) -> pd.DataFrame:
     '''Summarize the raw data files based on the lochness created run sheets
 
     Key Arguments:
@@ -517,9 +539,17 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     # get all run sheets extracted from RPMS or REDCap by lochness from
     run_sheets = grep_run_sheets(phoenix_dir)
 
+    # if test:
+        # run_sheets = run_sheets[:5]
+
     # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
+    # add network
+    df['network'] = df.file_loc.str.contains('Prescient').map(
+            {True: 'Prescient',
+             False: 'Pronet'})
+
     # YA08362.Pronet.Run_sheet_mri_2.csv
     df['run_sheet_num'] = df.file_path.apply(lambda x: x.name).str.extract(
             '[A-Z]{2}\d{5}\.P\w+\.Run_sheet_\w+_(\d).csv')
@@ -537,6 +567,11 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     # check datatype file
     datatype_df['entry_date'] = datatype_df.file_path.apply(
             get_entry_date_from_run_sheet)
+
+    # extract comments from run sheet
+    datatype_df['run_sheet_comment'] = datatype_df.file_path.apply(
+            extract_mri_comments)
+
 
     # for each run sheet, return the matching zip file
     datatype_df['expected_mri_path'] = datatype_df.apply(lambda x:
@@ -564,6 +599,9 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
     datatype_df['missing_info'] = datatype_df.vars.str[0]
     datatype_df['timepoint'] = datatype_df.vars.str[1]
     datatype_df['missing_timepoint'] = datatype_df.vars.str[2]
+    datatype_df['missing_marked'] = (
+            (datatype_df['missing_info'] == 1) |
+            (datatype_df['missing_timepoint'])).map({True: 1, False: None})
     datatype_df.drop('vars', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
@@ -600,9 +638,74 @@ def get_run_sheet_df(phoenix_dir: Path, datatype='mri') -> pd.DataFrame:
                                                            axis=1)
     datatype_df['days_scan_to_arrival'] = datatype_df.apply(arrival_scan_time,
                                                             axis=1)
-    datatype_df['days_scans_to_today'] = datatype_df.apply(delay_time, axis=1)
+    datatype_df['days_scan_to_today'] = datatype_df.apply(delay_time, axis=1)
     datatype_df.reset_index(drop=True,inplace=True)
     datatype_df.drop('index', axis=1, inplace=True)
 
 
     return datatype_df
+
+
+def dataflow_dpdash(datatype_df: pd.DataFrame, outdir: Path) -> None:
+    '''Convert datatype_df to DPDash importable format and save as csv files'''
+    # flush existing files
+    for i in outdir.glob('*mridataflow-day*csv'):
+        os.remove(i)
+
+    # loop through each subject to build database
+    all_df = pd.DataFrame()
+    for subject, table in datatype_df.groupby('subject'):
+        for num, (timepoint, t_table) in enumerate(
+                table.sort_values('timepoint').groupby('run_sheet_num'), 1):
+            row = t_table.iloc[0]
+
+            df_tmp = pd.DataFrame({
+                'day': [num],
+                'reftime': '',
+                'timeofday': '',
+                'weekday': '',
+                'subject_id': subject,
+                'site': subject[:2],
+                'network': row['network'],
+                'timepoint': row['run_sheet_num'],
+                'scan_date': row['entry_date'],
+                'missing_info': row['missing_info'],
+                'quick_qc': int(row['qqc_executed']),
+                'manual_qc': 3,
+                'data_at_dpacc': int(row['mri_data_exist']),
+                'days_arrival_to_qqc': row['days_arrival_to_qqc'],
+                'days_scan_to_arrival': row['days_scan_to_arrival'],
+                'days_scan_to_today': row['days_scan_to_today']})
+
+            all_df = pd.concat([all_df, df_tmp])
+
+    # save CSV files
+    # combined
+    filename = f'combined-AMPSCZ-mridataflow-day1to{len(all_df)}.csv'
+    nodate_df = all_df[all_df.scan_date.isnull()]
+    date_df = all_df[~all_df.scan_date.isnull()]
+    date_df.sort_values(['data_at_dpacc', 'days_scan_to_today', 'scan_date'],
+                        inplace=True)
+    all_df = pd.concat([date_df, nodate_df])
+    all_df['day'] = range(1, len(all_df)+1)
+    all_df.to_csv(outdir / filename, index=False)
+
+    # for each network
+    for network, table in all_df.groupby('network'):
+        filename = f'combined-{network.upper()}-' \
+                   f'mridataflow-day1to{len(table)}.csv'
+        table['day'] = range(1, len(table)+1)
+        table.to_csv(outdir / filename, index=False)
+
+    # for each site
+    for site, table in all_df.groupby('site'):
+        filename = f'combined-{site}-mridataflow-day1to{len(table)}.csv'
+        table['day'] = range(1, len(table)+1)
+        table.to_csv(outdir / filename, index=False)
+
+    # for each subject
+    for subject, table in all_df.groupby('subject_id'):
+        site = subject[:2]
+        filename = f'{site}-{subject}-mridataflow-day1to{len(table)}.csv'
+        table['day'] = range(1, len(table)+1)
+        table.to_csv(outdir / filename, index=False)
