@@ -116,6 +116,9 @@ def check_when_transferred(expected_mri_path: Union[Path, str]) -> bool:
 
 
 def is_qqc_executed(subject, entry_date) -> bool:
+    if entry_date == '' or pd.isna(entry_date):
+        return False
+
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     source_root = mri_root / 'sourcedata'
 
@@ -130,8 +133,8 @@ def is_qqc_executed(subject, entry_date) -> bool:
 
 
 def date_of_zip(subject, entry_date, phoenix_dir):
-    if entry_date == '':
-        return None
+    if entry_date == '' or pd.isna(entry_date):
+        return False
     formatted_entry_date = entry_date.replace("-", "_")
     formatted_entry_date = datetime.strptime(formatted_entry_date, '%Y_%m_%d')
     if 'Pronet' in phoenix_dir:
@@ -164,6 +167,9 @@ def date_of_zip(subject, entry_date, phoenix_dir):
 
 
 def date_of_qqc(subject, entry_date) -> str:
+    if entry_date == '' or pd.isna(entry_date):
+        return ''
+
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     source_root = mri_root / 'sourcedata'
     date_numbers_only = re.sub('[-_]', '', entry_date)
@@ -180,6 +186,8 @@ def date_of_qqc(subject, entry_date) -> str:
 
 
 def is_mri_done(subject, entry_date) -> bool:
+    if entry_date == '' or pd.isna(entry_date):
+        return False
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     deriv_root = mri_root / 'derivatives' / 'mriqc'
 
@@ -194,6 +202,8 @@ def is_mri_done(subject, entry_date) -> bool:
 
 
 def is_fmriprep_done(subject, entry_date) -> bool:
+    if entry_date == '' or pd.isna(entry_date):
+        return False
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     deriv_root = mri_root / 'derivatives' / 'fmriprep'
 
@@ -208,6 +218,8 @@ def is_fmriprep_done(subject, entry_date) -> bool:
 
 
 def is_dwipreproc_done(subject, entry_date) -> bool:
+    if entry_date == '' or pd.isna(entry_date):
+        return False
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     deriv_root = mri_root / 'derivatives' / 'dwipreproc'
 

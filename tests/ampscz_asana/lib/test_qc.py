@@ -1,5 +1,6 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 from ampscz_asana.lib.qc import get_run_sheet_df, extract_missing_data_info_new
+from ampscz_asana.lib.qc import is_qqc_executed
 import pandas as pd
 from pathlib import Path
 
@@ -81,3 +82,9 @@ def test_extract_missing_data_info_new():
     scan_date = ''
 
     print(extract_missing_data_info_new(subject, phoenix_root, scan_date))
+
+
+def test_is_qqc_executed():
+    subject = 'YA08362'
+    scan_date = ''
+    assert is_qqc_executed(subject, scan_date) == False
