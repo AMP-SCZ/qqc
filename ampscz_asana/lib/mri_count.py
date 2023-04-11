@@ -453,6 +453,7 @@ def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
 
     all_df.to_csv(output_merged_zip)
 
+
 def note_used():
     for index, row in mri_zip_df[mri_zip_df.timepoint.isnull()].iterrows():
         logger.debug(f"{row['subject_id']}/{row['scan_date']}")
