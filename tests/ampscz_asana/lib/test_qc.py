@@ -122,3 +122,42 @@ def test_mricomment():
 
     run_sheet_path = Path('/data/predict1/data_from_nda/Prescient/PHOENIX/PROTECTED/PrescientME/raw/ME98165/mri/ME98165.Prescient.Run_sheet_mri_1.csv')
     extract_mri_comments(run_sheet_path)
+
+
+def test_dpdash_dataflow_view_update():
+    phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+    if Path('test_full_df_pronet.csv').is_file():
+        df1 = pd.read_csv('test_full_df_pronet.csv')
+    else:
+        df1 = get_run_sheet_df(phoenix_root)
+        df1.to_csv('test_full_df_pronet.csv')
+
+    all_df = dataflow_dpdash(df1, 'haha', test=True)
+    print(all_df.head())
+
+
+def test_merge_zip_db_and_runsheet_db():
+    zip_df = pd.read_csv('/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/mri_zip_db.csv',
+            index_col=0)
+    zip_df.session_num = zip_df.session_num.astype(int)
+
+    def zip_df_rename(col:str) -> str:
+        if col == 'subject_id':
+            return 'subject'
+
+        if col == 'scan_date_str':
+            return 'entry_date'
+
+        return col
+
+    zip_df.columns = [zip_df_rename(x) for x in zip_df.columns]
+    runsheet_df = pd.read_csv('/data/predict1/data_from_nda/MRI_ROOT/flow_check/mri_data_flow.csv',
+            index_col=0)
+    runsheet_df.session_num = runsheet_df.session_num.astype(int)
+
+    all_df = pd.merge(zip_df,
+            runsheet_df,
+            on=['subject', 'entry_date', 'network', 'session_num'],
+            how='outer')
+
+    all_df.to_csv('test_mri_all_db.csv')

@@ -1,9 +1,8 @@
 from ampscz_asana.lib.server_scanner import get_all_mri_zip, \
         get_most_recent_file, get_all_subjects_with_consent
 from ampscz_asana.lib.mri_count import get_mri_zip_df, \
-        get_mri_zip_df_pivot_for_subject, create_dpdash_mri_zip_df_pivot, \
-        add_qc_measures, get_mriqc_value_df_pivot_for_subject, \
-        create_dpdash_eeg_zip_df_pivot, create_dpdash_zip_df_pivot
+        get_mri_zip_df_pivot_for_subject, create_dpdash_zip_df_pivot, \
+        add_qc_measures, get_mriqc_value_df_pivot_for_subject
 import pandas as pd
 from pathlib import Path
 import logging
@@ -52,6 +51,7 @@ def test_add_qc_measures():
     mriqc_dir = data_root / 'MRI_ROOT/derivatives/google_qc'
 
     mri_zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv)
+    print(mri_zip_df.head())
     mriqc_value_loc = get_most_recent_file(mriqc_dir)
 
     # outpath = Path('test')
@@ -59,3 +59,5 @@ def test_add_qc_measures():
     mriqc_value_df = add_qc_measures(mri_zip_df, mriqc_value_loc)
     mriqc_value_df_pivot = get_mriqc_value_df_pivot_for_subject(
             mriqc_value_df, outpath)
+
+    print(mriqc_value_df.head())

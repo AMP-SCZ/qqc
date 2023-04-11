@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import logging
+import re
 from typing import List
 from ampscz_asana.lib.server_scanner import get_all_mri_zip, get_all_eeg_zip, \
         get_most_recent_file, get_all_subjects_with_consent, \
@@ -13,8 +14,19 @@ logger = logging.getLogger(__name__)
 def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
                                            mriflow_csv: Path,
                                            dpdash_outpath: Path,
+                                           mriqc_dir: Path,
                                            modality: str = 'mri') -> None:
+    # create df of all zip files corresponding to the modality and their
+    # mathing information from the mriflow_csv table
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
+
+    if modality == 'mri':
+        # For MRI, DPACC saves final QC measures for each session to the
+        # mriqc_dir everyday. This QC information is added to zip_df
+        mriqc_value_loc = get_most_recent_file(mriqc_dir)
+        zip_df = add_qc_measures(zip_df, mriqc_value_loc)
+
+    zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
                                                     phoenix_paths,
                                                     modality)
@@ -51,7 +63,9 @@ def get_mri_zip_df(
     mri_zip_df['network'] = mri_zip_df.zip_path.apply(str).str.contains(
         'Prescient').map({True: 'Prescient', False: 'Pronet'})
     get_sub_from_path = lambda x: x.parent.parent.name
-    get_ses_from_path = lambda x: x.name.split('_')[-1][0]
+    get_ses_from_path = lambda x: re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d)',
+            x.name).group(1) if re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d)',
+            x.name) else None
     mri_zip_df['subject_id'] = mri_zip_df.zip_path.apply(get_sub_from_path)
     mri_zip_df['session_num'] = mri_zip_df.zip_path.apply(get_ses_from_path)
     mri_zip_df['file_name'] = mri_zip_df.zip_path.apply(lambda x: x.name)
@@ -330,11 +344,10 @@ def add_qc_measures(mri_zip_df: pd.DataFrame,
 
     # include timepoint
     mriqc_value_df = pd.merge(
+            mri_zip_df,
             mriqc_value_df,
-            mri_zip_df[['subject_id', 'scan_date_str',
-                        'timepoint', 'network']],
             on=['subject_id', 'scan_date_str'],
-            how='right')
+            how='left')
 
     logger.debug('Number of subject in mriqc db after merge: '
                  f'{len(mriqc_value_df)}')
@@ -416,6 +429,29 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
     logger.debug('Reformat mriqc_value_df_pivot for DPDash and save csv files')
 
 
+def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
+                                 run_sheet_df_loc: Path,
+                                 output_merged_zip: Path) -> None:
+    zip_df = pd.read_csv(zip_df_loc, index_col=0)
+
+    def zip_df_rename(col: str) -> str:
+        if col == 'subject_id':
+            return 'subject'
+
+        if col == 'scan_date_str':
+            return 'entry_date'
+
+        return col
+
+    zip_df.columns = [zip_df_rename(x) for x in zip_df.columns]
+    runsheet_df = pd.read_csv(run_sheet_df_loc, index_col=0)
+
+    all_df = pd.merge(zip_df,
+            runsheet_df,
+            on=['subject', 'entry_date', 'network', 'session_num'],
+            how='outer')
+
+    all_df.to_csv(output_merged_zip)
 
 def note_used():
     for index, row in mri_zip_df[mri_zip_df.timepoint.isnull()].iterrows():
@@ -430,3 +466,5 @@ if __name__ == '__main__':
     no_timepoint = zip_df[zip_df['timepoint'].isnull()]
     print(zip_df)
     print(no_timepoint)
+
+
