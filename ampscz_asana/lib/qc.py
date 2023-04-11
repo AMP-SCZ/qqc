@@ -408,6 +408,25 @@ def extract_mri_comments(run_sheet: Path) -> str:
     return text
 
 
+def extract_session_num(run_sheet: Path) -> str:
+    '''Extract session number from MRI run sheet'''
+
+    if 'Prescient' in str(run_sheet):
+        df = pd.read_csv(run_sheet).T.reset_index()
+        df.columns = ['field_name', 'field_value']
+    else:
+        df = pd.read_csv(run_sheet)
+
+    session_index = df[df['field_name'] == 'chrmri_session_num'].index
+    session_str = df.loc[session_index]['field_value']
+
+    return session_str
+    try:
+        int(session_str)
+    except ValueError:
+        return None
+
+
 def extract_missing_data_info_new(subject: str,
                                   phoenix_dir: str,
                                   scan_date: str,
@@ -572,10 +591,14 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['run_sheet_comment'] = datatype_df.file_path.apply(
             extract_mri_comments)
 
+    # extract comments from run sheet
+    datatype_df['session_num'] = datatype_df.file_path.apply(
+            extract_session_num)
 
     # for each run sheet, return the matching zip file
     datatype_df['expected_mri_path'] = datatype_df.apply(lambda x:
             get_mri_data(x['file_path'], x['entry_date']), axis=1)
+
     datatype_df['mri_data_exist'] = datatype_df.apply(lambda x:
             check_mri_data(x['file_path'], x['entry_date']), axis=1)
 
