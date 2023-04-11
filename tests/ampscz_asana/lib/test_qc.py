@@ -60,6 +60,7 @@ def test_compare_dates():
          raise AssertionError(f"Assertion error: {AssertionError}")
     
     print("All tests passed")
+
     
 def test_format_days():
     try:
