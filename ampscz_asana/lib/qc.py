@@ -705,6 +705,13 @@ def dataflow_dpdash(datatype_df: pd.DataFrame,
 
             all_df = pd.concat([all_df, df_tmp])
 
+    all_df['scan_date_missing'] = all_df.scan_date.apply(lambda x: 1 if
+            pd.isna(x) else 0)
+    all_df['scan_date'] = all_df.scan_date.fillna('No Scan Date')
+
+    if test:
+        return all_df
+
     # save CSV files
     # combined
     filename = f'combined-AMPSCZ-mridataflow-day1to{len(all_df)}.csv'
