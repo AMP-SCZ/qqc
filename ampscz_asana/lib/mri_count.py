@@ -466,3 +466,5 @@ if __name__ == '__main__':
     no_timepoint = zip_df[zip_df['timepoint'].isnull()]
     print(zip_df)
     print(no_timepoint)
+
+
