@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import logging
+import re
 from typing import List
 from ampscz_asana.lib.server_scanner import get_all_mri_zip, get_all_eeg_zip, \
         get_most_recent_file, get_all_subjects_with_consent, \
@@ -51,7 +52,9 @@ def get_mri_zip_df(
     mri_zip_df['network'] = mri_zip_df.zip_path.apply(str).str.contains(
         'Prescient').map({True: 'Prescient', False: 'Pronet'})
     get_sub_from_path = lambda x: x.parent.parent.name
-    get_ses_from_path = lambda x: x.name.split('_')[-1][0]
+    get_ses_from_path = lambda x: re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d)',
+            x.name).group(1) if re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d)',
+            x.name) else None
     mri_zip_df['subject_id'] = mri_zip_df.zip_path.apply(get_sub_from_path)
     mri_zip_df['session_num'] = mri_zip_df.zip_path.apply(get_ses_from_path)
     mri_zip_df['file_name'] = mri_zip_df.zip_path.apply(lambda x: x.name)
