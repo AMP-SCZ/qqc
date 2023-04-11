@@ -14,8 +14,19 @@ logger = logging.getLogger(__name__)
 def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
                                            mriflow_csv: Path,
                                            dpdash_outpath: Path,
+                                           mriqc_dir: Path,
                                            modality: str = 'mri') -> None:
+    # create df of all zip files corresponding to the modality and their
+    # mathing information from the mriflow_csv table
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
+
+    if modality == 'mri':
+        # For MRI, DPACC saves final QC measures for each session to the
+        # mriqc_dir everyday. This QC information is added to zip_df
+        mriqc_value_loc = get_most_recent_file(mriqc_dir)
+        zip_df = add_qc_measures(zip_df, mriqc_value_loc)
+
+    zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
                                                     phoenix_paths,
                                                     modality)
