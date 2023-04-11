@@ -429,6 +429,29 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
     logger.debug('Reformat mriqc_value_df_pivot for DPDash and save csv files')
 
 
+def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
+                                 run_sheet_df_loc: Path,
+                                 output_merged_zip: Path) -> None:
+    zip_df = pd.read_csv(zip_df_loc, index_col=0)
+
+    def zip_df_rename(col: str) -> str:
+        if col == 'subject_id':
+            return 'subject'
+
+        if col == 'scan_date_str':
+            return 'entry_date'
+
+        return col
+
+    zip_df.columns = [zip_df_rename(x) for x in zip_df.columns]
+    runsheet_df = pd.read_csv(run_sheet_df_loc, index_col=0)
+
+    all_df = pd.merge(zip_df,
+            runsheet_df,
+            on=['subject', 'entry_date', 'network', 'session_num'],
+            how='outer')
+
+    all_df.to_csv(output_merged_zip)
 
 def note_used():
     for index, row in mri_zip_df[mri_zip_df.timepoint.isnull()].iterrows():

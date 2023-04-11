@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import logging
 from ampscz_asana.lib.mri_count import \
-        count_and_make_it_available_for_dpdash
+        count_and_make_it_available_for_dpdash, merge_zip_db_and_runsheet_db
 
 
 def parse_args(argv):
@@ -12,7 +12,7 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         description='''Convert dicoms to BIDS
 
-,   mri_count.py \\
+    mri_count.py \\
         --phoenix_roots /data/phoenix1 /data/phoenix2 \\
         --mriflow_csv /data/mri_flow.csv \\
         --dpdash_outpath /data/dpdash_out''',
@@ -23,6 +23,7 @@ def parse_args(argv):
                      data_root / 'Prescient/PHOENIX']
     mriflow_dir = data_root / 'MRI_ROOT/flow_check'
     mriflow_csv = mriflow_dir / 'mri_data_flow.csv'
+    final_qc_dir = data_root / 'MRI_ROOT/derivatives/google_qc'
     dpdash_outpath = data_root / 'MRI_ROOT/eeg_mri_count'
 
     # image input related options
@@ -32,7 +33,11 @@ def parse_args(argv):
 
     parser.add_argument('--mriflow_csv', '-mc', type=str,
             default=mriflow_csv,
-            help='MRI dataflow summary csv')
+            help='MRI dataflow (run sheet) summary csv')
+
+    parser.add_argument('--final_qc_dir', '-fqc', type=str,
+            default=final_qc_dir,
+            help='Root of final QC measure csv files')
 
     parser.add_argument('--dpdash_outpath', '-o', type=str,
             default=dpdash_outpath,
@@ -63,6 +68,18 @@ if __name__ == '__main__':
         count_and_make_it_available_for_dpdash(args.phoenix_roots,
                                                args.mriflow_csv,
                                                args.dpdash_outpath,
+                                               args.final_qc_dir,
                                                modality=modality)
+
+
+    # merge zip database with the run sheet database
+    logging.info('Merging zip DB with run sheet DB')
+    zip_df_loc = args.dpdash_outpath / 'mri_zip_db.csv'
+    runsheet_df_loc = args.mriflow_csv
+    output_merged_zip = args.dpdash_outpath / 'mri_all_db.csv'
+    merge_zip_db_and_runsheet_db(zip_df_loc,
+                                 runsheet_df_loc,
+                                 output_merged_zip)
+    logging.info(f'{output_merged_zip} is created')
 
     logging.info('completed')
