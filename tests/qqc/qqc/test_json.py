@@ -2,7 +2,8 @@ from qqc.utils.files import get_all_files_walk
 from qqc.qqc.json import jsons_from_bids_to_df, within_phantom_qc, \
         get_all_json_information_quick, json_check, \
         find_matching_files_between_BIDS_sessions, \
-        compare_jsons_to_std, json_check_new
+        compare_jsons_to_std, json_check_new, \
+        compare_data_to_standard_all_bvals
 from qqc.dicom_files import get_dicom_files_walk
 from qqc.qqc.dicom import check_num_of_series, check_order_of_series
 import pandas as pd
@@ -10,6 +11,11 @@ from pathlib import Path
 import socket
 import json
 
+
+import logging
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(format=formatter, handlers=[logging.StreamHandler()])
+logging.getLogger().setLevel(logging.INFO)
 
 if socket.gethostname() == 'mbp16':
     raw_dicom_dir = Path(__file__).parent.parent.parent / 'data' / \
@@ -29,7 +35,18 @@ def test_json_check_for_a_session():
     within_phantom_qc(Path(standard_dir), Path('test'))
 
 
+def test_compare_data_to_standard_all_bvals():
 
+    data_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    input_dir = data_root / 'rawdata/sub-CP01128/ses-202302231/dwi'
+
+    std_root = Path('/data/predict1/home/kcho/MRI_site_cert/CP_data') / \
+            'lochness_transfer_2023_02'
+    standard_dir = std_root / 'CP01128_MR_2023_02_23_1/CP01128' / \
+            'heudiconv_out_new_new_MathiasHelp/sub-CP01128/ses-clean_up/dwi'
+    qc_output_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-CP01128/ses-202302231')
+    compare_data_to_standard_all_bvals(input_dir,
+            standard_dir, qc_output_dir, debug=True)
 # def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
     # '''Compare list of json files and return dataframe
 
@@ -294,3 +311,15 @@ def test_compare_jsons_to_std():
     qqc_out_dir = 'qc_test'
     compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
 
+
+def test_within_phantom_qc_cp():
+    data_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    input_dir = data_root / 'rawdata/sub-CP01128/ses-202302231/dwi'
+
+    std_root = Path('/data/predict1/home/kcho/MRI_site_cert/CP_data') / \
+            'lochness_transfer_2023_02'
+    standard_dir = std_root / 'CP01128_MR_2023_02_23_1/CP01128' / \
+            'heudiconv_out_new_new_MathiasHelp/sub-CP01128/ses-clean_up/dwi'
+    qc_output_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-CP01128/ses-202302231')
+
+    within_phantom_qc(input_dir.parent, qc_output_dir, debug=True)

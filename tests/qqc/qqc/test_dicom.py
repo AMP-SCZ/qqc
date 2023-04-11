@@ -1,7 +1,8 @@
 from qqc.qqc.json import jsons_from_bids_to_df
 from qqc.dicom_files import get_dicom_files_walk, get_csa_header
 from qqc.qqc.dicom import check_num_of_series, \
-        check_order_of_series, save_csa, check_image_fov_pos_ori_csa
+        check_order_of_series, save_csa, check_image_fov_pos_ori_csa, \
+        is_enhanced
 import pandas as pd
 from pathlib import Path
 import socket
@@ -86,3 +87,12 @@ def test_check_image_fov_pos_ori_csa():
     csa_df_loc = Path('/data/predict/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-YA05293/ses-202209261/99_csa_headers.csv')
     standard_dir = Path('/data/predict/data_from_nda/MRI_ROOT/rawdata/sub-PI01155/ses-202208311')
     check_image_fov_pos_ori_csa(csa_df_loc, standard_dir)
+
+
+def test_is_enhanced():
+    source_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/sourcedata')
+    me_paths = source_dir.glob('ME*')
+
+    for me_path in me_paths:
+        print(me_path, is_enhanced(me_path))
+

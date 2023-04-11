@@ -157,7 +157,9 @@ def send_detail(sender: str, recipients: List[str],
 def extract_info_for_qqc_report(raw_input_given: Path,
                                 qqc_out_dir: Path,
                                 standard_dir: Path,
-                                run_sheet_df: pd.DataFrame) -> tuple:
+                                run_sheet_df: pd.DataFrame,
+                                dicom_count_input_df: pd.DataFrame = None) \
+                                        -> tuple:
     '''Extract and clean up information from QQC for email
 
     Key arguments:
@@ -208,46 +210,47 @@ def extract_info_for_qqc_report(raw_input_given: Path,
     qqc_html_files = list(qqc_out_dir.parent.parent.glob('*/*/*.html'))
 
     # sort
-    tmp_df = pd.DataFrame({'qqc_html': qqc_html_files})
-    tmp_df['session_name'] = tmp_df.qqc_html.apply(lambda x: x.parent.name)
-    tmp_df['session_num'] = tmp_df.session_name.str.split('ses-').str[1]
-    tmp_df['y'] = tmp_df.session_num.str[:4]
-    tmp_df['m'] = tmp_df.session_num.str[4:6]
-    tmp_df['d'] = tmp_df.session_num.str[6:8]
-    tmp_df['date'] = tmp_df['y'] + '-' + tmp_df['m'] + '-' + tmp_df['d']
-    tmp_df['date'] = pd.to_datetime(tmp_df['date'], format='%Y-%m-%d',
-                                    errors='ignore')
-
     qqc_html_list = []
-    for _, row in tmp_df.sort_values('date').iterrows():
-        qqc_html = row['qqc_html']
-        qqc_dict = {}
-        qqc_dict['subject_name'] = qqc_html.parent.parent.name
-        qqc_dict['session_name'] = qqc_html.parent.name
-        qqc_dict['qqc_html'] = qqc_html
+    if len(qqc_html_files) > 1:
+        tmp_df = pd.DataFrame({'qqc_html': qqc_html_files})
+        tmp_df['session_name'] = tmp_df.qqc_html.apply(lambda x: x.parent.name)
+        tmp_df['session_num'] = tmp_df.session_name.str.split('ses-').str[1]
+        tmp_df['y'] = tmp_df.session_num.str[:4]
+        tmp_df['m'] = tmp_df.session_num.str[4:6]
+        tmp_df['d'] = tmp_df.session_num.str[6:8]
+        tmp_df['date'] = tmp_df['y'] + '-' + tmp_df['m'] + '-' + tmp_df['d']
+        tmp_df['date'] = pd.to_datetime(tmp_df['date'], format='%Y-%m-%d',
+                                        errors='ignore')
 
-        # qc
-        qqc_dict['qc'] = 'Fail'
-        if (qqc_html.parent / '00_qc_summary.csv').is_file():
-            df = pd.read_csv(qqc_html.parent / '00_qc_summary.csv',
-                             index_col=0)
-            df = df[df.columns[0]]
-            qqc_dict['series_count'] = df.loc['Series count']
-            qqc_dict['vol_check'] = df.loc['Volume slice number comparison']
-            qqc_dict['orient_anat'] = df.loc['Image orientation in anat']
-            qqc_dict['orient_others'] = df.loc['Image orientation in others']
-            qqc_dict['shim_settings'] = df.loc['Shim settings']
-            qqc_dict['bval_comp'] = df.loc['Bval comparison']
+        for _, row in tmp_df.sort_values('date').iterrows():
+            qqc_html = row['qqc_html']
+            qqc_dict = {}
+            qqc_dict['subject_name'] = qqc_html.parent.parent.name
+            qqc_dict['session_name'] = qqc_html.parent.name
+            qqc_dict['qqc_html'] = qqc_html
 
-            # all pass
-            qqc_dict['qc'] = 'Pass' if (df.loc[['Series count',
-                                      'Volume slice number comparison',
-                                      'Image orientation in anat',
-                                      'Image orientation in others',
-                                      'Bval comparison']] == 'Pass').all() \
-                                              else 'Fail'
+            # qc
+            qqc_dict['qc'] = 'Fail'
+            if (qqc_html.parent / '00_qc_summary.csv').is_file():
+                df = pd.read_csv(qqc_html.parent / '00_qc_summary.csv',
+                                 index_col=0)
+                df = df[df.columns[0]]
+                qqc_dict['series_count'] = df.loc['Series count']
+                qqc_dict['vol_check'] = df.loc['Volume slice number comparison']
+                qqc_dict['orient_anat'] = df.loc['Image orientation in anat']
+                qqc_dict['orient_others'] = df.loc['Image orientation in others']
+                qqc_dict['shim_settings'] = df.loc['Shim settings']
+                qqc_dict['bval_comp'] = df.loc['Bval comparison']
 
-        qqc_html_list.append(qqc_dict)
+                # all pass
+                qqc_dict['qc'] = 'Pass' if (df.loc[['Series count',
+                                          'Volume slice number comparison',
+                                          'Image orientation in anat',
+                                          'Image orientation in others',
+                                          'Bval comparison']] == 'Pass').all() \
+                                                  else 'Fail'
+
+            qqc_html_list.append(qqc_dict)
 
     # Basic information for email
     sender = 'kevincho@bwh.harvard.edu'
@@ -279,13 +282,17 @@ def extract_info_for_qqc_report(raw_input_given: Path,
         'Run sheet',
         run_sheet_df.to_html(na_rep='', justify='center'))
 
+    dicom_count_str = str_tmp.format(
+        f'Dicom file counts (rearranged by QQC)',
+        dicom_count_input_df.to_html(na_rep='', justify='center'))
+
     comparison_str = str_tmp.format(
         'Comparing series protocols to standard',
         protocol_df.to_html(na_rep='', justify='center'))
 
     top_message = raw_zip_loc_str + dicom_loc_str + nifti_loc_str + \
             std_data_loc + qc_data_loc + quick_qc_summary + \
-            run_sheet_summary + comparison_str
+            run_sheet_summary + dicom_count_str + comparison_str
 
 
     # second_message: QC detail of the container
@@ -315,13 +322,15 @@ def send_out_qqc_results(raw_input_given: Path,
                          standard_dir: Path,
                          run_sheet_df: pd.DataFrame,
                          additional_recipients: list,
+                         dicom_count_input_df,
                          test: bool = False,
                          mailx: bool = True):
     '''Send Quick QC summary'''
     sender, recipients, title, subtitle, top_message, qc_detail, \
                 code, image_paths, qqc_html_list, in_mail_footer = \
         extract_info_for_qqc_report(raw_input_given, qqc_out_dir,
-                                    standard_dir, run_sheet_df)
+                                    standard_dir, run_sheet_df,
+                                    dicom_count_input_df)
 
     admin_recipient = 'kc244@research.partners.org'
     user_id = getpass.getuser()

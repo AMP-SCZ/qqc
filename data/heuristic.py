@@ -12,6 +12,17 @@ def create_key(template, outtype=('nii.gz',), annotation_classes=None):
     return template, outtype, annotation_classes
 
 
+def print_missing_message(modality, s):
+    print('-'*80)
+    print(f'There might be missing files in {modality}')
+    print('Please check the number of dicom files, and try '
+          'running dcm2niix separately. If the dcm2niix works '
+          'fine on the dicoms, please update the number of '
+          'expected dicom file number in the heuristic file')
+    print(s)
+    print('-'*80)
+
+
 def infotodict(seqinfo):
     """Heuristic evaluator for determining which runs belong where
 
@@ -134,22 +145,67 @@ def infotodict(seqinfo):
             localizer_aligned: [],
             scout: []}
 
+    count_infos = {
+            'ge_machine': {
+                't1w': 208, 't2w': 204,
+                'distortion': 132,
+                'rest_sbref': 132,
+                'rest': 22308,
+                'b0': 729,
+                'dMRI':10368},
+            'xa30': {
+                't1w': 208, 't2w': 208,
+                'distortion': 1,
+                'rest_sbref': 1,
+                'rest': 333,
+                'b0': 7,
+                'dMRI':117},
+            'philips': {
+                't1w': 208, 't2w': 208,
+                'distortion': 67,
+                'rest_sbref': 133,
+                'rest': 22639,
+                'b0': 568,
+                'dMRI':10288},
+            'prisma': {
+                't1w': 208, 't2w': 208,
+                'distortion': 1,
+                'rest_sbref': 1,
+                'rest': 333,
+                'b0': 7,
+                'dMRI':177},
+            }
+
     # check machine and software versions
     for s in seqinfo:
         try:
             ds = dcmread(s.example_dcm_file_path)
             sv = str(ds.SoftwareVersions)
+            machine = str(ds.Manufacturer)
             xa30 = True if 'xa30' in sv.lower() else False
             xa31 = True if 'xa31' in sv.lower() else False
-            ge_machine = True if 'ge' in sv.lower() else False
+            ge_machine = True if 'ge' in machine.lower() else False
+            philips_machine = True if 'philips' in machine.lower() else False
             print(f'Is it XA30: {xa30}')
             print(f'Is it GE: {ge_machine}')
+            print(f'Is it Philips: {philips_machine}')
             break
         except AttributeError:
             pass
 
+    if ge_machine:
+        count_info = count_infos['ge_machine']
+    elif philips_machine:
+        count_info = count_infos['philips']
+    else:
+        count_info = count_infos['prisma']
+
     for s in seqinfo:
         if 't1w' in s.series_description.lower():
+            if s.series_files < count_info['t1w']:
+                print_missing_message('t1w', s)
+                continue
+
             # XA30
             if xa30 or xa31:
                 if 't1w_mpr_nd' in s.series_description.lower():
@@ -161,6 +217,9 @@ def infotodict(seqinfo):
                     info[t1w_axil].append({'item': s.series_id})
                 else:
                     info[t1w].append({'item': s.series_id})
+            elif philips_machine:
+                info[t1w].append({'item': s.series_id})
+                continue
             else:
                 if 'NORM' in s.image_type:
                     info[t1w_norm].append({'item': s.series_id})
@@ -170,6 +229,9 @@ def infotodict(seqinfo):
             continue
 
         if 't2w' in s.series_description.lower():
+            if s.series_files < count_info['t2w']:
+                print_missing_message('t2w', s)
+                continue
             # XA30
             if xa30 or xa31:
                 if 't2w_spc_nd' in s.series_description.lower():
@@ -181,6 +243,9 @@ def infotodict(seqinfo):
                     info[t2w_axil].append({'item': s.series_id})
                 else:
                     info[t2w].append({'item': s.series_id})
+            elif philips_machine:
+                info[t2w].append({'item': s.series_id})
+                continue
             else:
                 if 'NORM' in s.image_type:
                     info[t2w_norm].append({'item': s.series_id})
@@ -212,6 +277,9 @@ def infotodict(seqinfo):
                         'item': s.series_id, 'dirnum': dirnum,
                         'APPA': appa})
                 else:
+                    if s.series_files < count_info['dMRI']:
+                        print_missing_message('dMRI', s)
+                        continue
                     info[dwi].append({
                         'item': s.series_id, 'dirnum': dirnum,
                         'APPA': appa})
@@ -222,24 +290,40 @@ def infotodict(seqinfo):
                     info[dwi_b0_sbref].append({'item': s.series_id,
                                                'APPA': appa})
                 else:
+                    if s.series_files < count_info['b0']:
+                        print_missing_message('b0', s)
+                        continue
                     info[dwi_b0].append({'item': s.series_id,
                                                'APPA': appa})
             continue
 
         if 'rfmri' in s.series_description.lower():
-            sbref = True if 'sbref' in s.series_description.lower() else False
+            sbref = True if 'ref' in s.series_description.lower() else False
             appa = True if '_ap' in s.series_description.lower() else False
 
-            if appa and sbref:
-                info[rest_ap_sbref].append({'item': s.series_id})
-            elif not appa and sbref:
-                info[rest_pa_sbref].append({'item': s.series_id})
-            elif appa and not sbref:
-                info[rest_ap].append({'item': s.series_id})
-            elif not appa and not sbref:
-                info[rest_pa].append({'item': s.series_id})
+            if sbref:
+                if s.series_files < count_info['rest_sbref']:
+                    print_missing_message('rest_sbref', s)
+                    continue
+
+                if appa:
+                    info[rest_ap_sbref].append({'item': s.series_id})
+                else:
+                    info[rest_pa_sbref].append({'item': s.series_id})
+            else:
+                if s.series_files < count_info['rest']:
+                    print_missing_message('rest', s)
+                    continue
+                if appa:
+                    info[rest_ap].append({'item': s.series_id})
+                else:
+                    info[rest_pa].append({'item': s.series_id})
 
         if 'distortion' in s.series_description.lower():
+            if s.series_files < count_info['distortion']:
+                print_missing_message('distortion', s)
+                continue
+
             appa = 'AP' if '_ap' in s.series_description.lower() else 'PA'
             series_num = int(re.search(r'\d+', s.series_id).group(0))
             tmp_dict = {'item': s.series_id,

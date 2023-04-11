@@ -1,13 +1,17 @@
-from ampscz_asana.lib.server_scanner import grep_run_sheets
+import os
 import re
 import pandas as pd
 from pathlib import Path
-from ampscz_asana.lib.utils import convert_AU_to_US_date
 from datetime import datetime
-import os
+from ampscz_asana.lib.utils import convert_AU_to_US_date
+from ampscz_asana.lib.server_scanner import grep_run_sheets
+from dataflow_checker.ampscz_mri_file import get_matching_timepoint, \
+        get_matching_timepoint_by_date, get_dates_from_zip_file_name
+
 import math
 import json
 from typing import Union
+
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -147,6 +151,7 @@ def date_of_zip(subject, entry_date, phoenix_dir):
         if dir_name.startswith(f'{prefix}{subject[:2]}'):
             pronet_dir = dir_name
             break
+
     zip_file_path = Path(base_dir, pronet_dir, 'raw', subject, 'mri')
     date_pattern = r'\d{4}_\d{1,2}_\d{1,2}'
     for filename in os.listdir(zip_file_path):
@@ -166,23 +171,38 @@ def date_of_zip(subject, entry_date, phoenix_dir):
                 continue
 
 
+
 def date_of_qqc(subject, entry_date) -> str:
     if entry_date == '' or pd.isna(entry_date):
         return ''
 
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     source_root = mri_root / 'sourcedata'
-    date_numbers_only = re.sub('[-_]', '', entry_date)
+
+    year = int(re.split('-|_', str(entry_date))[0])
+    month = int(re.split('-|_', str(entry_date))[1])
+    day = int(re.split('-|_', str(entry_date))[2])
+
+    date_numbers_only = re.sub('[-_]', '', str(entry_date))
     subject_dir = source_root / subject
-    qqc_first_outputs = list(subject_dir.glob(f'*{date_numbers_only}*'))
-    if qqc_first_outputs:
+
+    if not subject_dir.is_dir():
+        return None
+
+    qqc_first_outputs = list(subject_dir.glob(f'*{date_numbers_only}*')) + \
+                        list(subject_dir.glob(f'*{year}{month}{day}*'))
+    if len(qqc_first_outputs) > 0:
         qqc_first_output = qqc_first_outputs[0]
+        print(qqc_first_output)
         ctime = qqc_first_output.stat().st_ctime
         date_str = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d')
         return date_str
     else:
+        print('-------------------')
+        print(subject_dir)
+        print(list(subject_dir.glob('*')), entry_date)
+        print('-------------------')
         return ''
-
 
 
 def is_mri_done(subject, entry_date) -> bool:
@@ -218,6 +238,7 @@ def is_fmriprep_done(subject, entry_date) -> bool:
 
 
 def is_dwipreproc_done(subject, entry_date) -> bool:
+
     if entry_date == '' or pd.isna(entry_date):
         return False
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
@@ -640,7 +661,7 @@ def get_run_sheet_df(phoenix_dir: Path,
             is_dwipreproc_done(x['subject'], x['entry_date']), axis=1)
     
     datatype_df['qqc_date'] = datatype_df.apply(lambda x:
-            date_of_qqc(x['subject'], x['entry_date']), axis=1)
+            date_of_qqc(x['subject'], x['mri_data_date']), axis=1)
  
     datatype_df['zip_date'] = datatype_df.apply(
             lambda x, param: date_of_zip(x['subject'], x['entry_date'], param),

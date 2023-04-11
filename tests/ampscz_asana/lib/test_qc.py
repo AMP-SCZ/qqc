@@ -1,4 +1,3 @@
-
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 from ampscz_asana.lib.qc import get_run_sheet_df, extract_missing_data_info_new
 from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash, \
@@ -12,13 +11,40 @@ from pathlib import Path
 
 
 def test_date_of_zip():
-  dir = '/data/predict1/data_from_nda/Pronet/PHOENIX'
-  
-  assert(date_of_zip('TE00307', '2022_10_20', dir)) == '2022-11-12'
-  assert(date_of_zip('LA07315', '2022_12_16', dir)) == '2022-12-17'
+    phoenix_test_root = 'PHOENIX'
+    fakePhoenixSubject = FakePhoenixSubject(
+            outdir=phoenix_test_root, network='Pronet', subject='TE00307',
+            date='2023_01_01')
 
-  
-  dir = '/data/predict1/data_from_nda/Prescient/PHOENIX'
+    assert(date_of_zip('TE00307',
+                       '2022_10_20',
+                       phoenix_test_root)) == '2022-11-12'
+    # assert(date_of_zip('LA07315', '2022_12_16', phoenix_root)) == '2022-12-17'
+
+
+    # phoenix_root = '/data/predict1/data_from_nda/Prescient/PHOENIX'
+    # assert(date_of_zip('ME04934', '2022_12_02', phoenix_root)) == '2023-03-13'
+    # assert(date_of_zip('CP01128', '2023_02_23', phoenix_root)) == '2023-03-02'
+
+
+def test_date_of_qqc():
+    subject = 'ME79913'
+    entry_date = '2022_12_16'
+    date_of_qqc_out = date_of_qqc(subject, entry_date)
+    print(date_of_qqc_out)
+
+
+def hatest_get_run_sheet():
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    run_sheet_csv_tmp = Path('test.csv')
+
+    # if run_sheet_csv_tmp.is_file():
+    # run_sheet_df = pd.read_csv(run_sheet_csv_tmp)
+    run_sheet_df = get_run_sheet_df(phoenix_root)
+    run_sheet_df.to_csv(run_sheet_csv_tmp)
+    # else:
+        # run_sheet_df = get_run_sheet_df(phoenix_root)
+        # run_sheet_df.to_csv(run_sheet_csv_tmp)
 
   assert(date_of_zip('ME04934', '2022_12_02', dir)) == '2023-03-13'
   assert(date_of_zip('CP01128', '2023_02_23', dir)) == '2023-03-02'
