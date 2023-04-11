@@ -344,11 +344,10 @@ def add_qc_measures(mri_zip_df: pd.DataFrame,
 
     # include timepoint
     mriqc_value_df = pd.merge(
+            mri_zip_df,
             mriqc_value_df,
-            mri_zip_df[['subject_id', 'scan_date_str',
-                        'timepoint', 'network']],
             on=['subject_id', 'scan_date_str'],
-            how='right')
+            how='left')
 
     logger.debug('Number of subject in mriqc db after merge: '
                  f'{len(mriqc_value_df)}')
