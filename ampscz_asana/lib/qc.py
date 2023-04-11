@@ -387,6 +387,27 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
     return list_of_lists
 
 
+def extract_mri_comments(run_sheet: Path) -> str:
+    '''Extract comments from MRI run sheet'''
+
+    if 'Prescient' in str(run_sheet):
+        df = pd.read_csv(run_sheet).T.reset_index()
+        df.columns = ['field_name', 'field_value']
+    else:
+        df = pd.read_csv(run_sheet)
+
+    comment_df = df[df['field_name'].str.contains('_comment')]
+    comment_df = comment_df[~comment_df['field_value'].isnull()]
+    comment_df = comment_df[comment_df['field_value'] != -3]
+
+    text = ''
+    for comment, table in comment_df.groupby('field_value'):
+        text += f'{comment} :'
+        text += ', '.join(table['field_name'].to_list()) + '\n'
+
+    return text
+
+
 def extract_missing_data_info_new(subject: str,
                                   phoenix_dir: str,
                                   scan_date: str,
@@ -547,6 +568,11 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['entry_date'] = datatype_df.file_path.apply(
             get_entry_date_from_run_sheet)
 
+    # extract comments from run sheet
+    datatype_df['run_sheet_comment'] = datatype_df.file_path.apply(
+            extract_mri_comments)
+
+
     # for each run sheet, return the matching zip file
     datatype_df['expected_mri_path'] = datatype_df.apply(lambda x:
             get_mri_data(x['file_path'], x['entry_date']), axis=1)
@@ -659,7 +685,7 @@ def dataflow_dpdash(datatype_df: pd.DataFrame, outdir: Path) -> None:
     nodate_df = all_df[all_df.scan_date.isnull()]
     date_df = all_df[~all_df.scan_date.isnull()]
     date_df.sort_values(['data_at_dpacc', 'days_scan_to_today', 'scan_date'],
-                       inplace=True)
+                        inplace=True)
     all_df = pd.concat([date_df, nodate_df])
     all_df['day'] = range(1, len(all_df)+1)
     all_df.to_csv(outdir / filename, index=False)

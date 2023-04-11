@@ -1,6 +1,7 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 from ampscz_asana.lib.qc import get_run_sheet_df, extract_missing_data_info_new
-from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash
+from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash, \
+        extract_mri_comments
 import pandas as pd
 from pathlib import Path
 
@@ -113,3 +114,11 @@ def test_dataflow_dpdash():
 
     df = pd.concat([df1, df2])
     dataflow_dpdash(df)
+
+
+def test_mricomment():
+    run_sheet_path = Path('/data/predict1/data_from_nda/Pronet/PHOENIX/PROTECTED/PronetYA/raw/YA08362/mri/YA08362.Pronet.Run_sheet_mri_1.csv')
+    extract_mri_comments(run_sheet_path)
+
+    run_sheet_path = Path('/data/predict1/data_from_nda/Prescient/PHOENIX/PROTECTED/PrescientME/raw/ME98165/mri/ME98165.Prescient.Run_sheet_mri_1.csv')
+    extract_mri_comments(run_sheet_path)
