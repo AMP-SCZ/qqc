@@ -1,5 +1,9 @@
-from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
+from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, \
+        extract_missing_data_information, compare_dates, format_days, \
+        check_mri_data
+
 import pandas as pd
+from pathlib import Path
 
 
 def test_date_of_zip():
@@ -65,3 +69,24 @@ def test_format_days():
     except AssertionError:
         raise AssertionError(f"Assertion error: {AssertionError}")
 
+
+def test_check_mri_data():
+    test_subject = 'ME84344'
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    data_root = phoenix_root / 'PROTECTED/PrescientME/raw'
+    subject_root = data_root / test_subject
+    mri_dir = subject_root / 'mri'
+    run_sheet_path = mri_dir / f'{test_subject}.Prescient.Run_sheet_mri_1.csv'
+
+    entry_date = '2023_03_03'
+
+    assert check_mri_data(run_sheet_path, entry_date)
+
+    entry_date = '2023_3_3'
+    assert check_mri_data(run_sheet_path, entry_date)
+
+    entry_date = '2023_03_3'
+    assert check_mri_data(run_sheet_path, entry_date)
+
+    entry_date = '2023_3_03'
+    assert check_mri_data(run_sheet_path, entry_date)
