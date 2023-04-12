@@ -454,14 +454,17 @@ def extract_missing_data_info_new(subject: str,
     domain_type_cols = [x for x in df.columns
                         if re.search(r'chrmiss_domain_type___3', x)]
     miss_time_cols = [x for x in df.columns if 'chrmiss_time' == x]
+    miss_withdrawn_cols = [x for x in df.columns if 'chrmiss_withdrawn' == x]
+    miss_discon_cols = [x for x in df.columns if 'chrmiss_discon' == x]
 
     if len(domain_type_cols) == 0 and len(miss_time_cols) == 0:
         return None
 
     # select columns in interest
-    df = df[['redcap_event_name',
-             'chrmri_entry_date',
-             'chrmiss_domain_spec'] + domain_type_cols + miss_time_cols]
+    df = df[['redcap_event_name', 'chrmri_entry_date',
+             'chrmri_missing', 'chrmiss_domain_spec'] +
+            domain_type_cols + miss_time_cols +
+            miss_withdrawn_cols + miss_discon_cols]
 
     if scan_date == '' or pd.isna(scan_date):
         timepoint_to_index_dict = {'1': 'baseline',
@@ -484,6 +487,7 @@ def extract_missing_data_info_new(subject: str,
             return None
 
     timepoint = df.loc[scan_date_index]['redcap_event_name']
+    mri_rs_missing_info = df.loc[scan_date_index]['chrmri_missing']
     missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
 
     if 'chrmiss_time' in df.columns:
@@ -491,7 +495,18 @@ def extract_missing_data_info_new(subject: str,
     else:
         miss_time = None
 
-    return (missing_info, timepoint, miss_time)
+    if 'chrmiss_withdrawn' in df.columns:
+        miss_withdrawn = df.loc[scan_date_index]['chrmiss_withdrawn']
+    else:
+        miss_withdrawn = None
+
+    if 'chrmiss_discon' in df.columns:
+        miss_discon = df.loc[scan_date_index]['chrmiss_discon']
+    else:
+        miss_discon = None
+
+    return (missing_info, mri_rs_missing_info, timepoint, miss_time,
+            miss_withdrawn, miss_discon)
 
 
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
@@ -620,11 +635,17 @@ def get_run_sheet_df(phoenix_dir: Path,
             axis=1)
 
     datatype_df['missing_info'] = datatype_df.vars.str[0]
-    datatype_df['timepoint'] = datatype_df.vars.str[1]
-    datatype_df['missing_timepoint'] = datatype_df.vars.str[2]
+    datatype_df['mri_rs_missing_info'] = datatype_df.vars.str[1]
+    datatype_df['timepoint_text'] = datatype_df.vars.str[2]
+    datatype_df['missing_timepoint'] = datatype_df.vars.str[3]
+    datatype_df['missing_withdrawn'] = datatype_df.vars.str[4]
+    datatype_df['missing_discon'] = datatype_df.vars.str[5]
     datatype_df['missing_marked'] = (
-            (datatype_df['missing_info'] == 1) |
-            (datatype_df['missing_timepoint'])).map({True: 1, False: None})
+            (datatype_df['missing_info'] == '1') |
+            (datatype_df['mri_rs_missing_info'] == '1') |
+            (datatype_df['missing_timepoint'] == '1') |
+            (datatype_df['missing_withdrawn'] == '1') |
+            (datatype_df['missing_discon'] == '1')).map({True: 1, False: None})
     datatype_df.drop('vars', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
@@ -695,7 +716,7 @@ def dataflow_dpdash(datatype_df: pd.DataFrame,
                 'network': row['network'],
                 'timepoint': row['run_sheet_num'],
                 'scan_date': row['entry_date'],
-                'missing_info': row['missing_info'],
+                'missing_info': row['missing_marked'],
                 'quick_qc': int(row['qqc_executed']),
                 'manual_qc': row['mriqc_val'],
                 'data_at_dpacc': int(row['mri_data_exist']),
