@@ -704,7 +704,7 @@ def dataflow_dpdash(datatype_df: pd.DataFrame,
     all_df = pd.DataFrame()
     for subject, table in datatype_df.groupby('subject'):
         for num, (timepoint, t_table) in enumerate(
-                table.sort_values('timepoint_x').groupby('run_sheet_num'), 1):
+                table.sort_values('timepoint').groupby('run_sheet_num'), 1):
             row = t_table.iloc[0]
 
             df_tmp = pd.DataFrame({
