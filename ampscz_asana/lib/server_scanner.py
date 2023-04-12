@@ -83,11 +83,11 @@ def get_site_network_dict(phoenix_roots) -> dict:
     return site_net_dict
 
 
-def grep_run_sheets(phoenix_dir: Path) -> list:
+def grep_run_sheets(phoenix_dir: Path, subject: str = '*') -> list:
     '''Grab run sheets from PHOENIX'''
     protected_dir = phoenix_dir / 'PROTECTED'
     subject_directories_under_phoenix = protected_dir.glob(
-            '*/raw/*/*/*Run_sheet*csv')
+            f'*/raw/{subject}/*/*Run_sheet*csv')
     return list(subject_directories_under_phoenix)
 
 
