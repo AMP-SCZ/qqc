@@ -64,8 +64,8 @@ if __name__ == '__main__':
             df_tmp = get_run_sheet_df(phoenix_root,
                                       test=args.test)
             df = pd.concat([df, df_tmp])
-        df.to_csv(csv_out)
         df['entry_date'] = df['entry_date'].dt.strftime('%Y-%m-%d')
+        df.to_csv(csv_out)
                                                         
 
     if args.dpdash:
