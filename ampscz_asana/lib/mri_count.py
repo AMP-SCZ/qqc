@@ -63,8 +63,8 @@ def get_mri_zip_df(
     mri_zip_df['network'] = mri_zip_df.zip_path.apply(str).str.contains(
         'Prescient').map({True: 'Prescient', False: 'Pronet'})
     get_sub_from_path = lambda x: x.parent.parent.name
-    get_ses_from_path = lambda x: re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d)',
-            x.name).group(1) if re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d)',
+    get_ses_from_path = lambda x: re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d+)',
+            x.name).group(1) if re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d+)',
             x.name) else None
     mri_zip_df['subject_id'] = mri_zip_df.zip_path.apply(get_sub_from_path)
     mri_zip_df['session_num'] = mri_zip_df.zip_path.apply(get_ses_from_path)
