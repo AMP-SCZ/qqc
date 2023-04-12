@@ -70,6 +70,7 @@ if __name__ == '__main__':
 
     if args.dpdash:
         print(f'Creating dpdash loadable csv files')
+        df = pd.read_csv('/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/mri_all_db.csv')
         dataflow_dpdash(df, args.outdir)
 
 
