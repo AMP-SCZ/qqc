@@ -478,7 +478,7 @@ def unzip_and_update_input(input: str,
     logger.info('Input is a zip file. Extracting it to a temp directory')
     zf = zipfile.ZipFile(input)
     tf = tempfile.mkdtemp(
-            prefix=(qqc_input.name + '_'),
+            prefix=(Path(input).stem + '_'),
             dir='/data/predict1/home/kcho/tmp/zip_tempdir')
     zf.extractall(tf)
 
