@@ -146,34 +146,48 @@ def infotodict(seqinfo):
             scout: []}
 
     count_infos = {
-            'ge_machine': {
+        'ge_machine': {
                 't1w': 208, 't2w': 204,
                 'distortion': 132,
                 'rest_sbref': 132,
                 'rest': 22308,
                 'b0': 729,
                 'dMRI':10368},
-            'xa30': {
+        'xa30': {
                 't1w': 208, 't2w': 208,
                 'distortion': 1,
                 'rest_sbref': 1,
                 'rest': 333,
                 'b0': 7,
                 'dMRI':117},
-            'philips': {
+        'philips': {
                 't1w': 208, 't2w': 208,
                 'distortion': 67,
                 'rest_sbref': 133,
                 'rest': 22639,
                 'b0': 568,
                 'dMRI':10288},
-            'prisma': {
-                't1w': 208, 't2w': 208,
+        'prisma': {
+                't1w': 1, 't2w': 1,
                 'distortion': 1,
                 'rest_sbref': 1,
                 'rest': 333,
                 'b0': 7,
                 'dMRI':177},
+        'vida': {
+                't1w': 1, 't2w': 1,
+                'distortion': 1,
+                'rest_sbref': 1,
+                'rest': 333,
+                'b0': 7,
+                'dMRI': 127},
+        'skyra': {
+                't1w': 1, 't2w': 1,
+                'distortion': 1,
+                'rest_sbref': 1,
+                'rest': 333,
+                'b0': 7,
+                'dMRI': 127},
             }
 
     # check machine and software versions
@@ -182,13 +196,18 @@ def infotodict(seqinfo):
             ds = dcmread(s.example_dcm_file_path)
             sv = str(ds.SoftwareVersions)
             machine = str(ds.Manufacturer)
+            machine_model = str(ds.ManufacturerModelName)
             xa30 = True if 'xa30' in sv.lower() else False
             xa31 = True if 'xa31' in sv.lower() else False
             ge_machine = True if 'ge' in machine.lower() else False
             philips_machine = True if 'philips' in machine.lower() else False
+            vida_machine = True if 'vida' in machine_model.lower() else False
+            skyra_machine = True if 'skyra' in machine_model.lower() else False
             print(f'Is it XA30: {xa30}')
             print(f'Is it GE: {ge_machine}')
             print(f'Is it Philips: {philips_machine}')
+            print(f'Is it Vida: {vida_machine}')
+            print(f'Is it Skyra: {vida_machine}')
             break
         except AttributeError:
             pass
@@ -197,6 +216,10 @@ def infotodict(seqinfo):
         count_info = count_infos['ge_machine']
     elif philips_machine:
         count_info = count_infos['philips']
+    elif vida_machine:
+        count_info = count_infos['vida']
+    elif skyra_machine:
+        count_info = count_infos['skyra']
     else:
         count_info = count_infos['prisma']
 
