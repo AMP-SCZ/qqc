@@ -160,9 +160,6 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
             message = 'Overwritten quick_scan to False, since Philips data'
             logger.info(message)
             args.quick_scan = True
-        dicom_count_input_df = get_dicom_counts(sorted_dicom_dir,
-                                                debug=debug)
-
         df_full = get_dicom_df(qqc_input,
                                args.skip_dicom_rearrange,
                                sorted_dicom_dir,
@@ -180,6 +177,9 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                             force=args.force_copy_dicom_to_source,
                             rename_dicoms=args.rename_dicoms)
 
+
+        dicom_count_input_df = get_dicom_counts(Path(sorted_dicom_dir),
+                                                debug=debug)
 
         # cleaned up dicom structure -> BIDS
         bids_rawdata_dir = bids_root / 'rawdata'
