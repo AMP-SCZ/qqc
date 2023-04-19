@@ -164,7 +164,8 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         if 'CP' in subject_name:
             message = 'Overwritten quick_scan to False, since Philips data'
             logger.info(message)
-            args.quick_scan = True
+            args.quick_scan = False
+
         df_full = get_dicom_df(qqc_input,
                                args.skip_dicom_rearrange,
                                sorted_dicom_dir,
