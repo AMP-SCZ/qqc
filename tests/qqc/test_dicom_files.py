@@ -86,6 +86,8 @@ def test_rearrange_dicom_CP():
     dicom_example_root = tmp_loc / 'CP01128_MR_2023_02_23_1/DICOM'
     dicom_example_root = tmp_loc / 'CP88631_MR_2023_03_23_1'
 
+    dicom_example_root = Path('/data/predict1/home/kcho/tmp/zip_tempdir/CP36238_MR_2023_04_13_1__3z6df1x/CP36238_MR_2023_04_13_1/DICOM')
+
     df_full = get_dicom_files_walk(dicom_example_root)
     # if Path('cp_test_df.csv').is_file():
         # df_full = pd.read_csv('cp_test_df.csv')
@@ -94,7 +96,7 @@ def test_rearrange_dicom_CP():
         # df_full.to_csv('cp_test_df.csv')
 
     rearange_dicoms(df_full,
-                    'test_cp_root',
+                    'test_cp_root2',
                     'CP',
                     'test2',
                     force=False,
