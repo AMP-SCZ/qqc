@@ -6,12 +6,15 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from typing import Tuple
+import logging
 
 from qqc.utils.files import get_all_files_walk
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
 from qqc.utils.files import ampscz_json_load
 
+
+logger = logging.getLogger(__name__)
 
 class NoDwiException(Exception):
     pass
@@ -257,7 +260,11 @@ def compare_bit_to_std(input_dir: str,
                        standard_dir: str,
                        qc_out_dir: Path) -> None:
     bit_comparison_log = qc_out_dir / 'bit_check.csv'
-    input_bit = is_session_dir_16bit(input_dir)  # (bool, float)
+    try:
+        input_bit = is_session_dir_16bit(input_dir)  # (bool, float)
+    except NoDwiException:
+        logger.critical('No B0 nifti found in the input data')
+        input_bit = 'no data'
     std_bit = is_session_dir_16bit(standard_dir)
 
     df = pd.DataFrame({

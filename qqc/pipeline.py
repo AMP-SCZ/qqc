@@ -114,6 +114,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                                            args.force_copy_dicom_to_source)
 
     # XA30
+    logger.info(f'Site : {site}')
     standard_dir = None
     if args.standard_dir is None:
         config = configparser.ConfigParser()
@@ -145,6 +146,10 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         if standard_dir is None:
             try:
                 standard_dir = Path(config.get('First Scan', site))
+            except configparser.NoOptionError:
+                logger.critical(f'{site} is not in the First Scan')
+                logger.critical('Setting the template as YA')
+                standard_dir = Path(config.get('First Scan', 'YA'))
             except KeyError:
                 standard_dir = Path(config.get('First Scan', 'YA'))
     else:
