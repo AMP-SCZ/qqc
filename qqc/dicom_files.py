@@ -45,13 +45,15 @@ all_elements_to_extract = [
 def get_dicom_counts(sorted_dicom_dir: Path, **kwargs) -> pd.DataFrame:
     debug = kwargs.get('debug', False)
 
+    logger.info(sorted_dicom_dir)
     df = pd.DataFrame({'series_dir': list(sorted_dicom_dir.glob('*'))})
     df['dicom_count'] = df.series_dir.apply(lambda x: len(list(x.glob('*'))))
     df['series_dir'] = df.series_dir.apply(lambda x: x.name)
     df['series_num'] = df.series_dir.apply(lambda x: x.split('_')[0]).astype(
             int)
 
-    df['series_dir'] = df['series_dir'].str.extract(f'\d+_(.+)')
+    logger.info(df)
+    df['series_dir'] = df['series_dir'].str.extract(r'\d+_(.+)')
     df.sort_values('series_num', inplace=True)
     df = df[['series_num', 'series_dir', 'dicom_count']]
 

@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import List, Tuple
 import logging
 
-from qqc.qqc.nifti import compare_volume_to_standard_all_nifti
+from qqc.qqc.nifti import compare_volume_to_standard_all_nifti, \
+        compare_bit_to_std
+from qqc.qqc.dicom import compare_enhanced_to_std
 from qqc.utils.files import get_all_files_walk, loop_through_two_lists, \
         get_files_from_json, ampscz_json_load
 from qqc.utils.names import get_naming_parts_bids
@@ -798,7 +800,9 @@ def compare_data_to_standard(input_dir: str, standard_dir: str,
 
     for func in compare_jsons_to_std, \
                 compare_data_to_standard_all_bvals, \
-                compare_volume_to_standard_all_nifti:
+                compare_volume_to_standard_all_nifti, \
+                compare_bit_to_std, \
+                compare_enhanced_to_std:
         func(input_dir, standard_dir, qc_out_dir)
 
 

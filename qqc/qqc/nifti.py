@@ -5,12 +5,16 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from typing import Tuple
+import logging
 
 from qqc.utils.files import get_all_files_walk
 from qqc.utils.names import get_naming_parts_bids
 from qqc.utils.visualize import print_diff_shared
 from qqc.utils.files import ampscz_json_load
 
+
+logger = logging.getLogger(__name__)
 
 class NoDwiException(Exception):
     pass
@@ -222,16 +226,17 @@ def compare_volume_to_standard_all_nifti_test(input_dir: str,
 
 
 
-def is_nifti_16bit(diffusion_nifti_file: Path) -> bool:
+def is_nifti_16bit(diffusion_nifti_file: Path) -> Tuple[bool, float]:
     '''Estimates maximum intensity in the image and returns True if > 4096'''
     data = nb.load(diffusion_nifti_file).get_fdata()
-    if np.max(data) > 4096:
-        return True
+    max_val = np.max(data)
+    if max_val > 4096:
+        return (True, np.max(data))
     else:
-        return False
+        return (False, np.max(data))
 
 
-def is_dwi_dir_16bit(dwi_nifti_dir: Path) -> bool:
+def is_dwi_dir_16bit(dwi_nifti_dir: Path) -> Tuple[bool, float]:
     for root, dirs, files in os.walk(dwi_nifti_dir):
         for file in files:
             if file.endswith('.nii.gz') and 'b0' in file.lower():
@@ -240,7 +245,7 @@ def is_dwi_dir_16bit(dwi_nifti_dir: Path) -> bool:
     raise NoDwiException
 
 
-def is_session_dir_16bit(nifti_root: Path) -> bool:
+def is_session_dir_16bit(nifti_root: Path) -> Tuple[bool, float]:
     for root, dirs, files in os.walk(nifti_root):
         for directory in dirs:
             if directory == 'dwi':
@@ -249,3 +254,26 @@ def is_session_dir_16bit(nifti_root: Path) -> bool:
                 continue
                 
     raise NoDwiException
+
+
+def compare_bit_to_std(input_dir: str,
+                       standard_dir: str,
+                       qc_out_dir: Path) -> None:
+    bit_comparison_log = qc_out_dir / 'bit_check.csv'
+    try:
+        input_bit = is_session_dir_16bit(input_dir)  # (bool, float)
+    except NoDwiException:
+        logger.critical('No B0 nifti found in the input data')
+        input_bit = 'no data'
+    std_bit = is_session_dir_16bit(standard_dir)
+
+    df = pd.DataFrame({
+        'Input data': [input_bit[0], input_bit[1]],
+        'Standard data': [std_bit[0], std_bit[1]]})
+    df.index = ['16 bit', 'B0 Max value']
+    df.index.name = ''
+    df.loc['16 bit', 'check'] = df.loc['16 bit']['Input data'] == \
+            df.loc['16 bit']['Standard data']
+    df['check'] = df['check'].map({True: 'Pass', False: 'Fail'})
+                        
+    df.to_csv(bit_comparison_log)

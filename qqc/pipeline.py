@@ -114,6 +114,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                                            args.force_copy_dicom_to_source)
 
     # XA30
+    logger.info(f'Site : {site}')
     standard_dir = None
     if args.standard_dir is None:
         config = configparser.ConfigParser()
@@ -145,6 +146,10 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         if standard_dir is None:
             try:
                 standard_dir = Path(config.get('First Scan', site))
+            except configparser.NoOptionError:
+                logger.critical(f'{site} is not in the First Scan')
+                logger.critical('Setting the template as YA')
+                standard_dir = Path(config.get('First Scan', 'YA'))
             except KeyError:
                 standard_dir = Path(config.get('First Scan', 'YA'))
     else:
@@ -159,9 +164,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         if 'CP' in subject_name:
             message = 'Overwritten quick_scan to False, since Philips data'
             logger.info(message)
-            args.quick_scan = True
-        dicom_count_input_df = get_dicom_counts(sorted_dicom_dir,
-                                                debug=debug)
+            args.quick_scan = False
 
         df_full = get_dicom_df(qqc_input,
                                args.skip_dicom_rearrange,
@@ -180,6 +183,9 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                             force=args.force_copy_dicom_to_source,
                             rename_dicoms=args.rename_dicoms)
 
+
+        dicom_count_input_df = get_dicom_counts(Path(sorted_dicom_dir),
+                                                debug=debug)
 
         # cleaned up dicom structure -> BIDS
         bids_rawdata_dir = bids_root / 'rawdata'
@@ -218,6 +224,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         dicom_count_input_df = update_dicom_counts(dicom_count_input_df,
                                                    session_dir,
                                                    debug=debug)
+        dicom_count_input_df.to_csv(qc_out_dir / 'dicom_count.csv')
 
     # run sheet
     if run_sheet.is_file():
@@ -477,7 +484,7 @@ def unzip_and_update_input(input: str,
     logger.info('Input is a zip file. Extracting it to a temp directory')
     zf = zipfile.ZipFile(input)
     tf = tempfile.mkdtemp(
-            prefix=(qqc_input.name + '_'),
+            prefix=(Path(input).stem + '_'),
             dir='/data/predict1/home/kcho/tmp/zip_tempdir')
     zf.extractall(tf)
 

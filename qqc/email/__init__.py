@@ -282,17 +282,13 @@ def extract_info_for_qqc_report(raw_input_given: Path,
         'Run sheet',
         run_sheet_df.to_html(na_rep='', justify='center'))
 
-    dicom_count_str = str_tmp.format(
-        f'Dicom file counts (rearranged by QQC)',
-        dicom_count_input_df.to_html(na_rep='', justify='center'))
-
     comparison_str = str_tmp.format(
         'Comparing series protocols to standard',
         protocol_df.to_html(na_rep='', justify='center'))
 
     top_message = raw_zip_loc_str + dicom_loc_str + nifti_loc_str + \
             std_data_loc + qc_data_loc + quick_qc_summary + \
-            run_sheet_summary + dicom_count_str + comparison_str
+            run_sheet_summary + comparison_str
 
 
     # second_message: QC detail of the container
@@ -304,6 +300,12 @@ def extract_info_for_qqc_report(raw_input_given: Path,
             y.to_html(index=False, na_rep='', justify='center')
             ) for x, y in zip(titles, other_dfs)])
     qc_detail = qc_detail_header + qc_detail_content
+
+    # dicom count table
+    dicom_count_str = str_tmp.format(
+        f'Dicom file counts (rearranged by QQC)',
+        dicom_count_input_df.to_html(na_rep='', justify='center'))
+    qc_detail += dicom_count_str
 
     # footer in the main container
     str_tmp = '<h4>{0} </h4><code>{1}</code><br><br>'
