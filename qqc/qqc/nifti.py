@@ -272,7 +272,8 @@ def compare_bit_to_std(input_dir: str,
         'Standard data': [std_bit[0], std_bit[1]]})
     df.index = ['16 bit', 'B0 Max value']
     df.index.name = ''
-    df.loc['16 bit', 'check'] = df.loc['16 bit'].all()
+    df.loc['16 bit', 'check'] = df.loc['16 bit']['Input data'] == \
+            df.loc['16 bit']['Standard data']
     df['check'] = df['check'].map({True: 'Pass', False: 'Fail'})
                         
     df.to_csv(bit_comparison_log)

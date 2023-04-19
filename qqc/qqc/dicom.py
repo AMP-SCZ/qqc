@@ -54,7 +54,8 @@ def compare_enhanced_to_std(input_dir: str,
         'Input data': [input_enhanced[0], input_enhanced[1]],
         'Standard data': [std_enhanced[0], std_enhanced[1]]})
     df.index = ['Enhanced', 'Value']
-    df.loc['Enhanced', 'check'] = df.loc['Enhanced'].all()
+    df.loc['Enhanced', 'check'] = df.loc['Enhanced']['Input data'] == \
+            df.loc['Enhanced']['Standard data']
     df['check'] = df['check'].map({True: 'Pass', False: 'Fail'})
                         
     df.to_csv(enhanced_comparison_log)
