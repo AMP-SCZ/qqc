@@ -1,10 +1,10 @@
-# qqc
+# Quick Quality Check (QQC)
 
-**qqc** is a Python library for converting U24 MRI dicoms to BIDS 
-format and running quick quality check (QC) pipelines. 
+**QQC** is a Python library for checking protocol deviations in the U24 MRI dicoms.
 
 Check out our [full documentation](https://phantom-check.readthedocs.io/en/latest/index.html)
 
+*Note: The project is under the active development.*
 
 
 
