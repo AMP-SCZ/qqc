@@ -1,5 +1,6 @@
 from qqc.qqc.nifti import compare_volume_to_standard_all_nifti, \
-    compare_volume_to_standard_all_nifti_test
+    compare_volume_to_standard_all_nifti_test, is_nifti_16bit, \
+    is_dwi_dir_16bit, is_session_dir_16bit, NoDwiException, compare_bit_to_std
 
 import pandas as pd
 from pathlib import Path
@@ -52,3 +53,33 @@ def test_XA30():
     standard_dir = Path('/data/predict1/kcho/MRI_site_cert/qqc_output/rawdata/sub-LS/ses-202211071')
     # compare_volume_to_standard_all_nifti(input_dir, standard_dir, qc_out_dir)
     compare_volume_to_standard_all_nifti(input_dir, standard_dir, Path('prac'))
+
+
+
+def test_16bit():
+    mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    rawdata_root = mri_root / 'rawdata'
+    nifti_roots = rawdata_root.glob('sub-*/ses-*')
+    for nifti_root in nifti_roots:
+        try:
+            if is_session_dir_16bit(nifti_root):
+                print('16bit', nifti_root)
+            else:
+                print('No 16bit', nifti_root)
+        except NoDwiException:
+            print('No DWI')
+# def test_is_nifti_16bit():
+    # diffusion_data
+
+
+def test_compare_bit_to_std():
+    print()
+    input_dir = '/data/predict1/home/kcho/MRI_site_cert/qqc_output/rawdata/sub-GW00005/ses-202304131'
+    standard_dir = '/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-SI05265/ses-202302011'
+    qc_out_dir = Path('.')
+
+    compare_bit_to_std(input_dir, standard_dir, qc_out_dir)
+
+
+
+

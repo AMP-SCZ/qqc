@@ -1,6 +1,64 @@
+import os
+import re
+import pydicom
 import pandas as pd
 from pathlib import Path
+from typing import Tuple
 from qqc.dicom_files import get_diff_in_csa_for_all_measures
+
+
+def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
+    '''checks if the dicom_root has enhnaced XA30 dicom'''
+    for root, dirs, files in os.walk(dicom_root):
+        for file in files:
+            d = pydicom.read_file(Path(root) / file)
+
+            # TODO: update with more pythonic lines to extract 0002, 0002 tag
+            line_search = re.search(r'\(0002, 0002\).*(UI.*)', str(d))
+            if line_search:
+                search = re.search('enhanced', line_search.group(1), re.IGNORECASE)
+                if search:
+                    return (True, line_search.group(1))
+                else:
+                    return (False, line_search.group(1))
+
+
+def compare_enhanced_to_std(input_dir: str,
+                            standard_dir: str,
+                            qc_out_dir: Path) -> None:
+    enhanced_comparison_log = qc_out_dir / 'enhanced_check.csv'
+
+    input_dir = Path(input_dir)
+    input_subject = input_dir.parent.name.split('sub-')[1]
+    input_session = input_dir.name
+    input_dicom_dir = input_dir.parent.parent.parent / 'sourcedata' / \
+            input_subject / input_session
+
+    standard_dir = Path(standard_dir)
+    standard_subject = standard_dir.parent.name.split('sub-')[1]
+    standard_session = standard_dir.name
+    standard_dicom_dir = standard_dir.parent.parent.parent / 'sourcedata' / \
+            standard_subject / standard_session
+
+    if input_dicom_dir.is_dir():
+        input_enhanced = is_enhanced(input_dicom_dir)
+    else:
+        input_enhanced = ('Input dicom not detected', '')
+
+    if standard_dicom_dir.is_dir():
+        std_enhanced = is_enhanced(standard_dicom_dir)
+    else:
+        std_enhanced = ('Standard dicom not detected', '')
+
+    df = pd.DataFrame({
+        'Input data': [input_enhanced[0], input_enhanced[1]],
+        'Standard data': [std_enhanced[0], std_enhanced[1]]})
+    df.index = ['Enhanced', 'Value']
+    df.loc['Enhanced', 'check'] = df.loc['Enhanced']['Input data'] == \
+            df.loc['Enhanced']['Standard data']
+    df['check'] = df['check'].map({True: 'Pass', False: 'Fail'})
+                        
+    df.to_csv(enhanced_comparison_log)
 
 
 def check_image_fov_pos_ori_csa(csa_df_loc: pd.DataFrame,
@@ -65,10 +123,15 @@ def check_num_of_series(df_full_input: pd.DataFrame,
     Returns:
         number of series in pd.DataFrame
     '''
-    count_df = df_full_input[['series_num', 'series_desc', 'series_uid']
-            ].drop_duplicates().groupby(
-                    ['series_desc']
-                    ).count().drop('series_num', axis=1)
+    if 'series_uid' in df_full_input.columns:
+        cols_to_use = ['series_num', 'series_desc', 'series_uid']
+        count_df = df_full_input[cols_to_use].drop_duplicates().groupby(
+            ['series_desc']).count().drop('series_num', axis=1)
+    else:
+        cols_to_use = ['series_num', 'series_desc']
+        count_df = df_full_input[cols_to_use].drop_duplicates().groupby(
+            ['series_desc']).count()
+
     count_df.columns = ['series_num']
 
     count_target_df = df_full_std.groupby('series_desc').count()[
@@ -151,10 +214,14 @@ def check_order_of_series(df_full_input: pd.DataFrame,
                 'phoenix', na=False)]
 
     # squeeze
-    series_order_df_all['series_num_target'] = series_order_df_all['series_num']
+    series_order_df_all['series_num_target'] = series_order_df_all[
+            'series_num']
     series_order_df_all = pd.concat([
-        series_order_df_all[['series_num_target', 'series_order_target']].dropna().reset_index(drop=True),
-        series_order_df_all[['series_num', 'series_order']].dropna().reset_index(drop=True),
+        series_order_df_all[
+            ['series_num_target', 'series_order_target']
+            ].dropna().reset_index(drop=True),
+        series_order_df_all[
+            ['series_num', 'series_order']].dropna().reset_index(drop=True),
         ], axis=1)
 
     series_order_df_all['order_diff'] = series_order_df_all['series_order'] \
@@ -164,6 +231,7 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     # summary row at the top
     series_order_summary = series_order_df_all.iloc[[0]].copy()
+    series_order_summary.iloc[0] = ''
     series_order_summary.index = ['Summary']
     series_order_summary['series_order_target'] = ''
     series_order_summary['series_order'] = ''
@@ -172,8 +240,9 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     series_order_df_all = pd.concat([series_order_summary,
                                      series_order_df_all])
-    series_order_df_all = series_order_df_all[['series_num', 'series_order_target', 'series_order',
-       'series_num_target', 'order_diff']]
+    series_order_df_all = series_order_df_all[
+            ['series_num', 'series_order_target', 'series_order',
+             'series_num_target', 'order_diff']]
     return series_order_df_all
 
 

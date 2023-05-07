@@ -9,20 +9,26 @@ import time
 import numpy as np
 import shutil
 import re
+import logging
 
 from qqc.dicom_files import get_dicom_files_walk, \
         get_series_info, get_csa_header, rearange_dicoms, \
         get_diff_in_csa_for_all_measures, all_elements_to_extract, \
         get_additional_info, get_additional_info_by_elem, \
-        add_detailed_info_to_summary_df
+        add_detailed_info_to_summary_df, get_dicom_counts
         
+import logging
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(format=formatter, handlers=[logging.StreamHandler()])
+logging.getLogger().setLevel(logging.INFO)
+
 
 pd.set_option('max_columns', 10)
 
 
 @pytest.fixture
 def get_test_dicom_df() -> pd.DataFrame:
-    '''Return test dicom path dataframe'''
+    '''Return test dicom dataframe'''
     script_root = Path(qqc.__file__).parent.parent
     doc_root = script_root / 'docs'
     dicom_example_root = doc_root / 'dicom_example'
@@ -62,11 +68,6 @@ def get_test_summary_df(get_test_dicom_df):
 
     return df
 
-def test_get_dicom_files_walk():
-    dicom_dir_loc = '/data/predict/phantom_human_pilot/sourcedata/ProNET_Cambridge_Prisma/ses-humanpilot'
-    df = get_dicom_files_walk(dicom_dir_loc, True)
-
-    return df
 
 def test_read_dicom_header(get_test_dicom_df):
     df = get_test_dicom_df
@@ -74,206 +75,256 @@ def test_read_dicom_header(get_test_dicom_df):
     pydicom.read_file(dicom_file_loc)
 
 
-def test_get_dicom_object(get_test_dicom_df):
-    _ = get_test_dicom_df
+def test_rearrange_dicom_CP():
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    logging.basicConfig(
+        format=formatter,
+        handlers=[logging.StreamHandler()])
+    logging.getLogger().setLevel(logging.INFO)
+
+    tmp_loc = Path('/data/predict1/home/kcho/tmp/tmptmp')
+    dicom_example_root = tmp_loc / 'CP01128_MR_2023_02_23_1/DICOM'
+    dicom_example_root = tmp_loc / 'CP88631_MR_2023_03_23_1'
+
+    dicom_example_root = Path('/data/predict1/home/kcho/tmp/zip_tempdir/CP36238_MR_2023_04_13_1__3z6df1x/CP36238_MR_2023_04_13_1/DICOM')
+
+    df_full = get_dicom_files_walk(dicom_example_root)
+    # if Path('cp_test_df.csv').is_file():
+        # df_full = pd.read_csv('cp_test_df.csv')
+    # else:
+        # df_full = get_dicom_files_walk(dicom_example_root)
+        # df_full.to_csv('cp_test_df.csv')
+
+    rearange_dicoms(df_full,
+                    'test_cp_root2',
+                    'CP',
+                    'test2',
+                    force=False,
+                    rename_dicoms=True)
+    # _ = get_test_dicom_df
     
 
-def test_extract_series(get_dicom_object):
-    dicom = get_dicom_object
-    num, description, instance_uid = get_series_info(dicom)
+# def test_extract_series(get_dicom_object):
+    # dicom = get_dicom_object
+    # num, description, instance_uid = get_series_info(dicom)
 
 
-def test_get_test_summary_df(get_test_summary_df):
-    _ = get_test_summary_df
+# def test_get_test_summary_df(get_test_summary_df):
+    # _ = get_test_summary_df
 
 
-def test_private_info(get_dicom_object):
-    dicom = get_dicom_object
-    csa_df = get_csa_header(dicom)
-    print(csa_df)
+# def test_private_info(get_dicom_object):
+    # dicom = get_dicom_object
+    # csa_df = get_csa_header(dicom)
+    # print(csa_df)
 
 
-def test_dicom_rearrange(get_test_summary_df):
-    df = get_test_summary_df
-    rearange_dicoms(df, 'test_root')
-
-    print(os.popen('tree test_root').read())
-    print(os.popen('ls test_root').read())
-    shutil.rmtree('test_root')
-
-
-def test_normalized(get_test_summary_df):
-    df = get_test_summary_df
-
-    print(df[['series_num', 'series_desc', 'norm']].sort_values(
-        by='series_desc'))
-
-
-def test_dicom_rearrange_two(get_test_summary_df):
-    df = get_test_summary_df
-    print(df.head())
-    rearange_dicoms(df, 'sub-01')
+# def test_dicom_rearrange(get_test_summary_df):
+    # df = get_test_summary_df
+    # rearange_dicoms(df, 'test_root')
 
     # print(os.popen('tree test_root').read())
     # print(os.popen('ls test_root').read())
     # shutil.rmtree('test_root')
 
 
-def test_get_diff_in_csa_for_all_measures(get_test_summary_df):
-    df = get_test_summary_df
-    diff_df, common_df = get_diff_in_csa_for_all_measures(df, get_same=True)
-    diff_df = get_diff_in_csa_for_all_measures(df, ['dmri', 'fmri'])
-    diff_df, common_df = get_diff_in_csa_for_all_measures(
-            df, ['dmri', 'fmri'], True)
-    print(common_df)
+# def test_normalized(get_test_summary_df):
+    # df = get_test_summary_df
+
+    # print(df[['series_num', 'series_desc', 'norm']].sort_values(
+        # by='series_desc'))
 
 
-def test_with_seoul_data_dir():
-    dicom_dir_loc = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
-                    '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
+# def test_dicom_rearrange_two(get_test_summary_df):
+    # df = get_test_summary_df
+    # print(df.head())
+    # rearange_dicoms(df, 'sub-01')
 
-    script_root = Path(qqc.__file__).parent.parent
-    doc_root = script_root / 'docs'
-    dicom_dir_loc = doc_root / 'dicom_example'
-
-    df = get_dicom_files_walk(dicom_dir_loc, True)
-
-    diff_df, common_df = get_diff_in_csa_for_all_measures(df, get_same=True)
-    print(diff_df)
-    print(common_df)
-    # diff_df.to_csv('tmp_diff.csv')
-    # common_df.to_csv('tmp_same.csv')
+    # # print(os.popen('tree test_root').read())
+    # # print(os.popen('ls test_root').read())
+    # # shutil.rmtree('test_root')
 
 
-def test_add_detailed_info_to_summary_df(get_test_summary_df):
-    df = get_test_summary_df
-
-    df_new = add_detailed_info_to_summary_df(df, all_elements_to_extract)
-    df_new.drop('pydicom', axis=1, inplace=True)
-    print(df_new)
-
-
-def test_whole_flow_with_heudiconv_2():
-    script_root = Path(qqc.__file__).parent.parent
-    doc_root = script_root / 'docs'
-    dicom_example_root = doc_root / 'dicom_example'
-
-    df = get_dicom_files_walk(dicom_example_root, True)
-    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
-            df, get_same=True)
-    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
-
-    # compare to template
-    # compare between scans
-    # compare CSA
-
-def test_flow_with_multiseries_directory():
-    dicom_example_root = '/Users/kc244/qqc/tests/qqc/Alex_merged/new_dir'
-
-    df_full = get_dicom_files_walk(dicom_example_root)
-    # df_full = get_dicom_files_walk(dicom_example_root, True)
-
-    df = get_dicom_files_walk(dicom_example_root, True)
-    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
-            df, get_same=True)
-    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
-
-    rearange_dicoms(df_full, 'test_root_from_single_root')
+# def test_get_diff_in_csa_for_all_measures(get_test_summary_df):
+    # df = get_test_summary_df
+    # diff_df, common_df = get_diff_in_csa_for_all_measures(df, get_same=True)
+    # diff_df = get_diff_in_csa_for_all_measures(df, ['dmri', 'fmri'])
+    # diff_df, common_df = get_diff_in_csa_for_all_measures(
+            # df, ['dmri', 'fmri'], True)
+    # print(common_df)
 
 
+# def test_with_seoul_data_dir():
+    # dicom_dir_loc = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
+                    # '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
 
-def test_whole_flow_with_heudiconv():
-    script_root = Path(qqc.__file__).parent.parent
-    doc_root = script_root / 'docs'
-    dicom_example_root = doc_root / 'dicom_example'
+    # script_root = Path(qqc.__file__).parent.parent
+    # doc_root = script_root / 'docs'
+    # dicom_dir_loc = doc_root / 'dicom_example'
 
-    df_full = get_dicom_files_walk(dicom_example_root)
-    # df_full = get_dicom_files_walk(dicom_example_root, True)
+    # df = get_dicom_files_walk(dicom_dir_loc, True)
 
-    df = get_dicom_files_walk(dicom_example_root, True)
-    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
-            df, get_same=True)
-    df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
-
-    rearange_dicoms(df_full, 'test_root')
-
-    command = 'heudiconv \
-    -d {subject}/*/*/*dcm \
-    -f /Users/kc244/qqc/data/heuristic.py \
-    -s test_root -ss 001 -c dcm2niix --overwrite \
-    -b \
-    -o new_test_root_test'
-
-    os.popen(command).read()
-
-    # command = 'docker run -it --rm \
-            # -v /Users/kc244/qqc/tests/qqc/new_test_root:/data:ro \
-            # -v /Users/kc244/qqc/tests/qqc/new_test_root/mriqc_out:/out \
-            # poldracklab/mriqc:latest \
-            # /data /out group \
-            # --verbose-reports'
-    # with open('command.sh', 'w') as f:
-        # f.write(re.sub('\s\s+', '\ \n\\t', command))
-    # os.popen(command).read()
-
-    # print(os.popen('tree new_test_root').read())
-    # print(os.popen('ls new_test_root').read())
-    # shutil.rmtree('new_test_root')
+    # diff_df, common_df = get_diff_in_csa_for_all_measures(df, get_same=True)
+    # print(diff_df)
+    # print(common_df)
+    # # diff_df.to_csv('tmp_diff.csv')
+    # # common_df.to_csv('tmp_same.csv')
 
 
-def test_whole_flow_with_heudiconv_seoul():
-    dicom_example_root = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
-                    '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
+# def test_add_detailed_info_to_summary_df(get_test_summary_df):
+    # df = get_test_summary_df
 
-    dicom_example_root = '/Users/kc244/Downloads/Elex_dicom'
+    # df_new = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+    # df_new.drop('pydicom', axis=1, inplace=True)
+    # print(df_new)
 
-    df_full = get_dicom_files_walk(dicom_example_root)
-    # df_full = get_dicom_files_walk(dicom_example_root, True)
 
-    df = get_dicom_files_walk(dicom_example_root, True)
-    csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
-            df, get_same=True)
+# def test_whole_flow_with_heudiconv_2():
+    # script_root = Path(qqc.__file__).parent.parent
+    # doc_root = script_root / 'docs'
+    # dicom_example_root = doc_root / 'dicom_example'
 
-    csa_diff_df.to_csv('csa_diff.txt')
-    csa_diff_df.to_csv('csa_comman.txt')
+    # df = get_dicom_files_walk(dicom_example_root, True)
+    # csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            # df, get_same=True)
     # df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
 
+    # # compare to template
+    # # compare between scans
+    # # compare CSA
 
-    # rearange_dicoms(df_full, 'Alex')
+# def test_flow_with_multiseries_directory():
+    # dicom_example_root = '/Users/kc244/qqc/tests/qqc/Alex_merged/new_dir'
 
-    command = 'heudiconv \
-    -d {subject}/*/*/*[IiDd][MmCc][AaMm] \
-    -f /Users/kc244/qqc/data/heuristic.py \
-    -s Alex -ss 001 -c dcm2niix --overwrite \
-    -b \
-    -o new_test_root'
+    # df_full = get_dicom_files_walk(dicom_example_root)
+    # # df_full = get_dicom_files_walk(dicom_example_root, True)
 
-    print(command)
+    # df = get_dicom_files_walk(dicom_example_root, True)
+    # csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            # df, get_same=True)
+    # df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
 
-    # print(os.popen(command).read())
-    # print(os.popen('tree new_test_root').read())
-    # print(os.popen('ls new_test_root').read())
-    # shutil.rmtree('new_test_root')
-
-
-
-def test_manufacturer_model_name():
-
-    f = pydicom.read_file('/data/predict/phantom_data/phantom_data_BIDS/dicom/ProNET_Pittsburgh_Prisma/ses-phantom/14_DistortionMap_PA/MR.1.3.12.2.1107.5.2.43.67078.2021093013240198029914286')
-
-    output = get_additional_info_by_elem(f, 'ManufacturerModelName')
-    print('Output:', output)
+    # rearange_dicoms(df_full, 'test_root_from_single_root')
 
 
 
+# def test_whole_flow_with_heudiconv():
+    # script_root = Path(qqc.__file__).parent.parent
+    # doc_root = script_root / 'docs'
+    # dicom_example_root = doc_root / 'dicom_example'
 
-def test_je_data():
-    dicom_root = '/data/predict/data_from_nda_dev/MRI_ROOT/sourcedata/JE00068/ses-202206282'
-    # df = get_dicom_files_walk(dicom_root)
+    # df_full = get_dicom_files_walk(dicom_example_root)
+    # # df_full = get_dicom_files_walk(dicom_example_root, True)
+
+    # df = get_dicom_files_walk(dicom_example_root, True)
+    # csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            # df, get_same=True)
+    # df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+
+    # rearange_dicoms(df_full, 'test_root')
+
+    # command = 'heudiconv \
+    # -d {subject}/*/*/*dcm \
+    # -f /Users/kc244/qqc/data/heuristic.py \
+    # -s test_root -ss 001 -c dcm2niix --overwrite \
+    # -b \
+    # -o new_test_root_test'
+
+    # os.popen(command).read()
+
+    # # command = 'docker run -it --rm \
+            # # -v /Users/kc244/qqc/tests/qqc/new_test_root:/data:ro \
+            # # -v /Users/kc244/qqc/tests/qqc/new_test_root/mriqc_out:/out \
+            # # poldracklab/mriqc:latest \
+            # # /data /out group \
+            # # --verbose-reports'
+    # # with open('command.sh', 'w') as f:
+        # # f.write(re.sub('\s\s+', '\ \n\\t', command))
+    # # os.popen(command).read()
+
+    # # print(os.popen('tree new_test_root').read())
+    # # print(os.popen('ls new_test_root').read())
+    # # shutil.rmtree('new_test_root')
+
+
+# def test_whole_flow_with_heudiconv_seoul():
+    # dicom_example_root = '/data/predict/phantom_data/ProNET_Seoul/phantom/data' \
+                    # '/dicom/HEAD_PI_OTHERS_20210813_085128_199000'
+
+    # dicom_example_root = '/Users/kc244/Downloads/Elex_dicom'
+
+    # df_full = get_dicom_files_walk(dicom_example_root)
+    # # df_full = get_dicom_files_walk(dicom_example_root, True)
+
+    # df = get_dicom_files_walk(dicom_example_root, True)
+    # csa_diff_df, csa_common_df = get_diff_in_csa_for_all_measures(
+            # df, get_same=True)
+
+    # csa_diff_df.to_csv('csa_diff.txt')
+    # csa_diff_df.to_csv('csa_comman.txt')
+    # # df = add_detailed_info_to_summary_df(df, all_elements_to_extract)
+
+
+    # # rearange_dicoms(df_full, 'Alex')
+
+    # command = 'heudiconv \
+    # -d {subject}/*/*/*[IiDd][MmCc][AaMm] \
+    # -f /Users/kc244/qqc/data/heuristic.py \
+    # -s Alex -ss 001 -c dcm2niix --overwrite \
+    # -b \
+    # -o new_test_root'
+
+    # print(command)
+
+    # # print(os.popen(command).read())
+    # # print(os.popen('tree new_test_root').read())
+    # # print(os.popen('ls new_test_root').read())
+    # # shutil.rmtree('new_test_root')
+
+
+
+# def test_manufacturer_model_name():
+
+    # f = pydicom.read_file('/data/predict/phantom_data/phantom_data_BIDS/dicom/ProNET_Pittsburgh_Prisma/ses-phantom/14_DistortionMap_PA/MR.1.3.12.2.1107.5.2.43.67078.2021093013240198029914286')
+
+    # output = get_additional_info_by_elem(f, 'ManufacturerModelName')
+    # print('Output:', output)
+
+
+
+
+# def test_je_data():
+    # dicom_root = '/data/predict/data_from_nda_dev/MRI_ROOT/sourcedata/JE00068/ses-202206282'
+    # # df = get_dicom_files_walk(dicom_root)
+    # # print(df)
+
+    # df = get_dicom_files_walk(dicom_root, True)
     # print(df)
 
-    df = get_dicom_files_walk(dicom_root, True)
-    print(df)
 
 
+# def test_get_csa_header():
+    # data_loc = Path('/data/predict1/home/kcho/MRI_site_cert/qqc_output/sourcedata/GW/ses-rerun')
+    # from qqc.pipeline import get_dicom_df
 
+
+    # df_full = get_dicom_df(data_loc,
+                           # True,
+                           # data_loc,
+                           # True)
+
+    # for _, row in df_full.iterrows():
+        # print(row['series_desc'])
+        # command = f"strings {row['file_path']} | grep sAdjVol"
+        # print(os.popen(command).read())
+        # # df_tmp = get_csa_header(row['pydicom'])
+        # # print(df_tmp)
+
+
+    # # print(df_full.head())
+
+
+def test_get_dicom_counts():
+    data_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
+    input_dir = data_root / 'sourcedata/CP01128/ses-202302231'
+    get_dicom_counts(input_dir, debug=True)

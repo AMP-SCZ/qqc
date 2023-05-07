@@ -26,6 +26,8 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     non_anat_orident = qqc_ss_dir / '05b_image_orientation_in_others.csv'
     shim_settings = qqc_ss_dir / '05c_shim_settings.csv'
     bval = qqc_ss_dir / '06_bval_comparison_log.csv'
+    bit_check = qqc_ss_dir / 'bit_check.csv'
+    enhanced_check = qqc_ss_dir / 'enhanced_check.csv'
 
     # get subject info
     session_name = qqc_ss_dir.name
@@ -39,7 +41,7 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     other_dfs = []
     titles = []
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
-            non_anat_orident, shim_settings, bval:
+            non_anat_orident, shim_settings, bval, bit_check, enhanced_check:
         # clean up the name of each QC output
         title = re.sub(r'\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
         title = re.sub(r'_', ' ', title)
@@ -48,6 +50,21 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
 
         if df_loc.is_file():
             df_tmp = pd.read_csv(df_loc)
+
+            # convert to integer for visibility
+            digit_columns = df_tmp.select_dtypes(include='number').columns
+            for col in digit_columns:
+                df_tmp[col] = pd.to_numeric(
+                        df_tmp[col], errors='ignore').astype('Int64').apply(
+                                lambda x: '' if pd.isna(x) else x)
+
+            # if Unnamed: 0 is null, drop the row
+            if 'Unnamed: 0' in df_tmp.columns:
+                df_tmp.drop(df_tmp[df_tmp['Unnamed: 0'].isnull()].index,
+                        inplace=True)
+
+            # 'Summary' rows to be empty
+
         else:
             df_tmp = pd.DataFrame()
             
@@ -66,11 +83,6 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
                     df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_desc.dropna().unique())
                 except:
                     print(df)
-            # elif 'series_count' in df_loc.name:
-                # print(df_tmp)
-                # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_num.dropna().unique())
-            # elif 'scan_order' in df_loc.name:
-                # df.loc[title, colname_2] = ', '.join(df_tmp[df_tmp[df_tmp.columns[-1]]=='Fail'].series_order.dropna().unique())
             else:
                 pass
 

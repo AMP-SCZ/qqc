@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import List, Tuple
 import logging
 
-from qqc.qqc.nifti import compare_volume_to_standard_all_nifti
+from qqc.qqc.nifti import compare_volume_to_standard_all_nifti, \
+        compare_bit_to_std
+from qqc.qqc.dicom import compare_enhanced_to_std
 from qqc.utils.files import get_all_files_walk, loop_through_two_lists, \
         get_files_from_json, ampscz_json_load
 from qqc.utils.names import get_naming_parts_bids
@@ -75,13 +77,23 @@ def json_check_for_a_session(json_files: List[str],
                                    'ImageOrientationPatientDICOM'
 
     Returns:
-        Tuple of pd.DataFrames. 
+        Tuple of pd.DataFrames.
             - df_all
             - df_all_diff
             - df_all_shared
     '''
-
+    debug = kwargs.get('debug', False)
     specific_field = kwargs.get('specific_field', '')
+
+    if debug:
+        logger.info(f'debug: {debug}')
+        logger.info(f'specific_field: {specific_field}')
+        logger.info(f'json_files: {json_files}')
+        for json_file in json_files:
+            with open(json_file, 'r') as fp:
+                data = json.load(fp)
+            is_in_json = specific_field in data.keys()
+            logger.info(f'is {specific_field} in the json file?: {is_in_json}')
 
     dicts = []
     bn_snum_dict = {}
@@ -133,15 +145,18 @@ def json_check_for_a_session(json_files: List[str],
     for col in df_all_diff.columns:
         if col not in all_cols:
             all_cols.append(col) 
-        df_all_diff[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all_diff[f'{col}_unique_rank'] = df_all[col].rank().round(
+                0).astype(int)
 
     for col in df_all_shared.columns:
         if col not in all_cols:
             all_cols.append(col)
-        df_all_shared[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all_shared[f'{col}_unique_rank'] = df_all[col].rank().round(
+                0).astype(int)
 
     for col in all_cols:
-        df_all[f'{col}_unique_rank'] = df_all[col].rank()
+        df_all[f'{col}_unique_rank'] = df_all[col].rank().round(
+            0).astype(int)
 
     if print_diff:
         print_diff_shared(
@@ -693,7 +708,8 @@ def compare_bval_files(bval_files: List[str]):
     return bval_df
 
 
-def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
+def within_phantom_qc(session_dir: Path, qc_out_dir: Path,
+                      debug: bool = False) -> None:
     '''Compare headers of serieses from the scan
 
     Compare ShimSettings across different serieses,
@@ -713,7 +729,7 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
     json_paths_input = get_all_files_walk(session_dir, 'json')
     
     # ignore FA and colFA maps
-    json_paths_input = [x for x in json_paths_input 
+    json_paths_input = [x for x in json_paths_input
             if not '_fa' in x.name.lower() or
                not '_colfa' in x.name.lower() or
                not 'phoenixzipreport' in x.name.lower()]
@@ -741,20 +757,25 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
              'image orientation in anat'],
             ['c', 'b', 'a']):
 
+        if debug:
+            logger.info(specific_field)
+            logger.info(f"json_input: {json_input}")
+
         df_all, df_all_diff, df_all_shared = json_check_for_a_session(
             json_input,
             print_diff=False, print_shared=False,
-            specific_field=specific_field)
+            specific_field=specific_field,
+            debug=debug)
 
         csv_suffix = re.sub('[ ]+', '_', title)
 
         # label summary
-        print('-'*70)
-        print(specific_field)
-        print(df_all)
-        print('-'*70)
+        if debug:
+            logger.info(specific_field)
+            logger.info(df_all)
         if len(df_all) > 1:
             summary_df = df_all.iloc[[0]].copy()
+            summary_df.iloc[0] = ''
         else:
             summary_df = pd.DataFrame()
         summary_df.index = pd.MultiIndex.from_tuples(
@@ -768,6 +789,9 @@ def within_phantom_qc(session_dir: Path, qc_out_dir: Path) -> None:
                 summary_df[col] = ''
 
         df_all = pd.concat([summary_df, df_all])
+
+        # if debug:
+            # logger.info(f'df_all: {df_all}')
         df_all.to_csv(qc_out_dir / f'05{letter}_{csv_suffix}.csv')
 
 
@@ -776,7 +800,9 @@ def compare_data_to_standard(input_dir: str, standard_dir: str,
 
     for func in compare_jsons_to_std, \
                 compare_data_to_standard_all_bvals, \
-                compare_volume_to_standard_all_nifti:
+                compare_volume_to_standard_all_nifti, \
+                compare_bit_to_std, \
+                compare_enhanced_to_std:
         func(input_dir, standard_dir, qc_out_dir)
 
 
@@ -806,7 +832,8 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
         'global', 'TxRefAmp',
         'dcmmeta_affine', 'WipMemBlock',
         'SAR', 'time',
-        'ShimSetting', 'SeriesNumber', 'ImageOrientationText']
+        'ShimSetting', 'SeriesNumber', 'ImageOrientationText',
+        'ConversionSoftware', 'ImagingFrequency', 'ConversionSoftwareVersion']
 
     dicts = []
     cols = []
@@ -827,6 +854,40 @@ def json_check_new(json_files: list, diff_only=True) -> pd.DataFrame:
 
     if diff_only:
         df_tmp = df_tmp[(df_tmp[cols[0]] != df_tmp[cols[1]])]
+
+    return df_tmp
+
+
+def check_column_values(df: pd.DataFrame) -> pd.DataFrame:
+    """Check if the differences between the column values are below threshold
+
+    Key Arguments:
+        df: pd.DataFrame with two columns, pd.DataFrame
+
+    Returns:
+        pd.DataFrame only the rows that show difference between columns
+
+    Check that values in each row of a pandas dataframe are the same, or,
+    if they are floats, that their difference is less than 0.01.  Raises an
+    AssertionError if a row contains non-comparable data types or if the
+    difference between float values is greater than 0.01.
+    """
+
+    df['diff'] = False
+    for i, row in df.iterrows():
+        if isinstance(row[0], str) and isinstance(row[1], str):
+            # if both columns contain strings, check if they're the same
+            if row.iloc[0] != row.iloc[1]:
+                df.iloc[i, 'diff'] = True
+        elif isinstance(row[0], float) and isinstance(row[1], float):
+            # if both columns contain floats, check that the absolute
+            # difference is less than 0.01
+            if abs(row.iloc[0] - row.iloc[1]) > 0.01:
+                df.iloc[i, 'diff'] = True
+        else:
+            df.iloc[i, 'diff'] = True
+
+    df_tmp = df[df['diff']].drop('diff', axis=1, inplace=True)
 
     return df_tmp
 
@@ -890,22 +951,39 @@ def compare_jsons_to_std(input_dir: str,
 
 def compare_data_to_standard_all_bvals(input_dir: str,
                                        standard_dir: str,
-                                       qc_out_dir: Path):
+                                       qc_out_dir: Path,
+                                       debug: bool = False):
     bval_paths_input = get_all_files_walk(input_dir, 'bval')
     bval_paths_std = get_all_files_walk(standard_dir, 'bval')
 
+    if debug:
+        logger.info(f'input bvals: {bval_paths_input}')
+        logger.info(f'std bvals: {bval_paths_std}')
+        
     bval_df = pd.DataFrame()
     for bval_path_input in bval_paths_input:
         _, _, bval_suffix_input = get_naming_parts_bids(bval_path_input.name)
 
+        if debug:
+            logger.info(f'bval_suffix_input: {bval_suffix_input}')
+
         for bval_path_std in bval_paths_std:
             _, _, bval_suffix_std = get_naming_parts_bids(bval_path_std.name)
+            if not bval_suffix_std.startswith('acq-'):
+                acq_index = bval_suffix_std.index('acq-')
+                bval_suffix_std = bval_suffix_std[acq_index:]
+            if debug:
+                logger.info(f'bval_suffix_std: {bval_suffix_std}')
             if bval_suffix_input == bval_suffix_std:
                 bval_df_tmp = compare_bval_files(
                         [bval_path_input, bval_path_std])
                 bval_df_tmp['suffix'] = bval_suffix_input
                 bval_df = pd.concat([bval_df, bval_df_tmp.reset_index().set_index(['suffix', 'index'])])
 
+    if debug:
+        logger.info('bval_df')
+        logger.info(bval_df)
+    
     if 'check' not in bval_df.columns:
         return
 

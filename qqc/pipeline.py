@@ -10,10 +10,11 @@ import configparser
 from pathlib import Path
 from typing import List, Tuple
 from qqc.run_sheet import get_run_sheet, get_matching_run_sheet_path
-from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms
+from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms, \
+        get_dicom_counts, update_dicom_counts
 from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
-from qqc.qqc.dicom import check_num_order_of_series, save_csa
+from qqc.qqc.dicom import check_num_order_of_series, save_csa, is_enhanced
 from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
 from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash, \
         refresh_qqc_summary_for_subject
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger().addHandler(logging.StreamHandler())
 
 
-def dicom_to_bids_QQC(args) -> None:
+def dicom_to_bids_QQC(args, **kwargs) -> None:
     '''Sort dicoms, convert to BIDS nifti structure and run quick QC.
 
     Key arguments:
@@ -57,6 +58,7 @@ def dicom_to_bids_QQC(args) -> None:
         2. Run heudiconv to convert dicoms into nifti files in BIDS format.
         3. Run QQC (Quick-QC)
     '''
+    debug = kwargs.get('debug', False)
     logger.info('Setting up subject, session, and output variables')
 
     # ----------------------------------------------------------------------
@@ -112,6 +114,7 @@ def dicom_to_bids_QQC(args) -> None:
                                            args.force_copy_dicom_to_source)
 
     # XA30
+    logger.info(f'Site : {site}')
     standard_dir = None
     if args.standard_dir is None:
         config = configparser.ConfigParser()
@@ -119,15 +122,36 @@ def dicom_to_bids_QQC(args) -> None:
         for root, dirs, files in os.walk(qqc_input):
             for subdir in dirs:
                 if 't1w_mpr_nd' in subdir.lower():
-                    standard_dir = Path(config.get('XA30 template', site))
+                    # TODO add enhanced logic
+                    try:
+                        standard_dir = Path(config.get('XA30 template', site))
+                    except KeyError:
+                        standard_dir = Path(config.get('XA30 template', 'ME'))
+                    logger.info(f'XA 30 template: {standard_dir}')
+
+                    if is_enhanced(subdir):
+                        try:
+                            standard_dir = Path(config.get(
+                                'XA30 template enhanced', site))
+                        except KeyError:
+                            standard_dir = Path(config.get('XA30 template',
+                                                           'ME'))
+                        logger.info(f'XA 30 ehanced template: {standard_dir}')
                     break
-                elif '!' in subdir.lower():
-                    # sys.exit()  # GE data  #TODO
-                    standard_dir = Path(config.get('GE template', 'a'))
-                    break
+                # elif '!' in subdir.lower():
+                    # # sys.exit()  # GE data  #TODO
+                    # standard_dir = Path(config.get('GE template', 'a'))
+                    # break
 
         if standard_dir is None:
-            standard_dir = Path(config.get('First Scan', site))
+            try:
+                standard_dir = Path(config.get('First Scan', site))
+            except configparser.NoOptionError:
+                logger.critical(f'{site} is not in the First Scan')
+                logger.critical('Setting the template as YA')
+                standard_dir = Path(config.get('First Scan', 'YA'))
+            except KeyError:
+                standard_dir = Path(config.get('First Scan', 'YA'))
     else:
         standard_dir = Path(args.standard_dir)
 
@@ -135,7 +159,13 @@ def dicom_to_bids_QQC(args) -> None:
         df_full = get_information_from_rawdata(args.nifti_dir)
         session_dir = Path(args.nifti_dir)  # update session_dir
     else:  # if the input given is a dicom directory or dicom zip
+        # raw dicom counts
         logger.info('Running dicom_to_bids to sort and convert dicom files')
+        if 'CP' in subject_name:
+            message = 'Overwritten quick_scan to False, since Philips data'
+            logger.info(message)
+            args.quick_scan = False
+
         df_full = get_dicom_df(qqc_input,
                                args.skip_dicom_rearrange,
                                sorted_dicom_dir,
@@ -144,14 +174,23 @@ def dicom_to_bids_QQC(args) -> None:
         logger.info('Arranging dicoms')
 
         if not args.skip_dicom_rearrange:
+            if 'CP' in subject_name:
+                args.rename_dicoms = True
+
             rearange_dicoms(df_full, dicom_clearned_up_output,
                             subject_name.split('-')[1],
                             session_name.split('-')[1],
-                            args.force_copy_dicom_to_source)
+                            force=args.force_copy_dicom_to_source,
+                            rename_dicoms=args.rename_dicoms)
+
+
+        dicom_count_input_df = get_dicom_counts(Path(sorted_dicom_dir),
+                                                debug=debug)
 
         # cleaned up dicom structure -> BIDS
         bids_rawdata_dir = bids_root / 'rawdata'
         if not args.skip_heudiconv:
+            logger.info('Get dicom counts')
             logger.info('Run heudiconv')
             qc_out_dir.mkdir(exist_ok=True, parents=True)
 
@@ -181,11 +220,17 @@ def dicom_to_bids_QQC(args) -> None:
                     Path(qqc_input).name.endswith('.ZIP'):
                 shutil.rmtree(qqc_input)
 
+        # update dicom_count_input_df
+        dicom_count_input_df = update_dicom_counts(dicom_count_input_df,
+                                                   session_dir,
+                                                   debug=debug)
+        dicom_count_input_df.to_csv(qc_out_dir / 'dicom_count.csv')
+
     # run sheet
     if run_sheet.is_file():
         run_sheet_df = get_run_sheet(run_sheet)
     else:
-        print(f'Run sheet not found: {run_sheet}')
+        logger.warning(f'Run sheet not found: {run_sheet}')
         run_sheet_df = pd.DataFrame()
 
     # ----------------------------------------------------------------------
@@ -200,7 +245,8 @@ def dicom_to_bids_QQC(args) -> None:
         sender, recipients, title, subtitle, top_message, qc_detail, \
                     code, image_paths, qqc_html_list, in_mail_footer = \
             extract_info_for_qqc_report(raw_input_given, qc_out_dir,
-                                        standard_dir, run_sheet_df)
+                                        standard_dir, run_sheet_df,
+                                        dicom_count_input_df)
                                         
         admin_recipient = 'kc244@research.partners.org'
         user_id = getpass.getuser()
@@ -253,7 +299,8 @@ def dicom_to_bids_QQC(args) -> None:
     if args.email_report:
         logger.info('Sending out email')
         send_out_qqc_results(raw_input_given, qc_out_dir, standard_dir,
-                             run_sheet_df, args.additional_recipients)
+                             run_sheet_df, args.additional_recipients,
+                             dicom_count_input_df)
 
     # ----------------------------------------------------------------------
     # AMPSCZ pipeline
@@ -352,10 +399,10 @@ def remove_repeated_scans(df_full: pd.DataFrame) -> pd.DataFrame:
     for series_desc, num in series_desc_num_dict.items():
         if len(df_unique_series[
                 df_unique_series.series_desc == series_desc]) > num:
-            print(f'There are more than {num} {series_desc}')
+            logger.warning(f'There are more than {num} {series_desc}')
             df_tmp = df_unique_series[
                 df_unique_series.series_desc == series_desc]
-            print(df_tmp.sort_values('series_num'))
+            logger.info(df_tmp.sort_values('series_num'))
 
             choose = input('Raw to remove (index, separated by space): ')
             choose_list = [int(x) for x in choose.split(' ')]
@@ -369,7 +416,6 @@ def remove_repeated_scans(df_full: pd.DataFrame) -> pd.DataFrame:
                             'series_num']]
                 else:
                     should_break = True
-            print()
 
     if should_break:
         sys.exit()
@@ -430,7 +476,6 @@ def unzip_and_update_input(input: str,
                            force: bool = False) -> str:
     '''Unzip the MRI files to a temporary dir and return the path'''
     logger.info('See if there is already re-arranged dicom files')
-
     if not force:
         dicom_dirs = [x for x in sorted_dicom_dir.glob('*') if x.is_dir()]
         if len(dicom_dirs) > 4:
@@ -439,7 +484,8 @@ def unzip_and_update_input(input: str,
     logger.info('Input is a zip file. Extracting it to a temp directory')
     zf = zipfile.ZipFile(input)
     tf = tempfile.mkdtemp(
-            prefix='/data/predict1/home/kcho/tmp/zip_tempdir/')
+            prefix=(Path(input).stem + '_'),
+            dir='/data/predict1/home/kcho/tmp/zip_tempdir')
     zf.extractall(tf)
 
     return tf
@@ -475,9 +521,9 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     try:
         save_csa(df_with_one_series, qc_out_dir, standard_dir)
     except KeyError:
-        print('No pydicom information in df_with_one_series')
+        logger.warning('No pydicom information in df_with_one_series')
     except ValueError:
-        print('No pydicom information in df_with_one_series')
+        logger.warning('No pydicom information in df_with_one_series')
 
     # load json information from the user givin standard BIDS directory
     df_full_std = jsons_from_bids_to_df(standard_dir).drop_duplicates()
@@ -514,7 +560,6 @@ def save_qqc_error(qqc_out_dir: Path) -> None:
     Returns:
         None
     '''
-    print('hahah')
     session_name = qqc_out_dir.name.split('-')[1]
     subject_name = qqc_out_dir.parent.name.split('-')[1]
 
