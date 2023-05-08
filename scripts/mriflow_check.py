@@ -64,10 +64,13 @@ if __name__ == '__main__':
             df_tmp = get_run_sheet_df(phoenix_root,
                                       test=args.test)
             df = pd.concat([df, df_tmp])
+        df['entry_date'] = df['entry_date'].dt.strftime('%Y-%m-%d')
         df.to_csv(csv_out)
+                                                        
 
     if args.dpdash:
         print(f'Creating dpdash loadable csv files')
+        df = pd.read_csv('/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/mri_all_db.csv')
         dataflow_dpdash(df, args.outdir)
 
 

@@ -1,17 +1,13 @@
-import os
+from ampscz_asana.lib.server_scanner import grep_run_sheets
 import re
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
 from ampscz_asana.lib.utils import convert_AU_to_US_date
-from ampscz_asana.lib.server_scanner import grep_run_sheets
-from dataflow_checker.ampscz_mri_file import get_matching_timepoint, \
-        get_matching_timepoint_by_date, get_dates_from_zip_file_name
-
+from datetime import datetime
+import os
 import math
 import json
 from typing import Union
-
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -151,7 +147,6 @@ def date_of_zip(subject, entry_date, phoenix_dir):
         if dir_name.startswith(f'{prefix}{subject[:2]}'):
             pronet_dir = dir_name
             break
-
     zip_file_path = Path(base_dir, pronet_dir, 'raw', subject, 'mri')
     date_pattern = r'\d{4}_\d{1,2}_\d{1,2}'
     for filename in os.listdir(zip_file_path):
@@ -171,38 +166,23 @@ def date_of_zip(subject, entry_date, phoenix_dir):
                 continue
 
 
-
 def date_of_qqc(subject, entry_date) -> str:
     if entry_date == '' or pd.isna(entry_date):
         return ''
 
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
     source_root = mri_root / 'sourcedata'
-
-    year = int(re.split('-|_', str(entry_date))[0])
-    month = int(re.split('-|_', str(entry_date))[1])
-    day = int(re.split('-|_', str(entry_date))[2])
-
-    date_numbers_only = re.sub('[-_]', '', str(entry_date))
+    date_numbers_only = re.sub('[-_]', '', entry_date)
     subject_dir = source_root / subject
-
-    if not subject_dir.is_dir():
-        return None
-
-    qqc_first_outputs = list(subject_dir.glob(f'*{date_numbers_only}*')) + \
-                        list(subject_dir.glob(f'*{year}{month}{day}*'))
-    if len(qqc_first_outputs) > 0:
+    qqc_first_outputs = list(subject_dir.glob(f'*{date_numbers_only}*'))
+    if qqc_first_outputs:
         qqc_first_output = qqc_first_outputs[0]
-        print(qqc_first_output)
         ctime = qqc_first_output.stat().st_ctime
         date_str = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d')
         return date_str
     else:
-        print('-------------------')
-        print(subject_dir)
-        print(list(subject_dir.glob('*')), entry_date)
-        print('-------------------')
         return ''
+
 
 
 def is_mri_done(subject, entry_date) -> bool:
@@ -238,7 +218,6 @@ def is_fmriprep_done(subject, entry_date) -> bool:
 
 
 def is_dwipreproc_done(subject, entry_date) -> bool:
-
     if entry_date == '' or pd.isna(entry_date):
         return False
     mri_root = Path('/data/predict1/data_from_nda/MRI_ROOT')
@@ -475,14 +454,17 @@ def extract_missing_data_info_new(subject: str,
     domain_type_cols = [x for x in df.columns
                         if re.search(r'chrmiss_domain_type___3', x)]
     miss_time_cols = [x for x in df.columns if 'chrmiss_time' == x]
+    miss_withdrawn_cols = [x for x in df.columns if 'chrmiss_withdrawn' == x]
+    miss_discon_cols = [x for x in df.columns if 'chrmiss_discon' == x]
 
     if len(domain_type_cols) == 0 and len(miss_time_cols) == 0:
         return None
 
     # select columns in interest
-    df = df[['redcap_event_name',
-             'chrmri_entry_date',
-             'chrmiss_domain_spec'] + domain_type_cols + miss_time_cols]
+    df = df[['redcap_event_name', 'chrmri_entry_date',
+             'chrmri_missing', 'chrmiss_domain_spec'] +
+            domain_type_cols + miss_time_cols +
+            miss_withdrawn_cols + miss_discon_cols]
 
     if scan_date == '' or pd.isna(scan_date):
         timepoint_to_index_dict = {'1': 'baseline',
@@ -505,6 +487,7 @@ def extract_missing_data_info_new(subject: str,
             return None
 
     timepoint = df.loc[scan_date_index]['redcap_event_name']
+    mri_rs_missing_info = df.loc[scan_date_index]['chrmri_missing']
     missing_info = df.loc[scan_date_index]['chrmiss_domain_type___3']
 
     if 'chrmiss_time' in df.columns:
@@ -512,7 +495,18 @@ def extract_missing_data_info_new(subject: str,
     else:
         miss_time = None
 
-    return (missing_info, timepoint, miss_time)
+    if 'chrmiss_withdrawn' in df.columns:
+        miss_withdrawn = df.loc[scan_date_index]['chrmiss_withdrawn']
+    else:
+        miss_withdrawn = None
+
+    if 'chrmiss_discon' in df.columns:
+        miss_discon = df.loc[scan_date_index]['chrmiss_discon']
+    else:
+        miss_discon = None
+
+    return (missing_info, mri_rs_missing_info, timepoint, miss_time,
+            miss_withdrawn, miss_discon)
 
 
 def compare_dates(df: pd.DataFrame) -> pd.DataFrame:
@@ -569,7 +563,8 @@ def format_days(day_amount: int) -> str:
 
 def get_run_sheet_df(phoenix_dir: Path,
                      datatype: str = 'mri',
-                     test: bool = False) -> pd.DataFrame:
+                     test: bool = False,
+                     subject: str = '*') -> pd.DataFrame:
     '''Summarize the raw data files based on the lochness created run sheets
 
     Key Arguments:
@@ -638,11 +633,17 @@ def get_run_sheet_df(phoenix_dir: Path,
             axis=1)
 
     datatype_df['missing_info'] = datatype_df.vars.str[0]
-    datatype_df['timepoint'] = datatype_df.vars.str[1]
-    datatype_df['missing_timepoint'] = datatype_df.vars.str[2]
+    datatype_df['mri_rs_missing_info'] = datatype_df.vars.str[1]
+    datatype_df['timepoint_text'] = datatype_df.vars.str[2]
+    datatype_df['missing_timepoint'] = datatype_df.vars.str[3]
+    datatype_df['missing_withdrawn'] = datatype_df.vars.str[4]
+    datatype_df['missing_discon'] = datatype_df.vars.str[5]
     datatype_df['missing_marked'] = (
-            (datatype_df['missing_info'] == 1) |
-            (datatype_df['missing_timepoint'])).map({True: 1, False: None})
+            (datatype_df['missing_info'] == '1') |
+            (datatype_df['mri_rs_missing_info'] == '1') |
+            (datatype_df['missing_timepoint'] == '1') |
+            (datatype_df['missing_withdrawn'] == '1') |
+            (datatype_df['missing_discon'] == '1')).map({True: 1, False: None})
     datatype_df.drop('vars', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
@@ -713,9 +714,9 @@ def dataflow_dpdash(datatype_df: pd.DataFrame,
                 'network': row['network'],
                 'timepoint': row['run_sheet_num'],
                 'scan_date': row['entry_date'],
-                'missing_info': row['missing_info'],
+                'missing_info': row['missing_marked'],
                 'quick_qc': int(row['qqc_executed']),
-                'manual_qc': 3,
+                'manual_qc': row['mriqc_val'],
                 'data_at_dpacc': int(row['mri_data_exist']),
                 'days_arrival_to_qqc': row['days_arrival_to_qqc'],
                 'days_scan_to_arrival': row['days_scan_to_arrival'],
