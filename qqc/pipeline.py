@@ -174,7 +174,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         logger.info('Arranging dicoms')
 
         if not args.skip_dicom_rearrange:
-            if 'CP' in subject_name:
+            if 'CP' in subject_name or 'GW' in subject_name:
                 args.rename_dicoms = True
 
             rearange_dicoms(df_full, dicom_clearned_up_output,
