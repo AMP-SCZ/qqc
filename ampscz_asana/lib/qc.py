@@ -577,10 +577,7 @@ def get_run_sheet_df(phoenix_dir: Path,
         datatype: data type, eg) 'mri', str.
     '''
     # get all run sheets extracted from RPMS or REDCap by lochness from
-    run_sheets = grep_run_sheets(phoenix_dir)
-
-    # if test:
-        # run_sheets = run_sheets[:5]
+    run_sheets = grep_run_sheets(phoenix_dir, test)
 
     # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})
@@ -661,7 +658,7 @@ def get_run_sheet_df(phoenix_dir: Path,
             is_dwipreproc_done(x['subject'], x['entry_date']), axis=1)
     
     datatype_df['qqc_date'] = datatype_df.apply(lambda x:
-            date_of_qqc(x['subject'], x['mri_data_date']), axis=1)
+            date_of_qqc(x['subject'], x['entry_date']), axis=1)
  
     datatype_df['zip_date'] = datatype_df.apply(
             lambda x, param: date_of_zip(x['subject'], x['entry_date'], param),
