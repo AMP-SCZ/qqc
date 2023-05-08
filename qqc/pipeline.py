@@ -183,6 +183,11 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                             force=args.force_copy_dicom_to_source,
                             rename_dicoms=args.rename_dicoms)
 
+            df_full = get_dicom_df(sorted_dicom_dir,
+                                   True,
+                                   sorted_dicom_dir,
+                                   True)
+
 
         dicom_count_input_df = get_dicom_counts(Path(sorted_dicom_dir),
                                                 debug=debug)
