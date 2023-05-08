@@ -25,11 +25,11 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
         # mriqc_dir everyday. This QC information is added to zip_df
         mriqc_value_loc = get_most_recent_file(mriqc_dir)
         zip_df = add_qc_measures(zip_df, mriqc_value_loc)
+        get_mriqc_value_df_pivot_for_subject(zip_df, mriqc_dir)
 
     zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
-                                                    phoenix_paths,
-                                                    modality)
+                                                    dpdash_outpath)
     create_dpdash_zip_df_pivot(zip_df_pivot, dpdash_outpath, modality)
 
 
