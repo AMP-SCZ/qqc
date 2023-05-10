@@ -280,6 +280,8 @@ def check_order_of_series(df_full_input: pd.DataFrame,
         df.at[0, 'order_diff'] = 'Fail' if 'Fail' in df['order_diff'].iloc[1:].values else 'Pass'
 
         return df
+    
+    series_order_df_all = consecutive_duplicates(series_order_df_all)
 
     return series_order_df_all
 
