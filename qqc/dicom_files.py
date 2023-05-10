@@ -445,38 +445,3 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
             else:
                 shutil.copy(row['file_path'], series_dir_path)
                 
-                
-def consecutive_duplicates(df):
-
-    # Boolean mask of 'series_order' consecutive duplicates
-    consecutive_duplicates = df['series_order'].eq(df['series_order'].shift())
-
-    # Indicate any 'series_order' consecutive duplicates in new 'temporary' column
-    if consecutive_duplicates.any(): df['temporary'] = consecutive_duplicates
-
-    # Iterate through dataframe rows, excluding the 'Summary' row
-    for row in df.iloc[1:].itertuples():         
-        
-        # If 'series_order' consecutive duplicate indicated in 'temporary'...
-        # Re-align dataframe by...
-        # Inserting 'Consecutive duplicate detected' cell in corresponding 'series_order_target'
-        if row.temporary: df['series_order_target'] = pd.concat([
-            df['series_order_target'].iloc[:row.Index],    # Values up to `row.Index`
-            pd.Series(['Consecutive duplicate detected']), # New Series object with message
-            df['series_order_target'].iloc[row.Index:]     # Values beyond `row.Index`
-        ]).reset_index(drop=True)  
-    
-    # Drop 'temporary' 
-    df.drop('temporary', axis=1, inplace=True)
-
-    # Re-calculate 'order_diff' scores
-    for row in df.iloc[1:].itertuples():  
-        if 'Consecutive duplicate detected' in row.series_order_target:
-            df.at[row.Index, 'order_diff'] = 'Warning'
-        else:
-            df.at[row.Index, 'order_diff'] = 'Pass' if row.series_order_target == row.series_order else 'Fail'
-
-    # Re-calculate 'Summary' row 'order_diff' score
-    df.at[0, 'order_diff'] = 'Fail' if 'Fail' in df['order_diff'].iloc[1:].values else 'Pass'
-
-    return df
