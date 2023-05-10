@@ -4,7 +4,7 @@ import pydicom
 import pandas as pd
 from pathlib import Path
 from typing import Tuple
-from qqc.dicom_files import get_diff_in_csa_for_all_measures, consecutive_duplicates
+from qqc.dicom_files import get_diff_in_csa_for_all_measures
 
 
 def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
