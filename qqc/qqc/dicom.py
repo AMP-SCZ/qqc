@@ -4,7 +4,7 @@ import pydicom
 import pandas as pd
 from pathlib import Path
 from typing import Tuple
-from qqc.dicom_files import get_diff_in_csa_for_all_measures
+from qqc.dicom_files import get_diff_in_csa_for_all_measures, consecutive_duplicates
 
 
 def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
@@ -243,6 +243,9 @@ def check_order_of_series(df_full_input: pd.DataFrame,
     series_order_df_all = series_order_df_all[
             ['series_num', 'series_order_target', 'series_order',
              'series_num_target', 'order_diff']]
+    
+    series_order_df_all = consecutive_duplicates(series_order_df_all)
+    
     return series_order_df_all
 
 
