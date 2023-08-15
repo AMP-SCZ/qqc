@@ -434,6 +434,7 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
 def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
                                  run_sheet_df_loc: Path,
                                  output_merged_zip: Path) -> None:
+    """Merge zip database with the runsheet database"""
     zip_df = pd.read_csv(zip_df_loc, index_col=0)
 
     def zip_df_rename(col: str) -> str:
@@ -448,10 +449,11 @@ def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
     zip_df.columns = [zip_df_rename(x) for x in zip_df.columns]
     runsheet_df = pd.read_csv(run_sheet_df_loc, index_col=0)
 
+    # outer merge on subject, entry_date, network, and session_num
     all_df = pd.merge(zip_df,
-            runsheet_df,
-            on=['subject', 'entry_date', 'network', 'session_num'],
-            how='outer')
+                      runsheet_df,
+                      on=['subject', 'entry_date', 'network', 'session_num'],
+                      how='outer')
 
     all_df.to_csv(output_merged_zip)
 
