@@ -5,7 +5,36 @@ import pandas as pd
 from pathlib import Path
 from typing import Tuple
 from qqc.dicom_files import get_diff_in_csa_for_all_measures
+from pydicom.errors import InvalidDicomError
 
+
+def is_xa30(dicom_root: Path) -> Tuple[bool, str]:
+    '''checks if the dicom_root has enhnaced XA30 dicom'''
+    for root, dirs, files in os.walk(dicom_root):
+        for file in files:
+            if file.endswith('.xml'):
+                continue
+
+            try:
+                d = pydicom.read_file(Path(root) / file)
+            except InvalidDicomError:
+                continue
+
+            print(f'Checking XA30: {Path(root) / file}')
+
+            try:
+                if re.search('xa30', str(d.SoftwareVersions), re.IGNORECASE):
+                    print('XA30')
+                    return True
+                else:
+                    print('non-XA30')
+                    return False
+            except TypeError:
+                continue
+            except AttributeError:
+                continue
+
+    return False
 
 def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
     '''checks if the dicom_root has enhnaced XA30 dicom'''

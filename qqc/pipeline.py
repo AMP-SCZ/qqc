@@ -126,7 +126,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         config.read(args.config)
         for root, dirs, files in os.walk(qqc_input):
             for subdir in dirs:
-                if 't1w_mpr_nd' in subdir.lower():
+                if is_xa30(qqc_input):
                     # TODO add enhanced logic
                     try:
                         standard_dir = Path(config.get('XA30 template', site))
@@ -134,7 +134,8 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                         standard_dir = Path(config.get('XA30 template', 'ME'))
                     logger.info(f'XA 30 template: {standard_dir}')
 
-                    if is_enhanced(subdir):
+                    # if is_enhanced(subdir):
+                    if is_enhanced(qqc_input):
                         try:
                             standard_dir = Path(config.get(
                                 'XA30 template enhanced', site))
@@ -143,6 +144,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                                                            'ME'))
                         logger.info(f'XA 30 ehanced template: {standard_dir}')
                     break
+            break
                 # elif '!' in subdir.lower():
                     # # sys.exit()  # GE data  #TODO
                     # standard_dir = Path(config.get('GE template', 'a'))
