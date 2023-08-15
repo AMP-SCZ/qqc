@@ -29,7 +29,7 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
 
     zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
-                                                    dpdash_outpath)
+                                                    modality=modality)
     create_dpdash_zip_df_pivot(zip_df_pivot, dpdash_outpath, modality)
 
 
@@ -97,6 +97,8 @@ def get_mri_zip_df_pivot_for_subject(
     # pivot table for subject_id and timepoint for counting MRI data
     mri_zip_df_pivot = pd.pivot_table(
         mri_zip_df[['subject_id', 'timepoint', 'network']].drop_duplicates(),
+        # mri_zip_df[['subject_id', 'timepoint', 'network',
+                    # 'session_num', 'session_id_raw']].drop_duplicates(),
         index=['subject_id', 'network'],
         columns='timepoint',
         aggfunc=len).fillna(False)
@@ -142,7 +144,7 @@ def get_mri_zip_df_pivot_for_subject(
                                                            'followup_mri': 0})
 
     # restrict to subjects within metadata
-    mri_zip_df_pivot = mri_zip_df_pivot.loc[all_subjects]
+    # mri_zip_df_pivot = mri_zip_df_pivot.loc[all_subjects]
 
     return mri_zip_df_pivot
 
@@ -190,7 +192,7 @@ def get_eeg_zip_df_pivot_for_subject(
                                                        'followup_eeg': 0})
 
     # restrict to subjects within metadata
-    eeg_zip_df_pivot = eeg_zip_df_pivot.loc[all_subjects]
+    # eeg_zip_df_pivot = eeg_zip_df_pivot.loc[all_subjects]
 
     return eeg_zip_df_pivot
 
