@@ -86,9 +86,12 @@ def update_dicom_counts(dicom_count_input_df: pd.DataFrame,
         else:
             dicom_count_input_df.loc[index, 'heudiconv converted'] = False
 
+    all_pass = 'Pass' if dicom_count_input_df['heudiconv converted'].all() \
+            else 'Fail'
     dicom_count_input_df = pd.concat([
-        pd.DataFrame({'heudiconv converted': [dicom_count_input_df['heudiconv converted'].all()]}),
-        dicom_count_input_df])
+        pd.DataFrame({'heudiconv converted': [all_pass]}),
+        dicom_count_input_df])[['series_num', 'series_dir', 'dicom_count',
+            'heudiconv converted']]
 
     return dicom_count_input_df
 
