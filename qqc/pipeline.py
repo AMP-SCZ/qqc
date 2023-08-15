@@ -14,7 +14,8 @@ from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms, \
         get_dicom_counts, update_dicom_counts
 from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
-from qqc.qqc.dicom import check_num_order_of_series, save_csa, is_enhanced
+from qqc.qqc.dicom import check_num_order_of_series, save_csa, is_enhanced, \
+        is_xa30
 from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
 from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash, \
         refresh_qqc_summary_for_subject
@@ -71,14 +72,18 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         bids_root = Path('/data/predict/kcho/flow_test/MRI_ROOT')
         run_sheet = next(args.input.parent.glob('*Run_sheet_mri*.csv'))
     else:
-        qqc_input = Path(args.input)
+        if args.input is None:
+            qqc_input = Path(args.nifti_dir)
+            dicom_count_input_df = pd.DataFrame()
+        else:
+            qqc_input = Path(args.input)
         # For BIDS format, session name cannot have "-" or "_"
         session_name = 'ses-' + re.sub('[_-]', '', args.session_name)
 
         # For BIDS format, subject name cannot have "-" or "_"
         subject_name = 'sub-' + re.sub('[_-]', '', args.subject_name)
         # find the matching run sheet
-        run_sheet = get_matching_run_sheet_path(args.input, args.session_name)
+        run_sheet = get_matching_run_sheet_path(qqc_input, args.session_name)
             
     site = args.subject_name[:2]
     raw_input_given = qqc_input
