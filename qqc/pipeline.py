@@ -127,14 +127,12 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         for root, dirs, files in os.walk(qqc_input):
             for subdir in dirs:
                 if is_xa30(qqc_input):
-                    # TODO add enhanced logic
                     try:
                         standard_dir = Path(config.get('XA30 template', site))
                     except KeyError:
                         standard_dir = Path(config.get('XA30 template', 'ME'))
                     logger.info(f'XA 30 template: {standard_dir}')
 
-                    # if is_enhanced(subdir):
                     if is_enhanced(qqc_input):
                         try:
                             standard_dir = Path(config.get(
