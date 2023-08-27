@@ -86,6 +86,13 @@ def update_dicom_counts(dicom_count_input_df: pd.DataFrame,
         else:
             dicom_count_input_df.loc[index, 'heudiconv converted'] = False
 
+    all_pass = 'Pass' if dicom_count_input_df['heudiconv converted'].all() \
+            else 'Fail'
+    dicom_count_input_df = pd.concat([
+        pd.DataFrame({'heudiconv converted': [all_pass]}),
+        dicom_count_input_df])[['series_num', 'series_dir', 'dicom_count',
+            'heudiconv converted']]
+
     return dicom_count_input_df
 
 
@@ -165,8 +172,9 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     # drop files
     df = df[~df['file_path'].str.endswith('.gif')]
     df = df[~df['file_path'].str.endswith('.GIF')]
+    df = df[~df['file_path'].str.endswith('.bvec')]
+    df = df[~df['file_path'].str.endswith('.bval')]
     df = df.reset_index()
-
 
     logger.info('Read dicoms into pydicom object')
     # TODO: update the lines below to make the process faster
@@ -266,6 +274,7 @@ def get_series_info(dicom: pydicom.dataset.FileDataset):
         description = dicom.get(('0008', '103e')).value
         instance_uid = dicom.get(('0008', '0018')).value
     except AttributeError:
+        print(dicom)
         logger.warning("Dicom doesn't have num, description, or instance_uid "
                        "attributes.")
         logger.warning("The dicom sourcedata may have non dicom files.")
@@ -443,4 +452,7 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
                 except shutil.SameFileError:
                     pass
             else:
-                shutil.copy(row['file_path'], series_dir_path)
+                try:
+                    shutil.copy(row['file_path'], series_dir_path)
+                except shutil.SameFileError:
+                    pass

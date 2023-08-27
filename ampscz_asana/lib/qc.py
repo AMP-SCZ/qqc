@@ -572,10 +572,7 @@ def get_run_sheet_df(phoenix_dir: Path,
         datatype: data type, eg) 'mri', str.
     '''
     # get all run sheets extracted from RPMS or REDCap by lochness from
-    run_sheets = grep_run_sheets(phoenix_dir, subject)
-
-    # if test:
-        # run_sheets = run_sheets[:5]
+    run_sheets = grep_run_sheets(phoenix_dir, test)
 
     # create dataframe
     df = pd.DataFrame({'file_path': run_sheets})

@@ -108,3 +108,20 @@ def test_compare_enhanced_to_std():
 
 
 
+def test_SF_csa():
+    data_root = Path('/data/predict1/data_from_nda/MRI_ROOT/sourcedata')
+    input_dicom_dir = data_root / 'SF01552/ses-202304201'
+    df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    save_csa(df_full_input, Path('SF01552'), '')
+
+    input_dicom_dir = data_root / 'SF03788/ses-202212141'
+    df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    save_csa(df_full_input, Path('SF03788'), '')
+
+    input_dicom_dir = data_root / 'SF05231/ses-202301181'
+    df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    save_csa(df_full_input, Path('SF05231'), '')
+
+    input_dicom_dir = data_root / 'SF10462/ses-202304061'
+    df_full_input = get_dicom_files_walk(input_dicom_dir, True)
+    save_csa(df_full_input, Path('SF10462'), '')

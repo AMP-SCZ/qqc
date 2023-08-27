@@ -28,6 +28,7 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     bval = qqc_ss_dir / '06_bval_comparison_log.csv'
     bit_check = qqc_ss_dir / 'bit_check.csv'
     enhanced_check = qqc_ss_dir / 'enhanced_check.csv'
+    dicom_conv_check = qqc_ss_dir / 'dicom_count.csv'
 
     # get subject info
     session_name = qqc_ss_dir.name
@@ -41,7 +42,8 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     other_dfs = []
     titles = []
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
-            non_anat_orident, shim_settings, bval, bit_check, enhanced_check:
+            non_anat_orident, shim_settings, bval, bit_check, enhanced_check, \
+            dicom_conv_check:
         # clean up the name of each QC output
         title = re.sub(r'\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
         title = re.sub(r'_', ' ', title)

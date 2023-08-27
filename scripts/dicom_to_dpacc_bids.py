@@ -11,13 +11,7 @@ from datetime import datetime
 import re
 
 
-def get_standard_dir(site: str) -> str:
-    '''pass'''
-    config = configparser.RawConfigParser()
-    config.read('/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg')
-
-
-def parse_args(argv):
+def parse_args():
     '''Parse inputs coming from the terminal'''
     parser = argparse.ArgumentParser(
         description='''Convert dicoms to BIDS
@@ -63,6 +57,7 @@ def parse_args(argv):
                         help='Run FMRIPREP following conversion.')
 
     parser.add_argument('--dwipreproc', '-dwipreproc', action='store_true',
+                        default=False,
                         help='Run DWI preprocessing following conversion.')
 
     parser.add_argument('--nifti_dir', '-nd', type=str, default=False,
@@ -111,40 +106,11 @@ def parse_args(argv):
                         action='store_true',
                         help='Run all sessions.')
 
-    args = parser.parse_args(argv)
+    return parser
 
-    return args
-
-
-def reprocess_all_available_data(args):
-    root_dir = Path('/data/predict1/data_from_nda')
-    mri_root = root_dir / 'MRI_ROOT'
-    mri_paths = root_dir.glob('*/PHOENIX/*/*/raw/*/mri/*')
-    for i in [x for x in mri_paths if x.is_dir()]:
-        if re.search('[A-Z]{2}\d{5}_MR_\d{4}_\d{2}_\d{2}_\d', i.name):
-            subject_id = i.name.split('_')[0]
-            date = i.name.split('_MR_')[1]
-
-            # read standard template data
-            site = i.name[:2]
-            standard_dir = config.get('First Scan', site)
-
-            # update args
-            args.input = str(i)
-            args.subject_name = subject_id
-            args.session_name = date
-            args.bids_root = mri_root
-            args.standard_dir = standard_dir
-            args.mriqc = True
-            args.fmriprep = True
-            args.dwipreproc = True
-            args.skip_dicom_rearrange = True
-            print(args)
-            dicom_to_bids_QQC(args)
-    sys.exit('Finished with run all option')
 
 if __name__ == '__main__':
-    args = parse_args(sys.argv[1:])
+    args = parse_args().parse_args(sys.argv[1:])
 
     config = configparser.ConfigParser()
     config.read(args.config)

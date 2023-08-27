@@ -17,7 +17,7 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
                                            mriqc_dir: Path,
                                            modality: str = 'mri') -> None:
     # create df of all zip files corresponding to the modality and their
-    # mathing information from the mriflow_csv table
+    # matching information from the mriflow_csv table
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
 
     if modality == 'mri':
@@ -25,11 +25,11 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
         # mriqc_dir everyday. This QC information is added to zip_df
         mriqc_value_loc = get_most_recent_file(mriqc_dir)
         zip_df = add_qc_measures(zip_df, mriqc_value_loc)
+        get_mriqc_value_df_pivot_for_subject(zip_df, mriqc_dir)
 
     zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
-                                                    phoenix_paths,
-                                                    modality)
+                                                    modality=modality)
     create_dpdash_zip_df_pivot(zip_df_pivot, dpdash_outpath, modality)
 
 
@@ -97,6 +97,8 @@ def get_mri_zip_df_pivot_for_subject(
     # pivot table for subject_id and timepoint for counting MRI data
     mri_zip_df_pivot = pd.pivot_table(
         mri_zip_df[['subject_id', 'timepoint', 'network']].drop_duplicates(),
+        # mri_zip_df[['subject_id', 'timepoint', 'network',
+                    # 'session_num', 'session_id_raw']].drop_duplicates(),
         index=['subject_id', 'network'],
         columns='timepoint',
         aggfunc=len).fillna(False)
@@ -142,7 +144,7 @@ def get_mri_zip_df_pivot_for_subject(
                                                            'followup_mri': 0})
 
     # restrict to subjects within metadata
-    mri_zip_df_pivot = mri_zip_df_pivot.loc[all_subjects]
+    # mri_zip_df_pivot = mri_zip_df_pivot.loc[all_subjects]
 
     return mri_zip_df_pivot
 
@@ -190,7 +192,7 @@ def get_eeg_zip_df_pivot_for_subject(
                                                        'followup_eeg': 0})
 
     # restrict to subjects within metadata
-    eeg_zip_df_pivot = eeg_zip_df_pivot.loc[all_subjects]
+    # eeg_zip_df_pivot = eeg_zip_df_pivot.loc[all_subjects]
 
     return eeg_zip_df_pivot
 
@@ -432,6 +434,7 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
 def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
                                  run_sheet_df_loc: Path,
                                  output_merged_zip: Path) -> None:
+    """Merge zip database with the runsheet database"""
     zip_df = pd.read_csv(zip_df_loc, index_col=0)
 
     def zip_df_rename(col: str) -> str:
@@ -446,10 +449,11 @@ def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
     zip_df.columns = [zip_df_rename(x) for x in zip_df.columns]
     runsheet_df = pd.read_csv(run_sheet_df_loc, index_col=0)
 
+    # outer merge on subject, entry_date, network, and session_num
     all_df = pd.merge(zip_df,
-            runsheet_df,
-            on=['subject', 'entry_date', 'network', 'session_num'],
-            how='outer')
+                      runsheet_df,
+                      on=['subject', 'entry_date', 'network', 'session_num'],
+                      how='outer')
 
     all_df.to_csv(output_merged_zip)
 

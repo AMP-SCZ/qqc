@@ -69,7 +69,7 @@ def run_heudiconv(dicom_input_root: Union[Path, str],
         f'-f {heuristic_file} ' \
         f'-s {subject_name} -ss {session_name} -c dcm2niix \
         -b \
-        -o {nifti_root_dir}'
+        -o {nifti_root_dir} --minmeta -g all'
 
     if overwrite:
         command += ' --overwrite'

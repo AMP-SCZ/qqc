@@ -145,14 +145,21 @@ def infotodict(seqinfo):
             localizer_aligned: [],
             scout: []}
 
+        # 'ge_machine': {
+                # 't1w': 208, 't2w': 204,
+                # 'distortion': 132,
+                # 'rest_sbref': 132,
+                # 'rest': 22308,
+                # 'b0': 729,
+                # 'dMRI':10368},
     count_infos = {
         'ge_machine': {
                 't1w': 208, 't2w': 204,
                 'distortion': 132,
                 'rest_sbref': 132,
                 'rest': 22308,
-                'b0': 729,
-                'dMRI':10368},
+                'b0': 594,
+                'dMRI':8448},
         'xa30': {
                 't1w': 208, 't2w': 208,
                 'distortion': 1,
@@ -229,6 +236,11 @@ def infotodict(seqinfo):
                 print_missing_message('t1w', s)
                 continue
 
+            # remove adj from converting
+            if 'adj' in s.series_description.lower():
+                print_missing_message('t1w', s)
+                continue
+
             # XA30
             if xa30 or xa31:
                 if 't1w_mpr_nd' in s.series_description.lower():
@@ -255,6 +267,12 @@ def infotodict(seqinfo):
             if s.series_files < count_info['t2w']:
                 print_missing_message('t2w', s)
                 continue
+
+            # remove adj from converting
+            if 'adj' in s.series_description.lower():
+                print_missing_message('t2w', s)
+                continue
+
             # XA30
             if xa30 or xa31:
                 if 't2w_spc_nd' in s.series_description.lower():

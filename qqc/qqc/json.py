@@ -644,8 +644,7 @@ def find_matching_files_between_BIDS_sessions(
         # other maps with different series number
         # else:
             # series_tmp = json_df_std[
-                # (json_df_std.series_desc == row.series_desc) &
-                # (json_df_std.image_type == row.image_type)
+                # (json_df_std.series_desc == row.series_desc)
                 # ].iloc[0]
             # json_df_all.loc[index, 'json_path_std'] = series_tmp.json_path
             # json_df_all.loc[index, 'json_suffix_std'] = series_tmp.json_suffix
