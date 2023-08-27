@@ -17,7 +17,7 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
                                            mriqc_dir: Path,
                                            modality: str = 'mri') -> None:
     # create df of all zip files corresponding to the modality and their
-    # mathing information from the mriflow_csv table
+    # matching information from the mriflow_csv table
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
 
     if modality == 'mri':
