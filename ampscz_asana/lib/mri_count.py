@@ -7,6 +7,7 @@ from typing import List
 from ampscz_asana.lib.server_scanner import get_all_mri_zip, get_all_eeg_zip, \
         get_most_recent_file, get_all_subjects_with_consent, \
         get_site_network_dict
+from qqc.utils.dpdash import get_summary_included_ids
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,11 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
     zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
                                                     modality=modality)
+
+    # only include subjects in forms-qc summary
+    forms_summary_ids = get_summary_included_ids()
+    # index is the AMP-SCZ ID
+    zip_df_pivot = zip_df_pivot[zip_df_pivot.index.isin(forms_summary_ids)]
     create_dpdash_zip_df_pivot(zip_df_pivot, dpdash_outpath, modality)
 
 
