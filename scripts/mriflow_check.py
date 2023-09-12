@@ -1,9 +1,10 @@
+import sys
+import pandas as pd
+from pathlib import Path
 import argparse
 from argparse import RawTextHelpFormatter
-import sys
-from pathlib import Path
 from ampscz_asana.lib.qc import get_run_sheet_df, dataflow_dpdash
-import pandas as pd
+from qqc.utils.dpdash import get_summary_included_ids
 
 
 def parse_args(argv):
@@ -71,6 +72,11 @@ if __name__ == '__main__':
     if args.dpdash:
         print(f'Creating dpdash loadable csv files')
         df = pd.read_csv('/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/mri_all_db.csv')
+
+        # only include subjects in forms-qc summary
+        forms_summary_ids = get_summary_included_ids()
+        df = df[df.subject.isin(forms_summary_ids)]
+
         dataflow_dpdash(df, args.outdir)
 
 
