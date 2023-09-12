@@ -1,20 +1,21 @@
-from qqc.qqc.qqc_summary import qqc_summary_for_dpdash, \
-        refresh_qqc_summary_for_subject
 import re
+import sys
+import argparse
+from argparse import RawTextHelpFormatter
+from pathlib import Path
+import pandas as pd
+
+from qqc.qqc.qqc_summary import refresh_qqc_summary_for_subject
 from qqc.qqc.mriqc import run_mriqc_on_data
 from qqc.dicom_files import get_dicom_files_walk
 from qqc.qqc.dwipreproc import run_quick_dwi_preproc_on_data
-from pathlib import Path
 from qqc.qqc.dicom import check_num_order_of_series, save_csa
 from qqc.qqc.json import jsons_from_bids_to_df
-import pandas as pd
-import argparse
-import sys
-from argparse import RawTextHelpFormatter
 from qqc.qqc.json import within_phantom_qc, \
         compare_data_to_standard
-
 from qqc.qqc.fmriprep import run_fmriprep_on_data
+from qqc.utils.dpdash import get_summary_included_ids
+
 
 def parse_args(argv):
     '''Parse inputs coming from the terminal'''
@@ -67,13 +68,10 @@ def re_run_qqc(nifti_session_dir: Path,
 
 if __name__ == '__main__':
     args = parse_args(sys.argv[1:])
-    # qqc_summary_for_dpdash(args.qc_out_dir)
 
-    # refresh 'mriqc-combined-mriqc-day1to9999.csv'
-    # for mri_root in [Path('/data/predict/data_from_nda/MRI_ROOT'),
-                     # Path('/data/predict/data_from_nda_dev/MRI_ROOT')]:
+    forms_summary_ids = get_summary_included_ids()
+
     for mri_root in [Path('/data/predict1/data_from_nda/MRI_ROOT')]:
-        print(mri_root)
         nifti_root = mri_root / 'rawdata'
         dicom_root = mri_root / 'sourcedata'
         derivatives_root = mri_root / 'derivatives'
@@ -88,22 +86,16 @@ if __name__ == '__main__':
         # for qqc_session_path in qqc_session_paths:
         for qqc_subject_path in qqc_subject_paths:
             subject_id = qqc_subject_path.name
-            # session_id = qqc_session_path.name
-
-            # nifti_dir = nifti_root / subject_id / session_id
-            # dicom_dir = dicom_root / subject_id.split('-')[1] / session_id
-
-            # if re.match(r'^sub-[A-Z]{2}\d{5}$', subject_id) and \
-               # re.match(r'^ses-\d{4}\d{2}\d{2}\d{1}$', session_id):
-            if re.match(r'^sub-[A-Z]{2}\d{5}$', subject_id):
-                try:
-                    # df_tmp = qqc_summary_for_dpdash(qqc_session_path)
-                    df_tmps = refresh_qqc_summary_for_subject(
-                            qqc_subject_path)
-                    for df_tmp in df_tmps:
-                        dfs.append(df_tmp)
-                except:
-                    pass
+            ampscz_id = subject_id.split('sub-')[1]
+            if ampscz_id in forms_summary_ids:
+                if re.match(r'^sub-[A-Z]{2}\d{5}$', subject_id):
+                    try:
+                        df_tmps = refresh_qqc_summary_for_subject(
+                                qqc_subject_path)
+                        for df_tmp in df_tmps:
+                            dfs.append(df_tmp)
+                    except:
+                        pass
         
         df = pd.concat(dfs)
         df['day'] = range(1, len(df)+1)
