@@ -170,6 +170,8 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     start = time.time()
 
     # drop files
+    df = df[~df['file_path'].str.endswith('.nii')]
+    df = df[~df['file_path'].str.endswith('.nii.gz')]
     df = df[~df['file_path'].str.endswith('.gif')]
     df = df[~df['file_path'].str.endswith('.GIF')]
     df = df[~df['file_path'].str.endswith('.bvec')]
