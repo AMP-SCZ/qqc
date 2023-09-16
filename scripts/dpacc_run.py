@@ -123,7 +123,7 @@ def main(args: argparse.PARSER):
                 MRI_ROOT / 'derivatives' / 'quick_qc' / f'sub-{subject}' /
                 f'ses-{session_wo}' / 'qqc_summary.html'
             )
-            if not qqc_summary_html_file.exists():
+            if not qqc_summary_html_file.exists() or args.rerun:
                 print(qqc_summary_html_file)
                 print("=========================")
                 print("QQC is not complete for")
@@ -132,7 +132,12 @@ def main(args: argparse.PARSER):
                 print(f"session- {session}")
                 print(f"{qqc_summary_html_file} is missing")
 
-                dicom_to_bids_QQC(args)
+                try:
+                    dicom_to_bids_QQC(args)
+                    print("=========================")
+                    print()
+                except Exception as e:
+                    print(e)
                 # Replace the following command with the appropriate Python code for executing dicom_to_dpacc_bids.py
                 # python_cmd = [
 # #                    '/usr/share/lsf/9.1/linux2.6-glibc2.3-x86_64/bin/bsub',
@@ -154,8 +159,6 @@ def main(args: argparse.PARSER):
 
                 # print(python_cmd)
                 # subprocess.run(python_cmd)
-                print("=========================")
-                print()
 
 
 if __name__ == '__main__':
