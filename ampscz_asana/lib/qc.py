@@ -28,6 +28,8 @@ def get_entry_date_from_run_sheet(run_sheet: Path) -> str:
                                                 'field_value']
     if pd.isna(entry_date):
         return ''
+    elif entry_date == '-3':  # PRONET -3
+        return ''
     
     if 'Prescient' in str(run_sheet):
         entry_date = convert_AU_to_US_date(entry_date)
