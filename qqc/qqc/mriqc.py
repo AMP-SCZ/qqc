@@ -39,7 +39,8 @@ def run_mriqc_on_data(rawdata_dir: Path,
                       session_id: str,
                       mriqc_outdir_root: Path,
                       temp_dir: str = '/data/predict1/home/kcho/tmp',
-                      bsub: bool = True) -> None:
+                      bsub: bool = True,
+                      specific_nodes: list = []) -> None:
     '''Run MRI-QC following the quick QC
 
     Key Argument:
@@ -70,16 +71,25 @@ def run_mriqc_on_data(rawdata_dir: Path,
         /data /out participant \
         -w /work --participant-label {subject_id} \
         --session-id {session_id.split("-")[1]} \
-        --nprocs 8 --mem 16G --omp-nthreads 2 \
+        --nprocs 1 --mem 16G --omp-nthreads 1 \
         --no-sub \
         --verbose-reports'
 
     if bsub:
-        command = f'bsub -q pri_pnl \
-                -o {mriqc_outdir_root}/mriqc.out \
-                -e {mriqc_outdir_root}/mriqc.err \
-                -n 8 -J mriqc_{subject_id}_{session_id} \
-                {command}'
+        if specific_nodes == []:
+            command = f'bsub -q pri_pnl \
+                    -o {mriqc_outdir_root}/mriqc.out \
+                    -e {mriqc_outdir_root}/mriqc.err \
+                    -n 1 -J mriqc_{subject_id}_{session_id} \
+                    {command}'
+        else:
+            nodes = ' '.join(specific_nodes)
+            command = f'bsub -q pri_pnl \
+                    -o {mriqc_outdir_root}/mriqc.out \
+                    -e {mriqc_outdir_root}/mriqc.err \
+                    -m "{nodes}" \
+                    -n 1 -J mriqc_{subject_id}_{session_id} \
+                    {command}'
 
     command = re.sub('\s+', ' ', command)
     print(command)
