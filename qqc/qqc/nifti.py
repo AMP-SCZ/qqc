@@ -239,7 +239,7 @@ def is_nifti_16bit(diffusion_nifti_file: Path) -> Tuple[bool, float]:
 def is_dwi_dir_16bit(dwi_nifti_dir: Path) -> Tuple[bool, float]:
     for root, dirs, files in os.walk(dwi_nifti_dir):
         for file in files:
-            if file.endswith('.nii.gz') and 'b0' in file.lower():
+            if file.endswith('.nii.gz'):
                 return is_nifti_16bit(Path(root) / file)
                 
     raise NoDwiException
