@@ -245,6 +245,14 @@ def is_dwi_dir_16bit(dwi_nifti_dir: Path) -> Tuple[bool, float]:
     raise NoDwiException
 
 
+def is_fmap_dir_16bit(fmap_nifti_dir: Path) -> Tuple[bool, float]:
+    for root, dirs, files in os.walk(fmap_nifti_dir):
+        for file in files:
+            if file.endswith('.nii.gz'):
+                return is_nifti_16bit(Path(root) / file)
+                
+    raise NoDwiException
+
 def is_session_dir_16bit(nifti_root: Path) -> Tuple[bool, float]:
     for root, dirs, files in os.walk(nifti_root):
         for directory in dirs:
