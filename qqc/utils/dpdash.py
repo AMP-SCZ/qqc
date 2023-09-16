@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
@@ -21,7 +22,15 @@ def get_most_recent_formsqc_summary(forms_root: Path = FORMSQC_ROOT) -> Path:
     return most_recent_csv
 
 
+def get_summary_included_ids(forms_root: Path = FORMSQC_ROOT) -> list:
+    forms_summary_csv = get_most_recent_formsqc_summary()
+    return pd.read_csv(forms_summary_csv).subjectid.unique()
+
+
 def test_get_most_recent_formsqc_summary():
     get_most_recent_formsqc_summary()
 
+
+def test_get_summary_included_ids():
+    get_summary_included_ids()
 
