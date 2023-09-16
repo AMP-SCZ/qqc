@@ -25,11 +25,12 @@ def parse_arguments():
                         help='Ignore source text file')
 
     parser.add_argument('--email_recipients_file',
-                        type=str, default=None,
+                        type=str,
+                        default=MRI_ROOT / 'email_recipients.txt',
                         help='Email recipients text file')
 
     parser.add_argument('--no_email',
-                        action='store_true', default=None,
+                        action='store_true',
                         help='Do not send email')
 
     parser.add_argument('--site',
@@ -39,6 +40,10 @@ def parse_arguments():
     parser.add_argument('--subject',
                         type=str, default=None,
                         help='Run QQC on a specific subject, eg) AB')
+
+    parser.add_argument('--rerun',
+                        action='store_true', default=False,
+                        help='Rerun QQC')
 
     return parser
 
@@ -51,11 +56,10 @@ def read_email_recipients(email_rec: str = None):
 
     if Path(email_rec).is_file():
         with open(email_rec, 'r') as fp:
-            emails = [x.strip() for x in fp.readlines() if '@' in x]
-        return ['--additional_recipients'] + emails
+            return [x.strip() for x in fp.readlines() if '@' in x]
     else:
         print('No email receipients file found')
-        return []
+        return ['kc244@research.partners.org']
 
 
 def read_ignore_file(ignore_file: str = None):
@@ -79,10 +83,14 @@ class ArgsNew(object):
 
 def main(args: argparse.PARSER):
     if args.no_email:
-        args.additional_recipients = []
+        # args.email_report = True
+        args.email_report = False
+        args.additional_recipients = ['kc244@research.partners.org']
     else:
+        args.email_report = True
         args.additional_recipients = read_email_recipients(
                 args.email_recipients_file)
+
     ignore_list = read_ignore_file(args.ignore_file)
 
     site_str = '*' if args.site is None else f'*{args.site}'
