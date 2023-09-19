@@ -49,6 +49,10 @@ def get_dicom_counts(sorted_dicom_dir: Path, **kwargs) -> pd.DataFrame:
     df = pd.DataFrame({'series_dir': list(sorted_dicom_dir.glob('*'))})
     df['dicom_count'] = df.series_dir.apply(lambda x: len(list(x.glob('*'))))
     df['series_dir'] = df.series_dir.apply(lambda x: x.name)
+
+    # remove series
+    df = df[~df['series_dir'].str.contains('MPR Thick Range')]
+
     df['series_num'] = df.series_dir.apply(lambda x: x.split('_')[0]).astype(
             int)
 
@@ -261,6 +265,9 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
                 (df['series_uid'] == row.series_uid)]
 
         df.loc[df_tmp.index, 'series_scan'] = num
+
+    # remove series
+    df = df[~df['series_desc'].str.contains('MPR Thick Range')]
 
     end = time.time()
     t = end - start
