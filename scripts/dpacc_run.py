@@ -99,7 +99,8 @@ def main(args: argparse.PARSER):
     for study_network in args.study_networks:
         PHOENIX_DIR = data_flow_dir / study_network / 'PHOENIX'
         for i in Path(PHOENIX_DIR / 'PROTECTED').glob(
-            f'{site_str}/raw/{subject_str}/mri/*_MR_*_[1234].[zZ][iI][pP]'):
+            f'{site_str}/raw/{subject_str}/mri/'
+            '[!.]*_MR_*_[1234].[zZ][iI][pP]'):
 
             filepath = str(i)
             args.input = filepath
