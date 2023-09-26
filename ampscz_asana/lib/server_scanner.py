@@ -46,9 +46,9 @@ def get_all_mri_zip(phoenix_root: Path, **kwargs) -> list:
     # PHOENIX/PROTECTED/PronetIR/raw/IR01451/eeg/IR01451.Pronet.Run_sheet_eeg_2.csv
     test = kwargs.get('test', False)
     if test:
-        prefix = 'PROTECTED/*YA/raw/YA16*/mri/*_MR_*[zZ][iI][pP]'
+        prefix = 'PROTECTED/*YA/raw/YA16*/mri/[!.]*_MR_*[zZ][iI][pP]'
     else:
-        prefix = 'PROTECTED/*/raw/*/mri/*_MR_*[zZ][iI][pP]'
+        prefix = 'PROTECTED/*/raw/*/mri/[!.]*_MR_*[zZ][iI][pP]'
 
     zip_files = list(phoenix_root.glob(prefix))
 
