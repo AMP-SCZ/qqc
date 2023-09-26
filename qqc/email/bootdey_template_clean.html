@@ -18,7 +18,7 @@
                             <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                 <td class="" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 16px; vertical-align: top; color: #fff; font-weight: 500; text-align: center; border-radius: 3px 3px 0 0; background-color: #38414a; margin: 0; padding: 20px;"
                                     align="center" bgcolor="#71b6f9" valign="top">
-                                    <img src="https://github.com/AMP-SCZ/lochness/blob/master/readthedocs/docs/source/images/AMP%20SCZ%20Logo%20small.png?raw=true"><br>
+                                    <img src="https://github.com/AMP-SCZ/lochness/blob/master/docs/source/images/AMP%20SCZ%20Logo%20small.png?raw=true"><br>
                                     <a href="https://github.com/AMP-SCZ/lochness" style="font-size:32px;color:#fff;">{{ title }}</a> <br>
                                     <span style="margin-top: 10px;display: block;">{{ subtitle }}</span>
                                 </td>
@@ -47,9 +47,12 @@
                                             </tr>
                                             <tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
                                                 <td class="content-block" style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 9px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+                                                <!--<img style="height:800px;width:auto;" src="cid:image1" alt="haha"></img>-->
                                                 {% if image_paths %}
                                                     {% for image_path in image_paths %}
-                                                    <img style="height:800px;width:auto;" src="{{ image_path }}" alt="image here"> </img>
+                                                    <!--<img style="height:800px;width:auto;" src="cid:{{ image_path.name }}" alt="image here"> </img>-->
+                                                    <img src="cid:{{ image_path.name }}" alt="image here"> </img>
+                                                    <br>
                                                     {% endfor %}
                                                 {% endif %}
                                                 </td>

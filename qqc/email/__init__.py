@@ -15,10 +15,38 @@ from pytz import timezone
 import socket
 import tempfile as tf
 from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_detailed
+from PIL import Image
+from io import BytesIO
+
 tz = timezone('EST')
 
 
-def send(recipients, sender, subject, message, test, mailx, sender_pw):
+# def resize_image(image_path, output_width=800, output_height=600, quality=150):
+    # with Image.open(image_path) as img:
+        # img = img.convert('RGB')  # Convert image to RGB mode
+        # img = img.resize((output_width, output_height), Image.ANTIALIAS)
+        # buffer = BytesIO()
+        # img.save(buffer, format='JPEG', quality=quality)
+        # return buffer.getvalue()
+
+def resize_image(image_path, percentile=30, quality=100):
+    with Image.open(image_path) as img:
+        img = img.convert('RGB')  # Convert image to RGB mode
+        
+        # Calculate the new dimensions based on the percentile
+        new_width = int(img.width * percentile / 100)
+        new_height = int(img.height * percentile / 100)
+
+        # Resize the image
+        img = img.resize((new_width, new_height), Image.ANTIALIAS)
+        
+        buffer = BytesIO()
+        img.save(buffer, format='JPEG', quality=quality)
+        return buffer.getvalue()
+
+
+def send(recipients, sender, subject, message, test, mailx, sender_pw,
+         image_paths=None):
     '''send an email'''
     msg = MIMEMultipart()
     msg['Subject'] = subject
@@ -28,15 +56,20 @@ def send(recipients, sender, subject, message, test, mailx, sender_pw):
     msg.attach(text)
 
     # image attachment
-    # for image_path in image_paths:
-        # with open(image_path, 'rb') as fp:
-            # image_data = fp.read()
-        # image = MIMEImage(image_data, name=image_path.name)
-        # msg.attach(image)
+    if image_paths is not None:
+        for image_path in image_paths:
+            print(image_path)
+            # with open(image_path, 'rb') as fp:
+                # image_data = fp.read()
+            image_data = resize_image(image_path)
+            image = MIMEImage(image_data, name=image_path.name)
+            image.add_header('Content-ID', f'<{image_path.name}>')
+            msg.attach(image)
 
     # send email
     if mailx:
         s = smtplib.SMTP('localhost')
+        s.set_debuglevel(1)
     else:
         s = smtplib.SMTP('smtp.gmail.com', 587)
         s.ehlo()
@@ -121,7 +154,8 @@ def send_detail(sender: str, recipients: List[str],
     html_str = create_html_for_qqc(email_template, title, subtitle,
             first_message, second_message, code, in_mail_footer,
             image_paths)
-    send(recipients, sender, title, html_str, test, mailx, sender_pw)
+    send(recipients, sender, title, html_str, test, mailx, sender_pw,
+         image_paths=image_paths)
 
     # html form to be saved in the server
     template = env.get_template('bootdey_template.html')
@@ -286,8 +320,15 @@ def extract_info_for_qqc_report(raw_input_given: Path,
         'Comparing series protocols to standard',
         protocol_df.to_html(na_rep='', justify='center'))
 
-    top_message = raw_zip_loc_str + dicom_loc_str + nifti_loc_str + \
-            std_data_loc + qc_data_loc + quick_qc_summary + \
+    note_at_top = '<div><p>This report includes images which may fill up ' \
+        'your inbox. Delete once reviewed. The same report will be ' \
+        'accessible at' \
+        '<br><code>/data/predict1/data_from_nda/MRI_ROOT/derivatives/' \
+        'quick_qc/study_summary.html</code><br>Open this path with the ' \
+        'firefox on NoMachine.</p></div>'
+
+    top_message = note_at_top + raw_zip_loc_str + dicom_loc_str + \
+            nifti_loc_str + std_data_loc + qc_data_loc + quick_qc_summary + \
             run_sheet_summary + comparison_str
 
 

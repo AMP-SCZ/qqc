@@ -300,6 +300,19 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         with open(study_level_html, 'w') as fh:
             fh.write(html_str)
 
+
+    # ----------------------------------------------------------------------
+    # Run Figure extraction
+    # ----------------------------------------------------------------------
+    logger.info('Creating summary figures')
+    if not args.qc_subdir:
+        try:
+            quick_figures(session_dir, qc_out_dir)
+        except RuntimeError:
+            logger.info('Error in creating figures')
+        except OSError:
+            logger.info('OSError in creating figures')
+
     # ----------------------------------------------------------------------
     # Email
     # ----------------------------------------------------------------------
@@ -341,18 +354,6 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
             session_dir.name,
             fmriprep_outdir_root,
             fs_outdir_root)
-
-    # ----------------------------------------------------------------------
-    # Run Figure extraction
-    # ----------------------------------------------------------------------
-    logger.info('Creating summary figures')
-    if not args.qc_subdir:
-        try:
-            quick_figures(session_dir, qc_out_dir)
-        except RuntimeError:
-            logger.info('Error in creating figures')
-        except OSError:
-            logger.info('OSError in creating figures')
 
 
 
