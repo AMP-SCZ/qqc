@@ -17,8 +17,32 @@ import re
 import itertools
 from typing import Union
 
+
+def find_decimal_position(num):
+    # Handle zero as it doesn't have a non-zero digit
+    # if num == 0:
+        # return None
+    
+    # Convert the number to a string in scientific notation
+    num_str = "{:5.5e}".format(num)
+    
+    # Extract the exponent part from the scientific notation
+    exponent = int(num_str.split('e')[1])
+    
+    return exponent
+
+
+def _round_up_to_first_three_digits(number: float) -> float:
+    '''Round up the float at nth digit from the front'''
+    return np.around(number, -(find_decimal_position(number)-2))
+
+
 def ampscz_json_load(json_file: Union[str, Path]) -> dict:
     data = json.load(json_file)
+
+    for key, value in data.items():
+        if isinstance(value, float) or isinstance(value, int):
+            data[key] = _round_up_to_first_three_digits(float(value))
 
     decimal_dict = {'AcquisitionDuration': 2}
     for var, decimal_point in decimal_dict.items():
