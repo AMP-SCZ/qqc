@@ -106,8 +106,6 @@ def test_compare_enhanced_to_std():
     compare_enhanced_to_std(input_dir, standard_dir, qc_out_dir)
 
 
-
-
 def test_SF_csa():
     data_root = Path('/data/predict1/data_from_nda/MRI_ROOT/sourcedata')
     input_dicom_dir = data_root / 'SF01552/ses-202304201'
@@ -125,3 +123,7 @@ def test_SF_csa():
     input_dicom_dir = data_root / 'SF10462/ses-202304061'
     df_full_input = get_dicom_files_walk(input_dicom_dir, True)
     save_csa(df_full_input, Path('SF10462'), '')
+
+
+def test_consecutive_dup():
+    test_df = pd.read_csv('')
