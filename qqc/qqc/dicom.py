@@ -275,14 +275,18 @@ def check_order_of_series(df_full_input: pd.DataFrame,
 
     def consecutive_duplicates(df):
         """Ignore failures due to duplications in the series order table"""
+        df.drop('Summary', inplace=True)
         # Boolean mask of 'series_order' consecutive duplicates
         consecutive_duplicates = df['series_order'].eq(
             df['series_order'].shift())
+        consecutive_duplicates = consecutive_duplicates & (
+            df['series_order_target'] != df['series_order'])
+
 
         # Any 'series_order' consecutive duplicates innew 'temporary' column
         if consecutive_duplicates.any():
-            df['temporary'] = consecutive_duplicates
-
+            df['temporary'] = consecutive_duplicates & \
+                    ~(df['series_order_target'] == df['series_order'])
 
         # Iterate through dataframe rows, excluding the 'Summary' row
         # for row in df.iloc[1:].itertuples():
@@ -293,7 +297,7 @@ def check_order_of_series(df_full_input: pd.DataFrame,
             # in corresponding 'series_order_target'
             if row.temporary:
                 df['series_order_target'] = pd.concat([
-                    df['series_order_target'].iloc[1:row.Index],
+                    df['series_order_target'].iloc[:row.Index],
                     pd.Series(['Consecutive duplicate detected']),
                     df['series_order_target'].iloc[row.Index:]
                     ]
@@ -313,6 +317,7 @@ def check_order_of_series(df_full_input: pd.DataFrame,
         # Re-calculate 'Summary' row 'order_diff' score
         df.at['Summary', 'order_diff'] = 'Fail' if \
             'Fail' in df['order_diff'].iloc[1:].values else 'Pass'
+        df = df.reindex(['Summary'] + [x for x in df.index if x != 'Summary'])
 
         return df
 
