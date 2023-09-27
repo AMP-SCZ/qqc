@@ -444,3 +444,4 @@ def rearange_dicoms(dicom_df: pd.DataFrame,
                     pass
             else:
                 shutil.copy(row['file_path'], series_dir_path)
+                

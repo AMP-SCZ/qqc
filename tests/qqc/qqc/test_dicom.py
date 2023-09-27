@@ -107,4 +107,5 @@ def test_compare_enhanced_to_std():
 
 
 
-
+def test_consecutive_dup():
+    test_df = pd.read_csv('')
