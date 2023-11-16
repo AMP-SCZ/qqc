@@ -42,6 +42,10 @@ all_elements_to_extract = [
     ]
 
 
+class NoNumDescInstanceUidInfo(Exception):
+    pass
+
+
 def get_dicom_counts(sorted_dicom_dir: Path, **kwargs) -> pd.DataFrame:
     debug = kwargs.get('debug', False)
 
@@ -197,7 +201,8 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
             except:
                 table.at[table.index[0], 'norm'] = 'unknown'
 
-            table.at[table.index[0], 'series'] = get_series_info(pydicom_obj)
+            table.at[table.index[0], 'series'] = get_series_info(
+                    pydicom_obj, table.iloc[0]['file_path'])
             table['norm'] = table['norm'].fillna(method='ffill')
             table['series'] = table['series'].fillna(method='ffill')
             df.at[table.index, 'norm'] = table['norm']
@@ -225,7 +230,8 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
         except:  #GE
             df['norm'] = 'unknown'
 
-        df['series'] = df.pydicom.apply(lambda x: get_series_info(x))
+        df['series'] = df.apply(lambda row: get_series_info(
+            row.pydicom, row.file_path), axis=1)
 
     logger.info('Extracting information from pydicom objects')
     try:
@@ -276,18 +282,23 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     return df
 
 
-def get_series_info(dicom: pydicom.dataset.FileDataset):
+def get_series_info(dicom: pydicom.dataset.FileDataset, file_path: Path):
     '''Extract series information from pydicom dataset'''
     try:
         num = dicom.get(('0020', '0011')).value
         description = dicom.get(('0008', '103e')).value
         instance_uid = dicom.get(('0008', '0018')).value
     except AttributeError:
-        print(dicom)
-        logger.warning("Dicom doesn't have num, description, or instance_uid "
-                       "attributes.")
-        logger.warning("The dicom sourcedata may have non dicom files.")
-        sys.exit()
+        # TODO: get the information of the previous dicom file?
+        num = 'missing_from_dicom_header'
+        description = 'missing_from_dicom_header'
+        instance_uid = 'missing_from_dicom_header'
+        # print(dicom)
+        # print(file_path)
+        # logger.warning("Dicom doesn't have num, description, or instance_uid "
+                       # "attributes.")
+        # logger.warning("The dicom sourcedata may have non dicom files.")
+        # raise NoNumDescInstanceUidInfo
 
     return num, description, instance_uid
 
