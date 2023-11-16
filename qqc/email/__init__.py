@@ -61,6 +61,8 @@ def send(recipients, sender, subject, message, test, mailx, sender_pw,
             print(image_path)
             # with open(image_path, 'rb') as fp:
                 # image_data = fp.read()
+            if not Path(image_path).is_file():
+                continue
             image_data = resize_image(image_path)
             image = MIMEImage(image_data, name=image_path.name)
             image.add_header('Content-ID', f'<{image_path.name}>')
@@ -229,7 +231,6 @@ def extract_info_for_qqc_report(raw_input_given: Path,
     rawdata_dir = rawdata_root / qqc_out_dir.parent.name / qqc_out_dir.name
     source_dir = mri_root / 'sourcedata' / subject_name / qqc_out_dir.name
 
-
     # extract extra information
     json_comp = qqc_out_dir / '04_json_comparison_log.csv'
     json_comp_df = pd.read_csv(json_comp)
@@ -240,8 +241,13 @@ def extract_info_for_qqc_report(raw_input_given: Path,
     image_paths = list(qqc_out_dir.glob('*.png'))
 
     # get list of qqc html summaries for the whole study
-    # qqc_out_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/a/b')
     qqc_html_files = list(qqc_out_dir.parent.parent.glob('*/*/*.html'))
+
+    # get date check
+    with open(qqc_out_dir / 'date_check.txt', 'r') as fp:
+        date_check = "Pass" if bool(fp.read().strip()) else "Fail"
+
+    summary_df.loc['Dicom Date Check'] = date_check
 
     # sort
     qqc_html_list = []
@@ -269,6 +275,7 @@ def extract_info_for_qqc_report(raw_input_given: Path,
                 df = pd.read_csv(qqc_html.parent / '00_qc_summary.csv',
                                  index_col=0)
                 df = df[df.columns[0]]
+                qqc_dict['dicom_date_check'] = "Pass" if date_check else "Fail"
                 qqc_dict['series_count'] = df.loc['Series count']
                 qqc_dict['vol_check'] = df.loc['Volume slice number comparison']
                 qqc_dict['orient_anat'] = df.loc['Image orientation in anat']
@@ -277,11 +284,12 @@ def extract_info_for_qqc_report(raw_input_given: Path,
                 qqc_dict['bval_comp'] = df.loc['Bval comparison']
 
                 # all pass
-                qqc_dict['qc'] = 'Pass' if (df.loc[['Series count',
-                                          'Volume slice number comparison',
-                                          'Image orientation in anat',
-                                          'Image orientation in others',
-                                          'Bval comparison']] == 'Pass').all() \
+                qqc_dict['qc'] = 'Pass' if date_check and (
+                        df.loc[['Series count',
+                                'Volume slice number comparison',
+                                'Image orientation in anat',
+                                'Image orientation in others',
+                                'Bval comparison']] == 'Pass').all() \
                                                   else 'Fail'
 
             qqc_html_list.append(qqc_dict)
@@ -323,13 +331,12 @@ def extract_info_for_qqc_report(raw_input_given: Path,
     note_at_top = '<div><p>This report includes images which may fill up ' \
         'your inbox. Delete once reviewed. The same report will be ' \
         'accessible at' \
-        '<br><code>/data/predict1/data_from_nda/MRI_ROOT/derivatives/' \
-        'quick_qc/study_summary.html</code><br>Open this path with the ' \
-        'firefox on NoMachine.</p></div>'
+        f'<br><code>{qqc_out_dir}/qqc_summary.html</code><br>' \
+        'Open this path with the firefox on NoMachine.</p></div>'
 
     top_message = note_at_top + raw_zip_loc_str + dicom_loc_str + \
-            nifti_loc_str + std_data_loc + qc_data_loc + quick_qc_summary + \
-            run_sheet_summary + comparison_str
+        nifti_loc_str + std_data_loc + qc_data_loc + quick_qc_summary + \
+        run_sheet_summary + comparison_str
 
 
     # second_message: QC detail of the container
@@ -344,7 +351,7 @@ def extract_info_for_qqc_report(raw_input_given: Path,
 
     # dicom count table
     dicom_count_str = str_tmp.format(
-        f'Dicom file counts (rearranged by QQC)',
+        'Dicom file counts (rearranged by QQC)',
         dicom_count_input_df.to_html(na_rep='', justify='center'))
     qc_detail += dicom_count_str
 
