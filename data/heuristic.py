@@ -206,6 +206,7 @@ def infotodict(seqinfo):
             machine_model = str(ds.ManufacturerModelName)
             xa30 = True if 'xa30' in sv.lower() else False
             xa31 = True if 'xa31' in sv.lower() else False
+            xa50 = True if 'xa50' in sv.lower() else False
             ge_machine = True if 'ge' in machine.lower() else False
             philips_machine = True if 'philips' in machine.lower() else False
             vida_machine = True if 'vida' in machine_model.lower() else False
@@ -242,7 +243,7 @@ def infotodict(seqinfo):
                 continue
 
             # XA30
-            if xa30 or xa31:
+            if xa30 or xa31 or xa50:
                 if 't1w_mpr_nd' in s.series_description.lower():
                     info[t1w].append({'item': s.series_id})
                 else:
@@ -274,7 +275,7 @@ def infotodict(seqinfo):
                 continue
 
             # XA30
-            if xa30 or xa31:
+            if xa30 or xa31 or xa50:
                 if 't2w_spc_nd' in s.series_description.lower():
                     info[t2w].append({'item': s.series_id})
                 else:
