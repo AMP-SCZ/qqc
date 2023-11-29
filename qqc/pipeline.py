@@ -15,7 +15,7 @@ from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms, \
 from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
 from qqc.qqc.dicom import check_num_order_of_series, save_csa, is_enhanced, \
-        is_xa30
+        is_xa30, is_xa50, is_date_correct
 from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
 from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash, \
         refresh_qqc_summary_for_subject
@@ -84,7 +84,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         subject_name = 'sub-' + re.sub('[_-]', '', args.subject_name)
         # find the matching run sheet
         run_sheet = get_matching_run_sheet_path(qqc_input, args.session_name)
-            
+
     site = args.subject_name[:2]
     raw_input_given = qqc_input
 
@@ -141,6 +141,10 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                             standard_dir = config.get('XA30 template',
                                                       'ME')
                         logger.info(f'XA 30 ehanced template: {standard_dir}')
+                    break
+                elif is_xa50(qqc_input):
+                    standard_dir = config.get('XA50 template', site)
+                    logger.info(f'XA 50 template: {standard_dir}')
                     break
             break
 
