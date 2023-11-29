@@ -183,6 +183,9 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
             if 'CP' in subject_name or 'GW' in subject_name:
                 args.rename_dicoms = True
 
+            # if 'CP' in subject_name or 'GW' in subject_name:
+                # args.rename_dicoms = True
+
             rearange_dicoms(df_full, dicom_clearned_up_output,
                             subject_name.split('-')[1],
                             session_name.split('-')[1],
@@ -248,6 +251,12 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
     # Run QQC
     # ----------------------------------------------------------------------
     if not args.skip_qc:
+        # check date
+        date_check = is_date_correct(sorted_dicom_dir,
+                                     session_name.split('-')[1][:-1])
+        with open(qc_out_dir / 'date_check.txt', 'w') as fp:
+            fp.write("1" if date_check else "0")
+
         # try:
         run_qqc(qc_out_dir, session_dir, df_full, standard_dir)
         # except:
@@ -522,6 +531,8 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     Returns:
         None
     '''
+    # check the date in dicom header equals the date in the session name
+
     # within data QC
     logger.info('Beginning within scan QC')
     within_phantom_qc(nifti_session_dir, qc_out_dir)
