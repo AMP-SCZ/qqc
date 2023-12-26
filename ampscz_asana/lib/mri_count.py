@@ -8,25 +8,54 @@ from ampscz_asana.lib.server_scanner import get_all_mri_zip, get_all_eeg_zip, \
         get_most_recent_file, get_all_subjects_with_consent, \
         get_site_network_dict
 from qqc.utils.dpdash import get_summary_included_ids
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 
-def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
-                                           mriflow_csv: Path,
-                                           dpdash_outpath: Path,
-                                           mriqc_dir: Path,
-                                           modality: str = 'mri') -> None:
+def count_and_make_it_available_for_dpdash(
+        phoenix_paths: List[Path],
+        mriflow_csv: Path,
+        dpdash_outpath: Path,
+        mriqc_dir: Path,
+        modality: str = 'mri',
+        sync_to_forms_id: bool = True,
+        test: bool = False) -> None:
+    """
+    Counts the number of zip files corresponding to the given modality and
+    their matching information from the mriflow_csv table. Adds QC measures
+    from mriqc_dir to the zip_df. Creates a CSV file with the zip_df data
+    and a pivot table for DPdash. Optionally syncs the data to forms-qc
+    summary based on the sync_to_forms_id flag.
+
+    Args:
+        phoenix_paths (List[Path]): List of paths to the Phoenix directories.
+        mriflow_csv (Path): Path to the mriflow_csv table.
+        dpdash_outpath (Path): Path to the output directory for DPdash files.
+        mriqc_dir (Path): Path to the directory containing MRI QC measures.
+        modality (str, optional): Modality of the data. Defaults to 'mri'.
+        sync_to_forms_id (bool, optional): Flag to sync data to forms-qc summary.
+            Defaults to True.
+
+    Returns:
+        None
+    """
     # create df of all zip files corresponding to the modality and their
     # matching information from the mriflow_csv table
+    logger.info('Running get_mri_zip_df')
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
+    zip_df.to_csv(dpdash_outpath / f'{modality}_tmp_db.csv')
 
     if modality == 'mri':
+        logger.info('Additional info will be added to zip_df')
         # For MRI, DPACC saves final QC measures for each session to the
         # mriqc_dir everyday. This QC information is added to zip_df
         mriqc_value_loc = get_most_recent_file(mriqc_dir)
         zip_df = add_qc_measures(zip_df, mriqc_value_loc)
-        get_mriqc_value_df_pivot_for_subject(zip_df, mriqc_dir)
+        # get_mriqc_value_df_pivot_for_subject(zip_df, mriqc_dir)
+
+        get_mriqc_value_df_pivot_for_subject(zip_df, dpdash_outpath,
+                                             sync_to_forms_id, mriflow_csv)
 
     zip_df.to_csv(dpdash_outpath / f'{modality}_zip_db.csv')
     zip_df_pivot = get_mri_zip_df_pivot_for_subject(zip_df,
@@ -35,8 +64,11 @@ def count_and_make_it_available_for_dpdash(phoenix_paths: List[Path],
     # only include subjects in forms-qc summary
     forms_summary_ids = get_summary_included_ids()
     # index is the AMP-SCZ ID
-    zip_df_pivot = zip_df_pivot[zip_df_pivot.index.isin(forms_summary_ids)]
-    create_dpdash_zip_df_pivot(zip_df_pivot, dpdash_outpath, modality)
+    if sync_to_forms_id:
+        zip_df_pivot = zip_df_pivot[zip_df_pivot.index.isin(forms_summary_ids)]
+
+    create_dpdash_zip_df_pivot(zip_df_pivot, dpdash_outpath,
+                               modality, sync_to_forms_id, mriflow_csv)
 
 
 def get_mri_zip_df(
@@ -46,22 +78,44 @@ def get_mri_zip_df(
         mriflow_csv: Path =
             Path('/data/predict1/data_from_nda/MRI_ROOT/flow_check/'
                  'mri_data_flow.csv'),
-        modality: str = 'mri') -> pd.DataFrame:
+        modality: str = 'mri',
+        test: bool = False) -> pd.DataFrame:
+    """
+    Builds a database of existing MRI zip files.
+
+    Args:
+        phoenix_paths (List[Path]): List of Phoenix root paths.
+        mriflow_csv (Path): Path to the MRI data flow CSV file.
+        modality (str): Modality of the data ('mri' or 'eeg').
+
+    Returns:
+        pd.DataFrame: DataFrame containing information about the MRI zip files.
+    """
     logger.debug('building database of existing MRI zip files')
-    # data locations
-    data_root = Path('/data/predict1/data_from_nda')
 
     # MRI data flow info estimates timepoint based on the scan dates and the
     # run sheet files names. The csv is created by qqc/scripts/mriflow_check.py
     mri_flow_df = pd.read_csv(mriflow_csv, index_col=0)
-    mri_flow_df = mri_flow_df[['expected_mri_path', 'run_sheet_num']]
-    mri_flow_df.columns = ['zip_path', 'timepoint']
+    mri_flow_df = mri_flow_df[['subject', 'entry_date', 'run_sheet_num']]
+    def quick_rename(x):
+        if x == 'subject':
+            return 'subject_id'
+        elif x == 'entry_date':
+            return 'scan_date_str'
+        elif x == 'run_sheet_num':
+            return 'timepoint'
+        else:
+            return x
+    mri_flow_df.columns = [quick_rename(x) for x in mri_flow_df.columns]
+
+    # select only sessions with information in the run sheet
+    mri_flow_df.dropna(how='any', inplace=True)
 
     # initiate df with the existing zip files
     mri_zip_files = []
     for phoenix_root in phoenix_paths:
         if modality == 'mri':
-            mri_zip_files += get_all_mri_zip(phoenix_root)
+            mri_zip_files += get_all_mri_zip(phoenix_root, test=test)
         elif modality == 'eeg':
             mri_zip_files += get_all_eeg_zip(phoenix_root)
 
@@ -73,7 +127,13 @@ def get_mri_zip_df(
             x.name).group(1) if re.search(r'\d{4}_\d{1,2}_\d{1,2}_(\d+)',
             x.name) else None
     mri_zip_df['subject_id'] = mri_zip_df.zip_path.apply(get_sub_from_path)
-    mri_zip_df['session_num'] = mri_zip_df.zip_path.apply(get_ses_from_path)
+    mri_zip_df.to_csv('test.csv')
+    mri_zip_df['session_num'] = mri_zip_df.zip_path.apply(get_ses_from_path
+            )
+
+    # ignore MRI files that does not follow SOP
+    mri_zip_df = mri_zip_df[~mri_zip_df.session_num.isnull()]
+    mri_zip_df['session_num'] = mri_zip_df['session_num'].astype('int64')
     mri_zip_df['file_name'] = mri_zip_df.zip_path.apply(lambda x: x.name)
     mri_zip_df['scan_date'] = mri_zip_df.file_name.str.extract(
         r'(\d{4}_\d{1,2}_\d{1,2})')
@@ -83,10 +143,10 @@ def get_mri_zip_df(
 
     # merge mri_flow_df information to include timepoint
     mri_zip_df['zip_path'] = mri_zip_df['zip_path'].apply(str)
-    mri_zip_df = pd.merge(mri_zip_df, mri_flow_df, on='zip_path', how='left')
-
-    logger.debug(mri_zip_df)
-    logger.debug(mri_zip_df[mri_zip_df.timepoint.isnull()])
+    mri_zip_df = pd.merge(mri_zip_df,
+                          mri_flow_df,
+                          on=['subject_id', 'scan_date_str'],
+                          how='left')
 
     return mri_zip_df
 
@@ -132,7 +192,6 @@ def get_mri_zip_df_pivot_for_subject(
         all_subjects += get_all_subjects_with_consent(phoenix_root)
 
     site_net_dict = get_site_network_dict(phoenix_paths)
-    logger.debug(site_net_dict)
     for subject in all_subjects:
         if subject not in mri_zip_df_pivot.index.tolist():
             network = site_net_dict[subject[:2]]
@@ -263,7 +322,9 @@ def create_dpdash_mri_zip_df_pivot(mri_zip_df_pivot: pd.DataFrame,
 def create_dpdash_zip_df_pivot(
         zip_df_pivot: pd.DataFrame,
         outpath: Path = '/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count',
-        modality: str = 'mri') -> None:
+        modality: str = 'mri',
+        sync_to_forms_id: bool = False,
+        mriflow_csv: Path = False) -> None:
     '''Reformat and save eeg_zip_df_pivot'''
     logger.debug('Reformat eeg_zip_df_pivot for DPDash and save csv files')
     outpath = Path(outpath)
@@ -293,6 +354,32 @@ def create_dpdash_zip_df_pivot(
     # flush out
     for i in outpath.glob(f'*-{modality}count-day1to*csv'):
         os.remove(i)
+
+    # match to dataflow table
+    if sync_to_forms_id:
+        import sys
+        forms_summary_ids = get_summary_included_ids()
+        ses_missing_in_mricount = [x for x in forms_summary_ids if x not in
+                                   zip_df_pivot.subject_id.tolist()]
+        zip_df_pivot_tmp = pd.DataFrame()
+        for missing_subj in ses_missing_in_mricount:
+            zip_df_pivot_tmp_tmp = pd.DataFrame({
+                'subject_id': [missing_subj],
+                f'baseline_followup_{modality}': '0',
+                f'followup_followup_{modality}': '0'})
+            zip_df_pivot_tmp = pd.concat([zip_df_pivot_tmp,
+                                          zip_df_pivot_tmp_tmp])
+
+        zip_df_pivot = pd.concat([
+           zip_df_pivot,
+           zip_df_pivot_tmp], ignore_index=True)
+        # forms_summary_ids = get_summary_included_ids()
+        # zip_df_pivot = zip_df_pivot[
+                # zip_df_pivot.subject_id.isin(forms_summary_ids)]
+
+        zip_df_pivot['day'] = range(1, len(zip_df_pivot)+1)
+        # logger.warning(f'check the following cases: {ses_missing_in_mricount}')
+        # sys.exit()
 
     # all combined
     filename = f'combined-AMPSCZ-{modality}count-day1to{len(zip_df_pivot)}.csv'
@@ -327,8 +414,18 @@ def create_dpdash_zip_df_pivot(
 
 
 def add_qc_measures(mri_zip_df: pd.DataFrame,
-                    mriqc_value_loc: Path) -> pd.DataFrame:
-    '''To zip file.debug df, add mriqc_value from google drive'''
+                    mriqc_value_loc: Path,
+                    test: bool = False) -> pd.DataFrame:
+    '''
+    Adds MRI quality control measures to the input DataFrame.
+
+    Args:
+        mri_zip_df (pd.DataFrame): The DataFrame containing the MRI data.
+        mriqc_value_loc (Path): The location of the MRIQC values file.
+
+    Returns:
+        pd.DataFrame: The updated DataFrame with MRIQC values added.
+    '''
     mriqc_value_df = pd.read_csv(mriqc_value_loc, index_col=0)
     logger.debug(f'Number of subject in mriqc db: {len(mriqc_value_df)}')
 
@@ -342,6 +439,11 @@ def add_qc_measures(mri_zip_df: pd.DataFrame,
     mriqc_value_df['subject_id'] = ses_id_split.str[0].str.split('-').str[1]
     mriqc_value_df['session_id'] = ses_id_split.str[1].str.split('-').str[1]
     mriqc_value_df['date_str'] = mriqc_value_df.session_id.str[:-1]
+    mriqc_value_df['session_num'] = mriqc_value_df.session_id.str[-1].\
+            astype('int')
+    mri_zip_df['session_num'] = mri_zip_df.session_num.astype('int')
+
+
     mriqc_value_df['date'] = pd.to_datetime(mriqc_value_df['date_str'],
                                             format='%Y%m%d',
                                             errors='coerce')
@@ -350,27 +452,41 @@ def add_qc_measures(mri_zip_df: pd.DataFrame,
     mriqc_value_df['scan_date_str'] = mriqc_value_df['date'].dt.strftime(
             '%Y-%m-%d')
 
-    # include timepoint
+    if test:
+        print(mriqc_value_loc)
+        return mriqc_value_df
+    # include timepoint that is extracted from runsheets and included in the
+    # mri_zip_df
+    # actual extraction: get_run_sheet_df in ampscz_asana.lib.qc
+    # csv creation: dpacc_count.py in qqc/scripts
+
     mriqc_value_df = pd.merge(
             mri_zip_df,
             mriqc_value_df,
-            on=['subject_id', 'scan_date_str'],
+            on=['subject_id', 'scan_date_str', 'session_num'],
             how='left')
 
     logger.debug('Number of subject in mriqc db after merge: '
                  f'{len(mriqc_value_df)}')
-    logger.debug('mriqc_value_df')
-    logger.debug(mriqc_value_df)
 
     # codify 'mriqc_val'
     mriqc_value_df['mriqc_int'] = mriqc_value_df['mriqc_val'].str.strip().map(
-        {'Unusable': 0, 'Partial': 1, 'Pass': 2, 'Pending': 3})
+        {'Unusable': 0,
+         'Partial': 1,
+         'Pass': 2,
+         'Pending': 3})
 
     return mriqc_value_df
 
 
-def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
-                                         outpath: Path) -> pd.DataFrame:
+def get_mriqc_value_df_pivot_for_subject(
+        mriqc_value_df: pd.DataFrame,
+        outpath: Path,
+        sync_to_forms_id: bool = True,
+        mriflow_csv: Path = False) -> pd.DataFrame:
+
+    mriqc_value_df['mriqc_int'].fillna(3, inplace=True)
+
     # pd.set_option('display.max_rows', 5000)
     drop_dup_mriqc_value_df = mriqc_value_df[
             ['subject_id', 'timepoint', 'mriqc_int', 'network']
@@ -385,7 +501,6 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
         values='mriqc_int')
     logger.debug('Number of subject in mriqc db after pivot: '
                  f'{len(mriqc_value_df_pivot)}')
-    logger.debug(mriqc_value_df_pivot)
 
     mriqc_value_df_pivot = mriqc_value_df_pivot.reset_index()
 
@@ -398,12 +513,61 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
         'day', 'reftime', 'timeofday', 'weekday', 'network',
         'timepoint', 'subject_id', 'mriqc_int']]
 
-    logger.debug('mriqc_value_df_pivot')
-    logger.debug(mriqc_value_df_pivot)
-
     # remove existing csv files
+    logger.info(f'removing existing csv files in {outpath}')
     for csv_files in outpath.glob('*mriqcval-day*csv'):
         os.remove(csv_files)
+
+    # add missing information from dataflow dataframe
+    if sync_to_forms_id:
+        mriflow_df = pd.read_csv(next(
+            mriflow_csv.parent.glob('combined-AMP*.csv')))
+        ses_in_mriqc = [(x.subject_id, x.timepoint) for index, x in
+                        mriqc_value_df_pivot.iterrows()]
+        ses_in_dataflow = [(x.subject_id, x.timepoint) for index, x in
+                           mriflow_df.iterrows()]
+        ses_missing_in_mriqc = [x for x in ses_in_dataflow
+                                if x not in ses_in_mriqc]
+        ses_missing_in_dataflow = [x for x in ses_in_mriqc
+                                   if x not in ses_in_dataflow]
+        logger.warning(f'check the following cases: {ses_missing_in_dataflow}')
+
+        site_to_network_dict = pd.concat([
+            mriflow_df['subject_id'].str[:2],
+            mriflow_df['network']], axis=1
+            ).drop_duplicates().set_index(
+                'subject_id')['network'].to_dict()
+        df_tmp = pd.DataFrame()
+        for subject_id, timepoint in ses_missing_in_mriqc:
+            dataflow_row = mriflow_df.set_index([
+                'subject_id', 'timepoint']).loc[(subject_id, timepoint)]
+            missing_info = dataflow_row['missing_info']
+            site = subject_id[:2]
+            network = site_to_network_dict[site]
+            # 99 -> no data transferred to DPACC yet
+            # 100 -> labelled as missing in database
+            if missing_info == 1:
+                mriqc_int = 100
+            else:
+                mriqc_int = 99
+            df_tmp_tmp = pd.DataFrame({
+                'subject_id': [subject_id],
+                'timepoint': timepoint,
+                'network': network,
+                'mriqc_int': mriqc_int
+            })
+            df_tmp = pd.concat([df_tmp, df_tmp_tmp], ignore_index=True)
+                                        
+        mriqc_value_df_pivot = pd.concat([
+            mriqc_value_df_pivot,
+            df_tmp], ignore_index=True)
+
+        logger.info('Removing any cases not included in the formsqc')
+        forms_summary_ids = get_summary_included_ids()
+        mriqc_value_df_pivot = mriqc_value_df_pivot[
+                mriqc_value_df_pivot.subject_id.isin(forms_summary_ids)]
+
+        mriqc_value_df_pivot['day'] = range(1, len(mriqc_value_df_pivot)+1)
 
     # all combined
     filename = f'combined-AMPSCZ-mriqcval-day1to{len(mriqc_value_df_pivot)}.csv'
@@ -440,7 +604,17 @@ def get_mriqc_value_df_pivot_for_subject(mriqc_value_df: pd.DataFrame,
 def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
                                  run_sheet_df_loc: Path,
                                  output_merged_zip: Path) -> None:
-    """Merge zip database with the runsheet database"""
+    """
+    Merge zip database with the runsheet database.
+
+    Args:
+        zip_df_loc (Path): The file path of the zip database.
+        run_sheet_df_loc (Path): The file path of the runsheet database.
+        output_merged_zip (Path): The file path to save merged zip database.
+
+    Returns:
+        None
+    """
     zip_df = pd.read_csv(zip_df_loc, index_col=0)
 
     def zip_df_rename(col: str) -> str:
