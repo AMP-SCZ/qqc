@@ -80,7 +80,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
             command = f'bsub -q pri_pnl \
                     -o {mriqc_outdir_root}/mriqc.out \
                     -e {mriqc_outdir_root}/mriqc.err \
-                    -n 1 -J mriqc_{subject_id}_{session_id} \
+                    -n 3 -J mriqc_{subject_id}_{session_id} \
                     {command}'
         else:
             nodes = ' '.join(specific_nodes)
@@ -88,7 +88,7 @@ def run_mriqc_on_data(rawdata_dir: Path,
                     -o {mriqc_outdir_root}/mriqc.out \
                     -e {mriqc_outdir_root}/mriqc.err \
                     -m "{nodes}" \
-                    -n 1 -J mriqc_{subject_id}_{session_id} \
+                    -n 3 -J mriqc_{subject_id}_{session_id} \
                     {command}'
 
     command = re.sub('\s+', ' ', command)
