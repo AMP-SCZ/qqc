@@ -14,22 +14,22 @@ job_dir = MRI_ROOT / 'jobs'
 
 def parse_arguments():
     parser = parse_args()
-    parser.add_argument('--study_networks',
+    parser.add_argument('--study_networks', '-sn',
                         nargs='+', choices=['Prescient', 'Pronet'],
                         default=['Prescient', 'Pronet'],
                         help='Study networks')
 
-    parser.add_argument('--ignore_file',
+    parser.add_argument('--ignore_file', '-if',
                         type=str,
                         default=MRI_ROOT / 'data_to_ignore.txt',
                         help='Ignore source text file')
 
-    parser.add_argument('--email_recipients_file',
+    parser.add_argument('--email_recipients_file', '-erf',
                         type=str,
                         default=MRI_ROOT / 'email_recipients.txt',
                         help='Email recipients text file')
 
-    parser.add_argument('--no_email',
+    parser.add_argument('--no_email', '-ne',
                         action='store_true',
                         help='Do not send email')
 
@@ -44,6 +44,10 @@ def parse_arguments():
     parser.add_argument('--rerun',
                         action='store_true', default=False,
                         help='Rerun QQC')
+
+    parser.add_argument('--pause_at_error',
+                        action='store_true', default=False,
+                        help='Pause at error')
 
     return parser
 
@@ -133,12 +137,15 @@ def main(args: argparse.PARSER):
                 print(f"session- {session}")
                 print(f"{qqc_summary_html_file} is missing")
 
-                try:
+                if args.pause_at_error:
                     dicom_to_bids_QQC(args)
-                    print("=========================")
-                    print()
-                except Exception as e:
-                    print(e)
+                else:
+                    try:
+                        dicom_to_bids_QQC(args)
+                        print("=========================")
+                        print()
+                    except Exception as e:
+                        print(e)
                 # Replace the following command with the appropriate Python code for executing dicom_to_dpacc_bids.py
                 # python_cmd = [
 # #                    '/usr/share/lsf/9.1/linux2.6-glibc2.3-x86_64/bin/bsub',
