@@ -5,7 +5,7 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, List
 import logging
 
 from qqc.utils.files import get_all_files_walk
@@ -19,6 +19,22 @@ logger = logging.getLogger(__name__)
 class NoDwiException(Exception):
     pass
 
+
+
+def extract_digits_from_3dFWHMx(output_str: str) -> pd.DataFrame:
+    pass
+
+
+def get_smoothness(input_nifti: Path) -> Tuple[List[float], List[float]]:
+    command = f'3dFWHMx \
+            -input {input_nifti} \
+            -automask -ACF NULL -ShowMeClassicFWHM'
+    output_text = os.popen(command).read()
+    digit_list = re.findall('\d+\.\d+', output_text)
+    fwhm_model_param = [float(x) for x in digit_list[-8:-4]]
+    acf_model_param = [float(x) for x in digit_list[-4:]]
+
+    return (fwhm_model_param, acf_model_param)
 
 def compare_volume_to_standard_all_nifti(input_dir: str,
                                          standard_dir: str,
