@@ -104,8 +104,8 @@ def create_b0_signal_figure_prev(data1: np.array, data1_bval: np.array,
 
 
 def create_image_signal_figure(dataset: List[tuple], out: str,
-                               savefig: bool = False, col_num: int = 3, 
-                               wide_fig: bool = False):
+                               savefig: bool = False, col_num: int = 3,
+                               wide_fig: bool = False, flatten: bool = False):
     '''Plot b0 summary from three different 4d dMRI volumes
 
     Key arguments:
@@ -114,9 +114,21 @@ def create_image_signal_figure(dataset: List[tuple], out: str,
         savefig: save figure if True, bool.
         col_num: number of figures in a single row, int.
         wide_fig: option to create horizontally long figure, bool.
+        flatten: option to create multiple signal lines in a figure, bool.
+
+    Flatten figure creation example:
+        It is required to set col_num as 1.
+        >> create_image_signal_figure(
+                # dataset, outdir / '09_summary_fmri.png',
+                # True, 1, wide_fig=False, flatten=True)
     '''
     col_width = 4
-    row_num = math.ceil(len(dataset) / col_num)
+
+    if flatten:
+        row_num = 1
+    else:
+        row_num = math.ceil(len(dataset) / col_num)
+
     row_height = 8
     width = len(dataset) * col_width
     height = row_num * row_height
@@ -131,16 +143,33 @@ def create_image_signal_figure(dataset: List[tuple], out: str,
     # color
     cm = plt.get_cmap('brg')
 
-    color_num = 0
-    for ax, (data, name) in zip(np.ravel(axes), dataset):
-        color = cm(1.*color_num/len(dataset))
-        data_mean = [data[:, :, :, vol_num].mean() for vol_num in
-                     np.arange(data.shape[-1])]
-        ax.plot(data_mean, color=color, linestyle='-', marker='o')
-        ax.set_ylabel("Average signal in all voxels")
-        ax.set_xlabel("Volume")
-        ax.set_title(name)
-        color_num += 1
+    if flatten:
+        color_num = 0
+        ax = axes
+        for data, name in dataset:
+            color = cm(1.*color_num/len(dataset))
+            data_mean = [data[:, :, :, vol_num].mean() for vol_num in
+                         np.arange(data.shape[-1])]
+
+            ax.plot(data_mean, label=name, color=color, linestyle='-', marker='o')
+            ax.set_xlabel("Volume")
+            color_num += 1
+        ax.set_title('Average signal across volume')
+        _ = ax.legend()
+
+    else:
+        color_num = 0
+        for ax, (data, name) in zip(np.ravel(axes), dataset):
+            color = cm(1.*color_num/len(dataset))
+            data_mean = [data[:, :, :, vol_num].mean() for vol_num in
+                         np.arange(data.shape[-1])]
+
+            ax.plot(data_mean, label=name, color=color, linestyle='-', marker='o')
+            ax.set_ylabel("Average signal in all voxels")
+            ax.set_xlabel("Volume")
+
+            ax.set_title(name)
+            color_num += 1
 
     max_y = 0
     min_y = 100000
