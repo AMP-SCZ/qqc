@@ -1,9 +1,12 @@
 import re
 import os
 import json
+import logging
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 '''
 #this is a prototype of a function built to grab subject IDs from pheonix and send to asana
@@ -23,6 +26,7 @@ def get_most_recent_file(root: Path,
         date_str = re.search('(\d{4}_\d{1,2}_\d{1,2})', file.name).group(1)
         date_time = datetime.strptime(date_str, date_format)
         if date_time > most_recent_date:
+            most_recent_date = date_time
             most_recent_file = file
 
     return most_recent_file
@@ -46,7 +50,7 @@ def get_all_mri_zip(phoenix_root: Path, **kwargs) -> list:
     # PHOENIX/PROTECTED/PronetIR/raw/IR01451/eeg/IR01451.Pronet.Run_sheet_eeg_2.csv
     test = kwargs.get('test', False)
     if test:
-        prefix = 'PROTECTED/*YA/raw/YA16*/mri/[!.]*_MR_*[zZ][iI][pP]'
+        prefix = 'PROTECTED/*NC/raw/NC02111/mri/[!.]*_MR_*[zZ][iI][pP]'
     else:
         prefix = 'PROTECTED/*/raw/*/mri/[!.]*_MR_*[zZ][iI][pP]'
 
@@ -85,13 +89,15 @@ def get_site_network_dict(phoenix_roots) -> dict:
 
 def grep_run_sheets(phoenix_dir: Path, test: bool = False) -> list:
     '''Grab run sheets from PHOENIX'''
+    logger.info(f'Searching run sheets under {phoenix_dir}')
     protected_dir = phoenix_dir / 'PROTECTED'
     if test:
         subject_directories_under_phoenix = protected_dir.glob(
-                '*[YM][AE]/raw/*/*/*Run_sheet*csv')
+                '*[YM][AE]/raw/*12*/[em][er][gi]/*Run_sheet*csv')
+                # '*[YM][AE]/raw/*/[em][er][gi]/*Run_sheet*csv')
     else:
         subject_directories_under_phoenix = protected_dir.glob(
-                '*/raw/*/*/*Run_sheet*csv')
+                '*/raw/*/[em][er][gi]/*Run_sheet*csv')
     return list(subject_directories_under_phoenix)
 
 
