@@ -6,9 +6,16 @@ from datetime import datetime
 FORMSQC_ROOT = Path('/data/predict1/data_from_nda/formqc')
 
 
+class NoMatchingSummaryForms(Exception):
+    pass
+
+
 def get_most_recent_formsqc_summary(forms_root: Path = FORMSQC_ROOT) -> Path:
     """Get most recent AMP-SCZ forms-QC summary csv path"""
-    summary_csvs = Path(forms_root).glob('Summary_AMP-SCZ_forms_*.csv')
+    summary_csvs = list(Path(forms_root).glob('Summary_AMP-SCZ_forms*.csv'))
+
+    if len(summary_csvs) == 0:
+        raise NoMatchingSummaryForms
 
     most_recent_date = datetime.strptime('1900-01-01', '%Y-%m-%d')
     most_recent_csv = ''
