@@ -1,12 +1,16 @@
+import numpy as np
+import nibabel as nb
 from pathlib import Path
 from qqc.utils.files import get_diffusion_data_from_nifti_prefix, \
         get_nondmri_data, load_data_bval
 from qqc.utils.visualize import create_b0_signal_figure, \
         create_image_signal_figure 
 import sys
-sys.path.append('/data/predict/phantom_data/softwares/nifti-snapshot')
+sys.path.append('/data/predict1/home/kcho/nifti-snapshot')
 from nifti_snapshot import nifti_snapshot
 
+import logging
+logger = logging.getLogger(__name__)
 
 
 def quick_figures(subject_dir: Path, outdir: Path):
@@ -52,8 +56,14 @@ def quick_figures(subject_dir: Path, outdir: Path):
                 data = get_nondmri_data(nifti_prefix, 'nifti_prefix', '', False)
                 dataset.append((data, nifti_prefix.name.split('ses-')[1]))
 
-        create_image_signal_figure(dataset, outdir / '09_summary_fmri.png',
-                                True, 4, wide_fig=True)
+        # multiple axes figure
+        # create_image_signal_figure(dataset, outdir / '09_summary_fmri.png',
+                                # True, 4, wide_fig=True)
+
+        # single ax figure
+        create_image_signal_figure(
+                dataset, outdir / '09_summary_fmri.png',
+                True, 1, wide_fig=False, flatten=True)
 
 
     anat_dir = subject_dir / 'anat'
@@ -99,3 +109,87 @@ def quick_figures(subject_dir: Path, outdir: Path):
                 output_file = outdir / outname,
             )
 
+    # add 4d visualization
+    dwi_dir = subject_dir / 'dwi'
+    for nifti_path in dwi_dir.glob('*dwi.nii.gz'):
+        outname = outdir / nifti_path.name.split('.nii.gz')[0]
+        if not (outdir / outname).is_file():
+            fig = nifti_snapshot.SimpleFigureGif(
+                image_files = [nifti_path],
+                file_name_prefix = outname)
+    func_dir = subject_dir / 'func'
+    for nifti_path in func_dir.glob('*bold.nii.gz'):
+        outname = outdir / nifti_path.name.split('.nii.gz')[0]
+        if not (outdir / outname).is_file():
+            fig = nifti_snapshot.SimpleFigureGif(
+                image_files = [nifti_path],
+                file_name_prefix = outname)
+
+
+def create_and_show_gif(dwi_pa_loc: Path, name_prefix: str = None) -> None:
+    """
+    Creates and shows a GIF animation from a DWI image file.
+
+    Parameters:
+    - dwi_pa_loc (Path): The path to the DWI image file.
+    - name_prefix (str, optional): The prefix for the output file names.
+        If not provided, the prefix will be the same as the input file name.
+
+    Returns:
+        None
+    """
+    dwi_pa_loc = Path(dwi_pa_loc)
+    bval_file = dwi_pa_loc.parent / (dwi_pa_loc.name.split('.')[0] + '.bval')
+    
+    if name_prefix is None:
+        name_prefix = dwi_pa_loc.name.split('.')[0]
+    else:
+        pass
+        
+    logger.info('Loading data')
+    img = nb.load(dwi_pa_loc)
+    data = img.get_fdata()
+    bval_arr = np.round(np.loadtxt(bval_file), -2)
+
+    # for unique b-shells
+    for bval in np.unique(bval_arr):
+        if bval > 1000:
+            continue
+        out_gif_name = f"{name_prefix}_b{bval}.gif"
+        data_bval = data[..., np.where(bval_arr==bval)[0]]
+        nb.Nifti1Image(
+                data_bval, affine=img.affine, header=img.header).to_filename(
+                        f"{name_prefix}_b{bval}.nii.gz")
+        
+        # Create a series of frames
+        filenames = []
+        for i in range(data_bval.shape[-1]):
+            fig, axes = plt.subplots(ncols=3, nrows=3, figsize=(15, 15))
+
+            slice_nums = np.linspace(0, data_bval.shape[-2]-1, 9).round(0)
+            for slice_num, ax in zip(slice_nums, np.ravel(axes)):
+                ax.imshow(data_bval[:, :, int(slice_num), i])
+
+            # Save frame
+            filename = f'frame_{i}.png'
+            filenames.append(filename)
+            fig.suptitle(f"dwi_pa_loc.name b{bval}")
+        
+
+            fig.savefig(filename)
+            plt.close()
+            # break
+
+            
+        with imageio.get_writer(out_gif_name, mode='I', duration=0.1) as writer:
+            for filename in filenames:
+                image = imageio.imread(filename)
+                writer.append_data(image)
+
+        # Clean-up frames
+        for filename in filenames:
+            os.remove(filename)
+
+        # Display the GIF in Jupyter Notebook
+        # from IPython.display import Image
+        # return Image(filename=f"{n
