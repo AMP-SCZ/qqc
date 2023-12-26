@@ -8,8 +8,7 @@ from qqc.dicom_files import get_diff_in_csa_for_all_measures
 from pydicom.errors import InvalidDicomError
 
 
-def is_xa30(dicom_root: Path) -> Tuple[bool, str]:
-    '''checks if the dicom_root has enhnaced XA30 dicom'''
+def _loop_through_dicoms(dicom_root: Path) -> pydicom:
     for root, dirs, files in os.walk(dicom_root):
         for file in files:
             if file.endswith('.xml'):
@@ -17,28 +16,80 @@ def is_xa30(dicom_root: Path) -> Tuple[bool, str]:
 
             try:
                 d = pydicom.read_file(Path(root) / file)
+                yield d
             except InvalidDicomError:
                 continue
 
-            print(f'Checking XA30: {Path(root) / file}')
 
+
+def get_scandate(dicom_root: Path) -> str:
+    """Get scan date from dicom headers"""
+    for d in _loop_through_dicoms(dicom_root):
+        try:
+            return d.AcquisitionDate
+        except AttributeError:
+            print('There is no AcquisitionDate in the dicom header')
+            print('Trying "AcquisitionDateTime"')
             try:
-                if re.search('xa30', str(d.SoftwareVersions), re.IGNORECASE):
-                    print('XA30')
-                    return True
-                else:
-                    print('non-XA30')
-                    return False
-            except TypeError:
-                continue
+                return d.AcquisitionDateTime[:8]
             except AttributeError:
-                continue
+                print('There is no AcquisitionDateTime in the dicom header')
+                print('Please find date information in the dicom header')
+                return '20000101'
+
+
+
+def is_date_correct(dicom_root: Path, date_string: str) -> bool:
+    """Check if the filename date matches the date in the dicom header"""
+    scandate = get_scandate(dicom_root)
+    if date_string == scandate:
+        return True
+    else:
+        return False
+
+
+def is_xa30(dicom_root: Path) -> Tuple[bool, str]:
+    '''checks if the dicom_root has enhnaced XA30 dicom'''
+    for d in _loop_through_dicoms(dicom_root):
+        try:
+            if re.search('xa30', str(d.SoftwareVersions), re.IGNORECASE):
+                print('XA30')
+                return True
+            else:
+                print('non-XA30')
+                return False
+        except TypeError:
+            continue
+        except AttributeError:
+            continue
 
     return False
+
+
+def is_xa50(dicom_root: Path) -> Tuple[bool, str]:
+    '''checks if the dicom_root has enhnaced XA30 dicom'''
+    for d in _loop_through_dicoms(dicom_root):
+        try:
+            if re.search('xa50', str(d.SoftwareVersions), re.IGNORECASE):
+                print('XA50')
+                return True
+            else:
+                print('non-XA50')
+                return False
+        except TypeError:
+            continue
+        except AttributeError:
+            continue
+
+    return False
+
 
 def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
     '''checks if the dicom_root has enhnaced XA30 dicom'''
     for root, dirs, files in os.walk(dicom_root):
+        if 'localizer' in root.lower() or 'scout' in root.lower():
+            continue
+
         for file in files:
             d = pydicom.read_file(Path(root) / file)
 
