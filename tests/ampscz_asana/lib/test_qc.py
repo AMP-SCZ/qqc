@@ -4,7 +4,10 @@ from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash, \
         extract_mri_comments
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, \
         extract_missing_data_information, compare_dates, format_days, \
-        check_mri_data
+        check_mri_data, extract_missing_data_info_new, \
+        collect_info_from_json
+
+from qqc.utils.dpdash import get_summary_included_ids
 
 import pandas as pd
 from pathlib import Path
@@ -46,23 +49,23 @@ def hatest_get_run_sheet():
         # run_sheet_df = get_run_sheet_df(phoenix_root)
         # run_sheet_df.to_csv(run_sheet_csv_tmp)
 
-  assert(date_of_zip('ME04934', '2022_12_02', dir)) == '2023-03-13'
-  assert(date_of_zip('CP01128', '2023_02_23', dir)) == '2023-03-02'
+    assert(date_of_zip('ME04934', '2022_12_02', dir)) == '2023-03-13'
+    assert(date_of_zip('CP01128', '2023_02_23', dir)) == '2023-03-02'
 
 
 def test_extract_missing_data_information():  #will also test the extract_variable_information function since this one uses it 
-  dir = '/data/predict1/data_from_nda/Prescient/PHOENIX'
-  try:
-    assert (extract_missing_data_information('ME97666', str(dir))[0] == 
-            "'Timepoint: baseline_arm_1 | Date: 2022-10-14 | clinical measures', 'Timepoint: month_3_arm_1 | Date: | digital biomarkers'")
-  except AssertionError:
-    print("Assertion failed!")                            
-    
-  try:
-    assert (extract_missing_data_information('ME97666', str(dir))[1] == 
+    dir = '/data/predict1/data_from_nda/Prescient/PHOENIX'
+    try:
+        assert (extract_missing_data_information('ME97666', str(dir))[0] == 
+                "'Timepoint: baseline_arm_1 | Date: 2022-10-14 | clinical measures', 'Timepoint: month_3_arm_1 | Date: | digital biomarkers'")
+    except AssertionError:
+        print("Assertion failed!")                            
+
+    try:
+        assert (extract_missing_data_information('ME97666', str(dir))[1] == 
             "'Timepoint: baseline_arm_1 | Date: 2022-10-14 | Other reason', 'Timepoint: month_3_arm_1 | Date: | Other reason'")
-  except AssertionError:
-    print("Assertion failed!")
+    except AssertionError:
+        print("Assertion failed!")
   
 
 def test_compare_dates():
@@ -167,6 +170,85 @@ def test_dpdash_dataflow_view_update():
     print(all_df.head())
 
 
+def test_dpdash_dataflow_view_check_december():
+    data_root = Path('/data/predict1/data_from_nda')
+    mriflow_dir = data_root / 'MRI_ROOT/flow_check'
+    dpdash_outpath = data_root / 'MRI_ROOT/eeg_mri_count'
+
+    forms_summary_ids = get_summary_included_ids()
+    output_merged_zip = dpdash_outpath / 'mri_all_db.csv'
+    df = pd.read_csv(output_merged_zip)
+    df = df[df.subject.isin(forms_summary_ids)]
+    all_df = dataflow_dpdash(df, mriflow_dir, test=True)
+    all_df.to_csv('test.csv')
+
+    dataflow_dpdash(df, mriflow_dir, test=False)
+
+
+def test_extra_cases_in_the_mriflow():
+    mriflow_df_loc = '/data/predict1/data_from_nda/MRI_ROOT/flow_check/combined-AMPSCZ-mridataflow-day1to1352.csv'
+    mricount_df_loc = '/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/combined-AMPSCZ-mricount-day1to1286.csv'
+
+    mriflow_df = pd.read_csv(mriflow_df_loc)
+    mricount_df = pd.read_csv(mricount_df_loc)
+
+    extra_mriflow = mriflow_df[~
+        mriflow_df.subject_id.isin(mricount_df.subject_id)].subject_id
+    assert len(extra_mriflow) == 0
+
+    extra_mricount_df = mricount_df[~
+        mricount_df.subject_id.isin(mriflow_df.subject_id)]
+    extra_mricount = extra_mricount_df.subject_id
+
+    forms_summary_ids = get_summary_included_ids()
+
+    assert extra_mricount.isin(forms_summary_ids).all()
+    print(len(extra_mricount))
+
+    print(extra_mricount_df.head())
+
+def test_adding_no_mri_cases_to_the_mricount_df():
+    mriflow_df_loc = '/data/predict1/data_from_nda/MRI_ROOT/flow_check/combined-AMPSCZ-mridataflow-day1to1352.csv'
+    mricount_df_loc = '/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/combined-AMPSCZ-mricount-day1to1286.csv'
+    mriqc_df_loc = '/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/combined-AMPSCZ-mriqcval-day1to1092.csv'
+
+    forms_summary_ids = get_summary_included_ids()
+    print(len(forms_summary_ids))
+    # mricount_df = pd.read_csv(mricount_df_loc)
+    mriqc_df = pd.read_csv(mriqc_df_loc)
+    mriflow_df = pd.read_csv(mriflow_df_loc)
+
+    mriqc_extra_df = pd.DataFrame(columns=mriqc_df.columns)
+    mriqc_extra_df.subject_id = [x for x in forms_summary_ids if x not in
+                                 mriqc_df.subject_id.tolist()]
+    print(mriqc_extra_df)
+    return
+
+    mriqc_extra_df.network = mriqc_extra_df.subject_id.str[:2].map(
+            mriflow_df.set_index('site')['network'].to_dict())
+    mriqc_extra_df['baseline_mri'] = 99
+    mriqc_extra_df['followup_mri'] = 99
+    mriqc_extra_df['baseline_followup_mri'] = 99
+
+    # mriqc_df = pd.concat([mriqc_df, mriqc_extra_df], ignore_index=True)
+    mriqc_df['day'] = range(1, len(mriqc_df)+1)
+
+    print(mriqc_df)
+    print(mriqc_extra_df)
+    print(mriqc_df.duplicated().any())
+
+
+    # is it expected or not -> no run sheet information
+ 
+
+def test_get_mriqc_value_df_pivot_for_subject():
+
+    get_mriqc_value_df_pivot_for_subject(zip_df,
+                                         dpdash_outpath,
+                                         sync_to_forms_id,
+                                         mriflow_csv)
+
+
 def test_merge_zip_db_and_runsheet_db():
     zip_df = pd.read_csv('/data/predict1/data_from_nda/MRI_ROOT/eeg_mri_count/mri_zip_db.csv',
             index_col=0)
@@ -214,3 +296,38 @@ def test_check_mri_data():
 
     entry_date = '2023_3_03'
     assert check_mri_data(run_sheet_path, entry_date)
+
+
+def test_get_run_sheet_df():
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    df = get_run_sheet_df(phoenix_root, test=True)
+    df.to_csv('test.csv')
+    print(df)
+
+
+def test_extract_missing_data_information_with_age():
+    dir = '/data/predict1/data_from_nda/Prescient/PHOENIX'
+    out_lists = extract_missing_data_information('ME97666', str(dir))
+    print(out_lists[-1])
+
+
+def test_extract_missing_data_info_new():
+    dir = '/data/predict1/data_from_nda/Prescient/PHOENIX'
+    scan_date=''
+    timepoint='1'
+    out_lists = extract_missing_data_info_new(
+            'ME97666', str(dir), scan_date, timepoint)
+    print(out_lists)
+
+    age_df = out_lists[-1]
+    print(age_df.values[0])
+
+
+def test_collect_info_from_json():
+    test_subject = 'ME84344'
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    scan_date = ''
+    timepoint='1'
+    _, age_df, sex = collect_info_from_json(
+            test_subject, phoenix_root, scan_date, timepoint)
+    print(age_df)
