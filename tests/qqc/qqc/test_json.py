@@ -4,12 +4,15 @@ from qqc.qqc.json import jsons_from_bids_to_df, within_phantom_qc, \
         find_matching_files_between_BIDS_sessions, \
         compare_jsons_to_std, json_check_new, \
         compare_data_to_standard_all_bvals
+from qqc.qqc.qqc_summary import get_summary_table_from_json_to_std
 from qqc.dicom_files import get_dicom_files_walk
 from qqc.qqc.dicom import check_num_of_series, check_order_of_series
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import socket
 import json
+from typing import Union
 
 
 import logging
@@ -323,3 +326,85 @@ def test_within_phantom_qc_cp():
     qc_output_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/sub-CP01128/ses-202302231')
 
     within_phantom_qc(input_dir.parent, qc_output_dir, debug=True)
+
+
+# def get_summary_table_from_json_to_std(json_comp: Union[str, Path],
+                                       # colname: str = 'Series'):
+    # '''Summarize json comparison csv to be included in summary report
+
+    # Key arguments:
+        # json_comp: Path of a json comparison csv file, str or Path.
+        # colname: Name of the column in the summary table
+    # '''
+    # json_comp_df = pd.read_csv(json_comp)
+    # json_comp_df['series_num'] = json_comp_df.series_num.astype('Int64')
+    # json_comp_df.sort_values(by='series_num', inplace=True)
+
+    # json_comp_summary_df = pd.DataFrame(columns=[colname])
+    # gb = json_comp_df.groupby(['series_num', 'series_desc'], dropna=False)
+    # for (series_num, series_desc), table_upper in gb:
+        # if np.isnan(series_num):
+            # print(table_upper)
+        # table_upper = table_upper[[
+            # 'series_num', 'series_desc', 'index']].drop_duplicates()
+        # index = table_upper[table_upper['index'] != 'no_diff'].index
+
+        # val = ', '.join(table_upper.loc[index]['index'].unique())
+        # val_num = len(table_upper.loc[index]['index'])
+
+        # json_comp_summary_df.loc[series_num, 'Series'] = series_desc
+        # json_comp_summary_df.loc[series_num, 'Number of issues'] = int(val_num)
+        # json_comp_summary_df.loc[series_num, 'Issue in'] = val
+
+    # json_comp_summary_df = json_comp_summary_df.reset_index().set_index(
+            # 'Series')
+    # if (json_comp_summary_df['Issue in'] == '').all():
+        # pass_fail = 'Pass'
+    # else:
+        # pass_fail = 'Fail'
+    # df_tmp = pd.DataFrame({'Issue in': [pass_fail]})
+    # df_tmp.index = ['Summary']
+
+    # json_comp_summary_df = pd.concat([df_tmp, json_comp_summary_df])
+    # json_comp_summary_df.columns = [
+            # 'Issue in', 'Series Num', 'Number of issues']
+    # for i in ['Series Num', 'Number of issues']:
+        # json_comp_summary_df[i] = json_comp_summary_df[i].astype('Int64'
+                # ).astype(str).str.replace('<NA>', '')
+        # # na_index = json_comp_summary_df[json_comp_summary_df[i].isna()].index
+        # # json_comp_summary_df.loc[na_index, i] = ''
+
+    # return json_comp_summary_df[['Series Num', 'Number of issues', 'Issue in']]
+
+
+
+def test_compare_jsons_to_std_issues_in_one_out_of_two_series():
+    rawdata_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-GA11719/ses-202309011')
+    standard_dir = Path('/data/predict1/home/kcho/MRI_site_cert/qqc_output/rawdata/sub-GA/ses-202211031')
+    qqc_out_dir = Path('qc_test')
+    compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
+
+    # json comparison QC - add lines of difference
+    json_comp = qqc_out_dir / '04_json_comparison_log.csv'
+    json_comp_df = pd.read_csv(json_comp)
+    json_comp_df['num'] = json_comp_df.input_json.str.split(
+            '.json').str[0].str[-1]
+
+    df = get_summary_table_from_json_to_std(json_comp)
+    print(df)
+
+
+def test_compare_jsons_to_std_issues_in_one_out_of_two_series_KC_issue():
+    rawdata_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-KC01497/ses-202305312')
+    standard_dir = Path('/data/predict1/data_from_nda/MRI_ROOT/rawdata/sub-KC01558/ses-202304031')
+    qqc_out_dir = Path('qc_test2')
+    compare_jsons_to_std(rawdata_dir, standard_dir, qqc_out_dir)
+
+    # json comparison QC - add lines of difference
+    json_comp = qqc_out_dir / '04_json_comparison_log.csv'
+    json_comp_df = pd.read_csv(json_comp)
+    json_comp_df['num'] = json_comp_df.input_json.str.split(
+            '.json').str[0].str[-1]
+
+    df = get_summary_table_from_json_to_std(json_comp)
+    print(df)
