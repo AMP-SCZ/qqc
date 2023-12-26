@@ -1,13 +1,17 @@
 from ampscz_asana.lib.server_scanner import grep_run_sheets
 import re
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from ampscz_asana.lib.utils import convert_AU_to_US_date
 from datetime import datetime
 import os
 import math
 import json
+import logging
 from typing import Union
+
+logger = logging.getLogger(__name__)
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -375,6 +379,8 @@ def extract_missing_data_information(subject: str, phoenix_dir: str) -> list:
                                 extract_variable_information(
                                         row, col, key,
                                         item, domain_type_missing_list)
+
+            # extract age variable
     list_of_lists = [domain_type_missing_list,
                      reason_for_missing_data_list,
                      domain_missing_list,
@@ -429,11 +435,18 @@ def extract_session_num(run_sheet: Path) -> str:
         return None
 
 
-def extract_missing_data_info_new(subject: str,
-                                  phoenix_dir: str,
-                                  scan_date: str,
-                                  timepoint: Union['1', '2']) -> tuple:
-    '''Extract missing info and timepoint from REDCap'''
+def collect_info_from_json(subject: str,
+                           phoenix_dir: str,
+                           scan_date: str,
+                           timepoint: Union['1', '2']) -> tuple:
+    '''Extract missing info and timepoint from REDCap
+
+    Returns:
+        Tuple of
+            - missing_info_tuple
+            - age_df_condense
+            - sex
+    '''
     if 'Pronet' in str(phoenix_dir):
         network = 'Pronet'
     else:
@@ -452,6 +465,47 @@ def extract_missing_data_info_new(subject: str,
     # load json file into json
     df = pd.DataFrame(json_data)
 
+    # extract age
+    age_df = df[[x for x in df.columns if 'chrdemo_age_mos' in x if 
+        not x.endswith('3')]]
+    age_df_condense = age_df.replace('', pd.NA)\
+            .dropna(how='all').dropna(how='all', axis=1)
+    if len(age_df_condense) == 0:
+        age_df_condense = pd.DataFrame({
+            'empty_age_col': ['no_age']})
+
+    # extract dates for age calulation
+    date_df = df[['chric_consent_date', 'chrdemo_interview_date']
+            ].replace('', pd.NA)
+    try:
+        consent_date = date_df.chric_consent_date.dropna().iloc[0]
+    except:
+        consent_date = pd.NA
+    try:
+        demo_date = date_df.chrdemo_interview_date.dropna().iloc[0]
+    except IndexError:
+        demo_date = pd.NA
+    age_df_condense['consent_date'] = consent_date
+    age_df_condense['demo_date'] = demo_date
+
+    # extract sex
+    # 1 male 2 female
+    try:
+        sex = df['chrdemo_sexassigned'].replace('', pd.NA).dropna().iloc[0]
+    except:
+        sex = 'empty'
+
+    # get missing info tuple of lists
+    missing_info_tuple = extract_missing_data_info_new(
+            df, scan_date, timepoint)
+
+    return (missing_info_tuple, age_df_condense, sex)
+
+
+def extract_missing_data_info_new(df,
+                                  scan_date: str,
+                                  timepoint: Union['1', '2']) -> tuple:
+    '''Extract missing info and timepoint from REDCap'''
     # column names to extract
     domain_type_cols = [x for x in df.columns
                         if re.search(r'chrmiss_domain_type___3', x)]
@@ -577,6 +631,7 @@ def get_run_sheet_df(phoenix_dir: Path,
     run_sheets = grep_run_sheets(phoenix_dir, test)
 
     # create dataframe
+    logger.info(f'Cleaning up run sheet information from {phoenix_dir}')
     df = pd.DataFrame({'file_path': run_sheets})
     df['file_loc'] = df.file_path.apply(lambda x: str(x))
     # add network
@@ -611,6 +666,7 @@ def get_run_sheet_df(phoenix_dir: Path,
             extract_session_num)
 
     # for each run sheet, return the matching zip file
+    # todo: fix here later
     datatype_df['expected_mri_path'] = datatype_df.apply(lambda x:
             get_mri_data(x['file_path'], x['entry_date']), axis=1)
 
@@ -627,13 +683,21 @@ def get_run_sheet_df(phoenix_dir: Path,
                 check_when_transferred)
 
     # extract missing data information and timepoint from the full REDCap data
-    datatype_df['vars'] = datatype_df.apply(
-            lambda x: extract_missing_data_info_new(x['subject'],
-                                                    phoenix_dir,
-                                                    x['entry_date'],
-                                                    x['run_sheet_num']),
+    logger.info('Loading REDCap database to fillin extra information to the '
+                'run sheet information')
+    datatype_df['vars_tuple'] = datatype_df.apply(
+            lambda x: collect_info_from_json(x['subject'],
+                                             phoenix_dir,
+                                             x['entry_date'],
+                                             x['run_sheet_num']),
             axis=1)
-
+    # datatype_df['vars'] = datatype_df.apply(
+            # lambda x: extract_missing_data_info_new(x['subject'],
+                                                    # phoenix_dir,
+                                                    # x['entry_date'],
+                                                    # x['run_sheet_num']),
+            # axis=1)
+    datatype_df['vars'] = datatype_df.vars_tuple.str[0]
     datatype_df['missing_info'] = datatype_df.vars.str[0]
     datatype_df['mri_rs_missing_info'] = datatype_df.vars.str[1]
     datatype_df['timepoint_text'] = datatype_df.vars.str[2]
@@ -646,7 +710,73 @@ def get_run_sheet_df(phoenix_dir: Path,
             (datatype_df['missing_timepoint'] == '1') |
             (datatype_df['missing_withdrawn'] == '1') |
             (datatype_df['missing_discon'] == '1')).map({True: 1, False: None})
+
+    # what if no age?
+    datatype_df['age_col'] = datatype_df.apply(
+            lambda x: x['vars_tuple'][1].columns[0], axis=1)
+    datatype_df['age_val'] = datatype_df.apply(
+            lambda x: x['vars_tuple'][1][
+                x['vars_tuple'][1].columns[0]].iloc[0], axis=1)
+    datatype_df['consent_date'] = datatype_df.apply(
+            lambda x: x['vars_tuple'][1]['consent_date'].iloc[0], axis=1)
+    datatype_df['demo_date'] = datatype_df.apply(
+            lambda x: x['vars_tuple'][1]['demo_date'].iloc[0], axis=1)
+
+    # TODO
+    def get_age_measure_date(row):
+        if row['age_col'] == 'chrdemo_age_mos_2':
+            return row.demo_date
+        elif row['age_col'] in ['chrdemo_age_mos_chr', 'chrdemo_age_mos_hc']:
+            return row.consent_date
+        else:
+            return pd.NA
+    datatype_df['age_measure_date'] = datatype_df.apply(
+            get_age_measure_date, axis=1)
+
+    def get_age_measure_date_to_scan(row):
+        date_format = '%Y-%m-%d'
+        try:
+            scan_date = re.sub('_', '-', row['entry_date'])
+            time_delta = datetime.strptime(
+                    scan_date, date_format) - datetime.strptime(
+                row['age_measure_date'], date_format)
+            return time_delta.days
+        except:
+            return pd.NA
+
+    datatype_df['timedelta_to_scan'] = datatype_df.apply(
+            get_age_measure_date_to_scan, axis=1)
+
+
+    def get_age_at_scan(row):
+        date_format = '%Y-%m-%d'
+        try:
+            timedelta_in_months = (row['timedelta_to_scan'] / 365.25) * 12
+            age_at_scan = int(row['age_val']) + timedelta_in_months
+            return np.round(age_at_scan, 2)
+        except:
+            return pd.NA
+
+    datatype_df['age_at_scan_in_month'] = datatype_df.apply(get_age_at_scan, axis=1)
+
+    def get_age_at_scan_in_year(row):
+        date_format = '%Y-%m-%d'
+        try:
+            timedelta_in_months = (row['timedelta_to_scan'] / 365.25) * 12
+            age_at_scan = int(row['age_val']) + timedelta_in_months
+            age_at_scan_year = age_at_scan / 12
+            return np.round(age_at_scan_year, 2)
+        except:
+            return pd.NA
+
+    datatype_df['age_at_scan'] = datatype_df.apply(get_age_at_scan_in_year,
+            axis=1)
+
+    # what if no sex?
+    datatype_df['sex'] = datatype_df.vars_tuple.str[2]
+
     datatype_df.drop('vars', axis=1, inplace=True)
+    datatype_df.drop('vars_tuple', axis=1, inplace=True)
 
     datatype_df['qqc_executed'] = datatype_df.apply(lambda x:
             is_qqc_executed(x['subject'], x['entry_date']), axis=1)
@@ -685,7 +815,6 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['days_scan_to_today'] = datatype_df.apply(delay_time, axis=1)
     datatype_df.reset_index(drop=True,inplace=True)
     datatype_df.drop('index', axis=1, inplace=True)
-
 
     return datatype_df
 
