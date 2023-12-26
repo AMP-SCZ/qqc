@@ -1,52 +1,95 @@
-import pandas as pd
-from pathlib import Path
 import qqc
 import os
-import pydicom
-from typing import Union
-import time
-import numpy as np
-import shutil
-import logging
-from typing import List
 import re
 import sys
 import json
-
+import time
+import shutil
+import logging
+import pydicom
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from typing import Union
+from typing import List
 from qqc.utils.files import get_all_files_walk
+
 
 logger = logging.getLogger(__name__)
 
 
-all_elements_to_extract = [
-    'AcquisitionMatrix',
-    'AngioFlag',
-    'BodyPartExamined', 'Columns',
-    'ContentDate', 'DeviceSerialNumber',
-    'EchoTime', 'EchoTrainLength', 'RepetitionTime',
-    'FlipAngle', 'VariableFlipAngleFlag'
-    'ImageOrientationPatient', 'ImagePositionPatient',
-    'ImageType', 'InPlanePhaseEncodingDirection',
-    'InstitutionAddress', 'InstitutionName', 'InstitutionalDepartmentName',
-    'MRAcquisitionType', 'MagneticFieldStrength', 'Manufacturer',
-    'ManufacturerModelName', 'Modality',
-    'NumberOfAverages', 'NumberOfPhaseEncodingSteps',
-    'PixelBandwidth', 'PixelSpacing', 'PositionReferenceIndicator',
-    'ProtocolName',
-    'Rows', 'SAR', 'SamplesPerPixel',
-    'ScanningSequence', 'SequenceName', 'SequenceVariant',
-    'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber', 'SeriesTime',
-    'SliceLocation', 'SliceThickness', 'SpacingBetweenSlices',
-    'SoftwareVersions', 'StudyDescription',
-    'TransmitCoilName'
-    ]
-
-
 class NoNumDescInstanceUidInfo(Exception):
+    """Exception for dicom files without minimal information"""
     pass
 
 
+def rearange_dicoms(dicom_df: pd.DataFrame,
+                    new_root: Union[str, Path],
+                    subject: str,
+                    session: str,
+                    force: bool = False,
+                    rename_dicoms: bool = False) -> None:
+    '''Copy dicoms to a new directory structure
+
+    Each row in the dicom_df represent individual dicom file. All dicom files
+    in this data frame will be copied to the following BIDS structure.
+
+    > {new_root}/{subject}/{session}/{series_num}_{series_desc}
+
+
+    Key Arguments:
+        dicom_df: dicom information database, pd.DataFrame.
+        new_root: root of the output dicom directory, str or Path.
+        subject: subject name to be used in the data path, str.
+        session: session name to be used in the data path, str.
+        force: force overwriting copy, bool.
+        rename_dicoms: change output dicom file name to 'MR.{series_uid}'
+
+    Notes:
+        If there are dicom files with the same file name for a series,
+        rename_dicoms=True should be used to avoid the function overwriting
+        the dicom files with the same file name.
+    '''
+    logger.info('Arranging dicoms')
+    new_root = Path(new_root)
+    if rename_dicoms:
+        logger.info('Changing dicom filenames')
+
+    for (num, name, scan), table in dicom_df.groupby(
+            ['series_num', 'series_desc', 'series_scan']):
+        logger.info(f'Preparing to copy {name}')
+
+        session_dir_path = new_root / subject / f'ses-{session}'
+        series_dir_path = session_dir_path / f'{num:02}_{name}'
+
+        if not force and series_dir_path.is_dir() \
+                and len(table) == len(list(series_dir_path.glob('*'))):
+            logger.warning(f'Not overwriting {series_dir_path}')
+            continue
+
+        series_dir_path.mkdir(exist_ok=True, parents=True)
+        logger.info(f'Looping through dicom files under {name}')
+        for _, row in table.iterrows():
+            if rename_dicoms:  # philips
+                dicom_out = series_dir_path / ('MR.' + row['series_uid'])
+                try:
+                    shutil.copy(row['file_path'], dicom_out)
+                except shutil.SameFileError:
+                    pass
+            else:
+                try:
+                    shutil.copy(row['file_path'], series_dir_path)
+                except shutil.SameFileError:
+                    pass
+
+
 def get_dicom_counts(sorted_dicom_dir: Path, **kwargs) -> pd.DataFrame:
+    """Count files under path with multiple series dicom dirs
+
+    Notes:
+        This function expects '{series_number}_{series_desc}' named dirs under
+        the sorted_dicom_dir.
+    """
     debug = kwargs.get('debug', False)
 
     logger.info(sorted_dicom_dir)
@@ -54,13 +97,14 @@ def get_dicom_counts(sorted_dicom_dir: Path, **kwargs) -> pd.DataFrame:
     df['dicom_count'] = df.series_dir.apply(lambda x: len(list(x.glob('*'))))
     df['series_dir'] = df.series_dir.apply(lambda x: x.name)
 
-    # remove series
-    df = df[~df['series_dir'].str.contains('MPR Thick Range')]
+    # drop unnecessary series
+    series_dir_names_to_ignore = ['MPR Thick Range']
+    for dir_name_to_ignore in series_dir_names_to_ignore:
+        df = df[~df['series_dir'].str.contains(dir_name_to_ignore)]
 
-    df['series_num'] = df.series_dir.apply(lambda x: x.split('_')[0]).astype(
-            int)
-
-    logger.info(df)
+    # separate out series number and series description
+    df['series_num'] = df.series_dir.apply(
+        lambda x: x.split('_')[0]).astype(int)
     df['series_dir'] = df['series_dir'].str.extract(r'\d+_(.+)')
     df.sort_values('series_num', inplace=True)
     df = df[['series_num', 'series_dir', 'dicom_count']]
@@ -76,16 +120,23 @@ def get_dicom_counts(sorted_dicom_dir: Path, **kwargs) -> pd.DataFrame:
 def update_dicom_counts(dicom_count_input_df: pd.DataFrame,
                         session_dir: Path,
                         **kwargs) -> pd.DataFrame:
+    """Update dicom count dataframe by adding heudiconv conversion check
+
+    Key Arguments:
+        dicom_count_input_df: output from get_dicom_counts function,
+                              pd.DataFrame.
+        session_dir: location rawdata for the session, Path
+    """
     json_paths_input = get_all_files_walk(session_dir, 'json')
     debug = kwargs.get('debug', False)
 
-    # series_num and series_description of json files
+    # list of series_num and series_desc from json files
     series_num_desc_tuples = []
     for json_file in json_paths_input:
         with open(json_file, 'r') as fp:
             data = json.load(fp)
-            series_num_desc_tuples.append((data['SeriesDescription'],
-                                           data['SeriesNumber']))
+            series_num_desc_tuples.append(
+                (data['SeriesDescription'], data['SeriesNumber']))
 
     for index, row in dicom_count_input_df.iterrows():
         input_tuple = (row['series_dir'], row['series_num'])
@@ -98,8 +149,8 @@ def update_dicom_counts(dicom_count_input_df: pd.DataFrame,
             else 'Fail'
     dicom_count_input_df = pd.concat([
         pd.DataFrame({'heudiconv converted': [all_pass]}),
-        dicom_count_input_df])[['series_num', 'series_dir', 'dicom_count',
-            'heudiconv converted']]
+        dicom_count_input_df]
+        )[['series_num', 'series_dir', 'dicom_count', 'heudiconv converted']]
 
     return dicom_count_input_df
 
@@ -245,7 +296,7 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     # if unique dicom for a series is required
     if one_file_for_series:
         df_tmp = pd.DataFrame()
-        for group, table in df.groupby(
+        for _, table in df.groupby(
                 ['series_num', 'series_desc', 'series_uid']):
             # get the first dicom file
             df_tmp = pd.concat([df_tmp, table.iloc[[0]]], axis=0)
@@ -258,7 +309,7 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
     unique_count_df = gb_series.count().reset_index()
 
     dup_df = unique_count_df[unique_count_df[
-            ['series_num', 'series_desc', 'series_uid']].duplicated()]
+        ['series_num', 'series_desc', 'series_uid']].duplicated()]
 
     df['series_scan'] = 1
     for _, row in dup_df.iterrows():
@@ -266,9 +317,9 @@ def get_dicom_files_walk(dicom_root: Union[Path, str],
         logger.warning('There are more than one unique scan for %s' %
                        row.series_desc)
         df_tmp = df[
-                (df['series_num'] == row.series_num) &
-                (df['series_desc'] == row.series_desc) &
-                (df['series_uid'] == row.series_uid)]
+            (df['series_num'] == row.series_num) &
+            (df['series_desc'] == row.series_desc) &
+            (df['series_uid'] == row.series_uid)]
 
         df.loc[df_tmp.index, 'series_scan'] = num
 
@@ -290,15 +341,13 @@ def get_series_info(dicom: pydicom.dataset.FileDataset, file_path: Path):
         instance_uid = dicom.get(('0008', '0018')).value
     except AttributeError:
         # TODO: get the information of the previous dicom file?
+        logger.warning("Dicom doesn't have num, description, or instance_uid "
+                       "attributes.")
+        logger.warning("The dicom sourcedata may have non dicom files.")
+        logger.warning("Dicom file path: %s" % file_path)
         num = 'missing_from_dicom_header'
         description = 'missing_from_dicom_header'
         instance_uid = 'missing_from_dicom_header'
-        # print(dicom)
-        # print(file_path)
-        # logger.warning("Dicom doesn't have num, description, or instance_uid "
-                       # "attributes.")
-        # logger.warning("The dicom sourcedata may have non dicom files.")
-        # raise NoNumDescInstanceUidInfo
 
     return num, description, instance_uid
 
@@ -326,7 +375,7 @@ def add_detailed_info_to_summary_df(df: pd.DataFrame,
 
     for element_name in element_names:
         data = df.pydicom.apply(
-                lambda x: get_additional_info_by_elem(x, element_name))
+            lambda x: get_additional_info_by_elem(x, element_name))
         df[element_name] = data
 
     return df
@@ -339,8 +388,7 @@ def get_csa_header(dicom: pydicom.dataset.FileDataset) -> pd.DataFrame:
     except:
         return pd.DataFrame({'var': ['unknown'], 'value': 'unknown'})
 
-    extracted_text = info.decode(errors='ignore').split(
-            '### ASCCONV')[1]
+    extracted_text = info.decode(errors='ignore').split('### ASCCONV')[1]
 
     new_lines = []
     for line in extracted_text.split('\n'):
@@ -416,63 +464,3 @@ def get_diff_in_csa_for_all_measures(df: pd.DataFrame,
         common_df = csa_df[csa_df.apply(
             lambda x: x[~x.isnull()].nunique() == 1, axis=1)].T.sort_index().T
         return diff_df, common_df
-
-
-def rearange_dicoms(dicom_df: pd.DataFrame,
-                    new_root: Union[str, Path],
-                    subject: str,
-                    session: str,
-                    force: bool = False,
-                    rename_dicoms: bool = False) -> None:
-    '''Copy dicoms to a new directory structure
-
-    Each row in the dicom_df represent individual dicom file. All dicom files
-    in this data frame will be copied to the following BIDS structure.
-
-    > {new_root}/{subject}/{session}/{series_num}_{series_desc}
-
-
-    Key Arguments:
-        dicom_df: dicom information database, pd.DataFrame.
-        new_root: root of the output dicom directory, str or Path.
-        subject: subject name to be used in the data path, str.
-        session: session name to be used in the data path, str.
-        force: force overwriting copy, bool.
-        rename_dicoms: change output dicom file name to 'MR.{series_uid}'
-
-    Notes:
-        If there are dicom files with the same file name for a series,
-        rename_dicoms=True should be used to avoid the function overwriting
-        the dicom files with the same file name.
-    '''
-    logger.info('Arranging dicoms')
-    new_root = Path(new_root)
-    if rename_dicoms:
-        logger.info('Changing dicom filenames')
-
-    for (num, name, scan), table in dicom_df.groupby(
-            ['series_num', 'series_desc', 'series_scan']):
-        logger.info(f'Preparing to copy {name}')
-
-        session_dir_path = new_root / subject / f'ses-{session}'
-        series_dir_path =  session_dir_path / f'{num:02}_{name}'
-
-        if not force and series_dir_path.is_dir() \
-                and len(table) == len(list(series_dir_path.glob('*'))):
-            logger.warning(f'Not overwriting {series_dir_path}')
-            continue
-
-        series_dir_path.mkdir(exist_ok=True, parents=True)
-        logger.info(f'Looping through dicom files under {name}')
-        for _, row in table.iterrows():
-            if rename_dicoms:  # philips
-                dicom_out = series_dir_path / ('MR.' + row['series_uid'])
-                try:
-                    shutil.copy(row['file_path'], dicom_out)
-                except shutil.SameFileError:
-                    pass
-            else:
-                try:
-                    shutil.copy(row['file_path'], series_dir_path)
-                except shutil.SameFileError:
-                    pass
