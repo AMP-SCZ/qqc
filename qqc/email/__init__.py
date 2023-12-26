@@ -29,7 +29,7 @@ tz = timezone('EST')
         # img.save(buffer, format='JPEG', quality=quality)
         # return buffer.getvalue()
 
-def resize_image(image_path, percentile=30, quality=100):
+def resize_image(image_path, percentile=20, quality=100):
     with Image.open(image_path) as img:
         img = img.convert('RGB')  # Convert image to RGB mode
         
@@ -58,7 +58,9 @@ def send(recipients, sender, subject, message, test, mailx, sender_pw,
     # image attachment
     if image_paths is not None:
         for image_path in image_paths:
-            print(image_path)
+            if str(image_path).endswith('.gif'):
+                continue
+            
             # with open(image_path, 'rb') as fp:
                 # image_data = fp.read()
             if not Path(image_path).is_file():
@@ -238,7 +240,8 @@ def extract_info_for_qqc_report(raw_input_given: Path,
             '.json').str[0].str[-1]
 
     # get list of paths for images
-    image_paths = list(qqc_out_dir.glob('*.png'))
+    image_paths = list(qqc_out_dir.glob('*.png')) + \
+        list(qqc_out_dir.glob('*.gif'))
 
     # get list of qqc html summaries for the whole study
     qqc_html_files = list(qqc_out_dir.parent.parent.glob('*/*/*.html'))
