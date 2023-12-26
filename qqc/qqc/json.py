@@ -5,7 +5,7 @@ import re
 import os
 import json
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 import logging
 
 from qqc.qqc.nifti import compare_volume_to_standard_all_nifti, \
@@ -496,6 +496,9 @@ def get_all_json_information_quick(data_dir):
 
         json_df = pd.concat([json_df, json_df_tmp], sort=False)
 
+    if len(json_df) == 0:
+        print('dicom conversion may have failed')
+
     json_df = json_df.reset_index().drop('index', axis=1)
 
     if 'series_desc' not in json_df.columns:
@@ -533,8 +536,8 @@ def find_matching_files_between_BIDS_sessions(
     json_df_input = get_all_json_information_quick(input_dir)
     json_df_std = get_all_json_information_quick(standard_dir)
 
-    # json_df_input.to_csv('input.csv')
-    # json_df_std.to_csv('std.csv')
+    json_df_input.to_csv('input.csv')
+    json_df_std.to_csv('std.csv')
 
     if 'distortion_map_before' in json_df_input.columns:
         json_df_all = pd.merge(
@@ -546,12 +549,21 @@ def find_matching_files_between_BIDS_sessions(
             suffixes=['_input', '_std'])
         # 'image_type' is removed from keys to match for XA30 data test
     else:
-        json_df_all = pd.merge(
-            json_df_input, json_df_std,
-            how='left',
-            on=['series_desc', 'run_num',
-                'num_num', 'scout_num', 'strct_to_use'],
-            suffixes=['_input', '_std'])
+        try:
+            json_df_all = pd.merge(
+                json_df_input, json_df_std,
+                how='left',
+                on=['series_desc', 'run_num',
+                    'num_num', 'scout_num', 'strct_to_use'],
+                suffixes=['_input', '_std'])
+        except KeyError:
+            json_df_all = pd.merge(
+                json_df_input, json_df_std,
+                how='left',
+                on=['series_desc',
+                    'num_num', 'strct_to_use'],
+                suffixes=['_input', '_std'])
+
         # 'image_type' is removed from keys to match for XA30 data test
 
 
@@ -893,7 +905,8 @@ def check_column_values(df: pd.DataFrame) -> pd.DataFrame:
 
 def compare_jsons_to_std(input_dir: str,
                          standard_dir: str,
-                         qc_out_dir: Path):
+                         qc_out_dir: Union[str, Path]):
+    qc_out_dir = Path(qc_out_dir)
     json_df_all = find_matching_files_between_BIDS_sessions(input_dir,
                                                             standard_dir)
     json_df_all.to_csv(qc_out_dir / '99_input2std_matching_table.csv')
