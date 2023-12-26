@@ -2,10 +2,62 @@ import pandas as pd
 from pathlib import Path
 import re
 import os
-from typing import Tuple
+from typing import Tuple, Union
 import json
 import numpy as np
 import seaborn as sns
+
+
+def get_summary_table_from_json_to_std(json_comp: Union[str, Path],
+                                       colname: str = 'Series'):
+    '''Summarize json comparison csv to be included in summary report
+
+    Key arguments:
+        json_comp: Path of a json comparison csv file, str or Path.
+        colname: Name of the column in the summary table
+    '''
+    json_comp_df = pd.read_csv(json_comp)
+    json_comp_df['series_num'] = json_comp_df.series_num.astype('Int64')
+    json_comp_df.sort_values(by='series_num', inplace=True)
+
+    json_comp_summary_df = pd.DataFrame(columns=[colname])
+    gb = json_comp_df.groupby(['series_num', 'series_desc'], dropna=False)
+    for (series_num, series_desc), table_upper in gb:
+
+        # skip unmatched series
+        if table_upper['input'].isnull().any() or \
+                table_upper['std'].isnull().any():
+            continue
+
+        table_upper = table_upper[[
+            'series_num', 'series_desc', 'index']].drop_duplicates()
+        index = table_upper[table_upper['index'] != 'no_diff'].index
+
+        val = ', '.join(table_upper.loc[index]['index'].unique())
+        val_num = len(table_upper.loc[index]['index'])
+
+        json_comp_summary_df.loc[series_num, 'Series'] = series_desc
+        json_comp_summary_df.loc[series_num, 'Number of issues'] = int(val_num)
+        json_comp_summary_df.loc[series_num, 'Issue in'] = val
+
+    json_comp_summary_df = json_comp_summary_df.reset_index().set_index(
+        'Series')
+    if (json_comp_summary_df['Issue in'] == '').all():
+        pass_fail = 'Pass'
+    else:
+        pass_fail = 'Fail'
+    df_tmp = pd.DataFrame({'Issue in': [pass_fail]})
+    df_tmp.index = ['Summary']
+
+    json_comp_summary_df = pd.concat([df_tmp, json_comp_summary_df])
+    json_comp_summary_df.columns = [
+        'Issue in', 'Series Num', 'Number of issues']
+
+    for i in ['Series Num', 'Number of issues']:
+        json_comp_summary_df[i] = json_comp_summary_df[i].astype('Int64') \
+                .astype(str).str.replace('<NA>', '')
+
+    return json_comp_summary_df[['Series Num', 'Number of issues', 'Issue in']]
 
 
 def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
@@ -92,36 +144,38 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     json_comp_df = pd.read_csv(json_comp)
     other_dfs.append(json_comp_df)
     titles.append('MRI protocol comparison')
-    json_comp_df['num'] = json_comp_df.input_json.str.split(
-            '.json').str[0].str[-1]
+    # json_comp_df['num'] = json_comp_df.input_json.str.split(
+            # '.json').str[0].str[-1]
 
-    df_2 = pd.DataFrame(columns=[colname])
-    if len(json_comp_df) == 0:
-        df_2.loc['Protocol comparison to standard', colname] = 'Pass'
-    else:
-        gb = json_comp_df.groupby(['series_desc', 'series_num'])
-        for (series_desc, series_num), table_upper in gb:
-            try:
-                for loop_num, (num, table) in enumerate(
-                        table_upper.groupby('num')):
+    json_comp_summary_df = get_summary_table_from_json_to_std(json_comp)
 
-                    diff_items = table['index'].tolist()
+    # df_2 = pd.DataFrame(columns=[colname])
+    # if len(json_comp_df) == 0:
+        # df_2.loc['Protocol comparison to standard', colname] = 'Pass'
+    # else:
+        # gb = json_comp_df.groupby(['series_desc', 'series_num'])
+        # for (series_desc, series_num), table_upper in gb:
+            # try:
+                # for loop_num, (num, table) in enumerate(
+                        # table_upper.groupby('num')):
 
-                    if loop_num > 0:
-                        df_2.loc[f'{series_desc} {loop_num}', colname] = \
-                                f'{len(table)}'
-                        df_2.loc[f'{series_desc} {loop_num}', colname_2] = \
-                                ', '.join(diff_items)
-                    else:
-                        df_2.loc[f'{series_desc}', colname] = \
-                                f'{len(table)}'
-                        df_2.loc[f'{series_desc}', colname_2] = \
-                                ', '.join(diff_items)
-            except:
-                pass
-    json_comp_df.drop('num', axis=1, inplace=True)
+                    # diff_items = table['index'].tolist()
 
-    return df, df_2, other_dfs, titles
+                    # if loop_num > 0:
+                        # df_2.loc[f'{series_desc} {loop_num}', colname] = \
+                                # f'{len(table)}'
+                        # df_2.loc[f'{series_desc} {loop_num}', colname_2] = \
+                                # ', '.join(diff_items)
+                    # else:
+                        # df_2.loc[f'{series_desc}', colname] = \
+                                # f'{len(table)}'
+                        # df_2.loc[f'{series_desc}', colname_2] = \
+                                # ', '.join(diff_items)
+            # except:
+                # pass
+    # json_comp_df.drop('num', axis=1, inplace=True)
+
+    return df, json_comp_summary_df, other_dfs, titles
 
 
 def get_motion_tmp(dwipreproc_dir: Path) -> Tuple:
