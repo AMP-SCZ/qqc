@@ -50,6 +50,7 @@ def parse_args(argv):
 
 
 if __name__ == '__main__':
+    """The functions below are moved to dpacc_count.py"""
     args = parse_args(sys.argv[1:])
 
 
