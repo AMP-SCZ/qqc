@@ -326,8 +326,25 @@ def test_extract_missing_data_info_new():
 def test_collect_info_from_json():
     test_subject = 'ME84344'
     phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    test_subject = 'PV08171'
+    phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+
     scan_date = ''
     timepoint='1'
-    _, age_df, sex = collect_info_from_json(
+    _, age_df, sex, cohort = collect_info_from_json(
             test_subject, phoenix_root, scan_date, timepoint)
-    print(age_df)
+    print(age_df, sex, cohort)
+
+
+def test_get_run_sheet_df_two():
+    test_subject = 'PV08171'
+    test_subject = 'CM02821'
+    test_subject = 'LS55502'
+    # test_subject = 'NC12958'
+    phoenix_root = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+    phoenix_root = Path('/data/predict1/data_from_nda/Prescient/PHOENIX')
+    df = get_run_sheet_df(phoenix_root, subject=test_subject, test=False)
+    print(df)
+    print(df.file_loc.unique())
+
+
