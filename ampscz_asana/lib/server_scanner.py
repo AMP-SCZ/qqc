@@ -87,9 +87,13 @@ def get_site_network_dict(phoenix_roots) -> dict:
     return site_net_dict
 
 
-def grep_run_sheets(phoenix_dir: Path, test: bool = False) -> list:
+def grep_run_sheets(phoenix_dir: Path,
+                    subject: str = None,
+                    test: bool = False) -> list:
     '''Grab run sheets from PHOENIX'''
     logger.info(f'Searching run sheets under {phoenix_dir}')
+    if subject is None:
+        subject = '*'
     protected_dir = phoenix_dir / 'PROTECTED'
     if test:
         subject_directories_under_phoenix = protected_dir.glob(
@@ -97,7 +101,7 @@ def grep_run_sheets(phoenix_dir: Path, test: bool = False) -> list:
                 # '*[YM][AE]/raw/*/[em][er][gi]/*Run_sheet*csv')
     else:
         subject_directories_under_phoenix = protected_dir.glob(
-                '*/raw/*/[em][er][gi]/*Run_sheet*csv')
+                f'*/raw/{subject}/[em][er][gi]/*Run_sheet*csv')
     return list(subject_directories_under_phoenix)
 
 

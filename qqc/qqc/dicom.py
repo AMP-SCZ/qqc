@@ -21,7 +21,6 @@ def _loop_through_dicoms(dicom_root: Path) -> pydicom:
                 continue
 
 
-
 def get_scandate(dicom_root: Path) -> str:
     """Get scan date from dicom headers"""
     for d in _loop_through_dicoms(dicom_root):
@@ -36,7 +35,6 @@ def get_scandate(dicom_root: Path) -> str:
                 print('There is no AcquisitionDateTime in the dicom header')
                 print('Please find date information in the dicom header')
                 return '20000101'
-
 
 
 def is_date_correct(dicom_root: Path, date_string: str) -> bool:
@@ -56,7 +54,6 @@ def is_xa30(dicom_root: Path) -> Tuple[bool, str]:
                 print('XA30')
                 return True
             else:
-                print('non-XA30')
                 return False
         except TypeError:
             continue
@@ -74,7 +71,6 @@ def is_xa50(dicom_root: Path) -> Tuple[bool, str]:
                 print('XA50')
                 return True
             else:
-                print('non-XA50')
                 return False
         except TypeError:
             continue
@@ -101,6 +97,18 @@ def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
                     return (True, line_search.group(1))
                 else:
                     return (False, line_search.group(1))
+
+
+def get_value_from_first_dicom(dicom_root, field_name) -> str:
+    for d in _loop_through_dicoms(dicom_root):
+        try:
+            return d.get(field_name)
+        except TypeError:
+            continue
+        except AttributeError:
+            continue
+
+    return False
 
 
 def compare_enhanced_to_std(input_dir: str,

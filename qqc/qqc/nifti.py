@@ -5,8 +5,10 @@ import nibabel as nb
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import logging
+import tempfile as tf
+import subprocess
 
 from qqc.utils.files import get_all_files_walk
 from qqc.utils.names import get_naming_parts_bids
@@ -16,9 +18,9 @@ from qqc.utils.files import ampscz_json_load
 
 logger = logging.getLogger(__name__)
 
+
 class NoDwiException(Exception):
     pass
-
 
 
 def extract_digits_from_3dFWHMx(output_str: str) -> pd.DataFrame:
@@ -26,15 +28,126 @@ def extract_digits_from_3dFWHMx(output_str: str) -> pd.DataFrame:
 
 
 def get_smoothness(input_nifti: Path) -> Tuple[List[float], List[float]]:
-    command = f'3dFWHMx \
-            -input {input_nifti} \
-            -automask -ACF NULL -ShowMeClassicFWHM'
-    output_text = os.popen(command).read()
-    digit_list = re.findall('\d+\.\d+', output_text)
+    '''Get smoothness using 3dFWHMx
+
+    Key Arguments:
+        input_nifti: nifti file, Path or str
+
+    Returns:
+        tuple of lists: fwhm model parameters and acf model parameters
+    '''
+    with tf.TemporaryDirectory() as tmp_dir:
+        tmp_output = Path(tmp_dir) / 'tmp_bet_out.nii.gz'
+        command = f'/data/pnl/soft/pnlpipe3/fsl/bin/bet2 {input_nifti} {tmp_output}'
+        os.popen(command).read()
+
+        # masking
+        command = f'3dFWHMx \
+                -input {tmp_output} \
+                -automask -ACF NULL -ShowMeClassicFWHM'
+        # output_text = os.popen(command).read()
+        logger.info(f'Estimating smoothness in {input_nifti}')
+        result = subprocess.run(command,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True, shell=True)
+
+    if '** ERROR:' in result.stderr:
+        digit_list = []
+        for line in result.stdout.split('\n'):
+            numbers_found = re.findall('\S*\d+\.*\d*', line)
+            if len(numbers_found) == 4:
+                digit_list += numbers_found
+    else:
+        digit_list = re.findall('\d+\.\d+', result.stdout)
     fwhm_model_param = [float(x) for x in digit_list[-8:-4]]
     acf_model_param = [float(x) for x in digit_list[-4:]]
 
     return (fwhm_model_param, acf_model_param)
+
+
+def get_smoothness_in_each_shell(dwi_nifti: Path,
+                                 dwi_bval: Path = None,
+                                 GE: bool = False) -> Dict[int, tuple]:
+    '''Get smoothness for each shell usinge .bval in the same prefix'''
+    logger.info(f'Estimating shell-specific smoothness in {dwi_nifti}')
+    dwi_nifti = Path(dwi_nifti)
+    dwi_img = nb.load(dwi_nifti)
+    dwi_data = dwi_img.get_fdata()
+
+    if dwi_bval is None:
+        dwi_bval = dwi_nifti.parent / (dwi_nifti.name.split('.')[0] + '.bval')
+
+    if GE:
+        if dwi_img.shape[-1] == 128:
+           dwi_bval = '/data/predict1/data_from_nda/MRI_ROOT/codes/GE_bval_bvec/dMRI_dir126_PA.bval'
+        elif dwi_img.shape[-1] == 9:
+           dwi_bval = '/data/predict1/data_from_nda/MRI_ROOT/codes/GE_bval_bvec/dMRI_b0_AP.bval'
+        else:
+            logger.warning('No bval that matches the shape of the data')
+            pass
+        logger.info(f'GE machine: using {dwi_bval}')
+
+    bval_arr = np.round(np.loadtxt(dwi_bval), -2)
+
+    bval_smoothness_dict = {}
+    
+    with tf.TemporaryDirectory() as tmp_dir:
+        for bval in np.unique(bval_arr):
+            bval_index = np.where(bval_arr == bval)[0]
+            data = dwi_data[:, :, :, bval_index]
+            tmp_output = Path(tmp_dir) / f'{int(bval)}.nii.gz'
+            nb.Nifti1Image(data, affine=dwi_img.affine,
+                    header=dwi_img.header).to_filename(tmp_output)
+
+            bval_smoothness_dict[bval] = get_smoothness(tmp_output)
+
+    return bval_smoothness_dict
+
+
+def get_smoothness_in_each_shell_df(dwi_nifti: Path,
+        dwi_bval: Path = None, GE: bool = False) -> pd.DataFrame:
+    data_dict = get_smoothness_in_each_shell(dwi_nifti, dwi_bval, GE=GE)
+    var_names = ['x', 'y', 'z', 'combined']
+
+    # Flatten the dictionary
+    flattened_data = []
+    for key, (list1, list2) in data_dict.items():
+        for num, value1, value2 in zip(var_names, list1, list2):
+            flattened_data.append({'b-shell': key,
+                                   'var': num,
+                                   'FWHM': value1,
+                                   'ACF': value2})
+
+    return pd.DataFrame(flattened_data)
+
+
+def get_smoothness_all_nifti(input_dir, GE: bool = False) -> pd.DataFrame:
+    nifti_paths = get_all_files_walk(input_dir, 'nii.gz')
+
+    df_all = pd.DataFrame()
+    for nifti_path in nifti_paths:
+        root_name = nifti_path.parent.name
+        if 'ignore' == root_name or 'extra' == root_name:
+            continue
+
+        if 'auxil' in nifti_path.name:
+            continue
+
+        if nifti_path.name.endswith('dwi.nii.gz'):
+            smoothness_df = get_smoothness_in_each_shell_df(nifti_path, GE=GE)
+        else:
+            fwhm_list, acf_list = get_smoothness(nifti_path)
+            smoothness_df = pd.DataFrame({'FWHM': fwhm_list,
+                'ACF': acf_list,
+                'var': ['x', 'y', 'z', 'combined']})
+
+        smoothness_df['nifti_file'] = nifti_path.name
+
+        df_all = pd.concat([df_all, smoothness_df], ignore_index=True)
+
+    return df_all
+
 
 def compare_volume_to_standard_all_nifti(input_dir: str,
                                          standard_dir: str,

@@ -345,3 +345,8 @@ def get_files_from_json(json_files: list,
 def loop_through_two_lists(a: list, b: list) -> List[tuple]:
     return list(itertools.product(a, b))
 
+
+def get_subject_session_from_input_dir(input_dir):
+    subject = re.search('sub-(\w{2}\d{5})', str(input_dir)).group(1)
+    session = re.search('ses-(\d{9})', str(input_dir)).group(1)
+    return subject, session

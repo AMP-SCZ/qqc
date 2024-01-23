@@ -11,7 +11,8 @@ def run_fmriprep_on_data(rawdata_dir: Path,
                          fmriprep_outdir_root: Path,
                          fs_outdir_root: Path,
                          temp_dir: str = '/data/predict1/home/kcho/tmp',
-                         bsub: bool = True) -> None:
+                         bsub: bool = True,
+                         specific_nodes: list = []) -> None:
     '''Run fmriprep following the quick QC
 
     Key Argument:
@@ -69,11 +70,20 @@ def run_fmriprep_on_data(rawdata_dir: Path,
         --bids-filter-file /filter.json'
 
     if bsub:
-        command = f'bsub -q pri_pnl \
-                -o {fmriprep_outdir_root}/fmriprep.out \
-                -e {fmriprep_outdir_root}/fmriprep.err \
-                -n 8 -J fmriprep_{subject_id}_{session_id} \
-                {command}'
+        if specific_nodes == []:
+            command = f'bsub -q pri_pnl \
+                    -o {fmriprep_outdir_root}/fmriprep.out \
+                    -e {fmriprep_outdir_root}/fmriprep.err \
+                    -n 8 -J fmriprep_{subject_id}_{session_id} \
+                    {command}'
+        else:
+            nodes = ' '.join(specific_nodes)
+            command = f'bsub -q pri_pnl \
+                    -o {fmriprep_outdir_root}/fmriprep.out \
+                    -e {fmriprep_outdir_root}/fmriprep.err \
+                    -m "{nodes}" \
+                    -n 4 -J fmriprep_{subject_id}_{session_id} \
+                    {command}'
 
     command = re.sub(r'\s+', ' ', command)
     print(command)

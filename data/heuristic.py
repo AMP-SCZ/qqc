@@ -47,6 +47,10 @@ def infotodict(seqinfo):
             'sub-{subject}/{session}/ignore/'
             'sub-{subject}_{session}_ignore-bids_num-{num}_scout')
 
+    diff_derived = create_key(
+            'sub-{subject}/{session}/ignore/'
+            'sub-{subject}_{session}_ignore-bids_num-{num}_dwiderived')
+
     # return info
     t1w_norm = create_key('sub-{subject}/{session}/'
                      'anat/sub-{subject}_{session}_rec-norm_run-{item}_T1w')
@@ -231,7 +235,14 @@ def infotodict(seqinfo):
     else:
         count_info = count_infos['prisma']
 
+    derived_map_str_list = ['ADC', 'TRACEW', 'TENSOR']
     for s in seqinfo:
+        # ignore diffusion derived maps
+        for derived_map_str in derived_map_str_list:
+            if derived_map_str.lower() in s.series_description.lower():
+                print(f'Skipping derived maps: {s.series_description}')
+
+
         if 't1w' in s.series_description.lower():
             if s.series_files < count_info['t1w']:
                 print_missing_message('t1w', s)

@@ -192,6 +192,28 @@ def send_detail(sender: str, recipients: List[str],
         fh.write(html_str)
 
 
+def reorder_image_paths(image_paths) -> List[Path]:
+    order_str_list = ['summary_b0',
+                      'summary_dwi', 'summary_fmri']
+    new_image_paths = []
+    for image_path in image_paths:
+        if 'smoothness' in image_path.name:
+            new_image_paths.append(image_path)
+
+
+    for image_path in image_paths:
+        for order_str in order_str_list:
+            if order_str in image_path.name \
+                    and image_path not in new_image_paths:
+                new_image_paths.append(image_path)
+
+    for image_path in image_paths:
+        if image_path not in new_image_paths:
+            new_image_paths.append(image_path)
+
+    return new_image_paths
+
+
 def extract_info_for_qqc_report(raw_input_given: Path,
                                 qqc_out_dir: Path,
                                 standard_dir: Path,
@@ -240,8 +262,8 @@ def extract_info_for_qqc_report(raw_input_given: Path,
             '.json').str[0].str[-1]
 
     # get list of paths for images
-    image_paths = list(qqc_out_dir.glob('*.png')) + \
-        list(qqc_out_dir.glob('*.gif'))
+    image_paths = reorder_image_paths(list(qqc_out_dir.glob('*.png'))) + \
+        reorder_image_paths(list(qqc_out_dir.glob('*.gif')))
 
     # get list of qqc html summaries for the whole study
     qqc_html_files = list(qqc_out_dir.parent.parent.glob('*/*/*.html'))

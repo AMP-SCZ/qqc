@@ -15,11 +15,12 @@ from qqc.dicom_files import get_dicom_files_walk, rearange_dicoms, \
 from qqc.heudiconv_ctrl import run_heudiconv
 from qqc.qqc.json import jsons_from_bids_to_df
 from qqc.qqc.dicom import check_num_order_of_series, save_csa, is_enhanced, \
-        is_xa30, is_xa50, is_date_correct
+        is_xa30, is_xa50, is_date_correct, get_value_from_first_dicom
 from qqc.qqc.json import within_phantom_qc, compare_data_to_standard
 from qqc.qqc.qqc_summary import qqc_summary, qqc_summary_for_dpdash, \
         refresh_qqc_summary_for_subject
-from qqc.qqc.figures import quick_figures
+from qqc.qqc.figures import quick_figures, create_smoothness_figure
+from qqc.qqc.smoothness import highlight_smoothness_deviations
 from qqc.qqc.mriqc import run_mriqc_on_data
 from qqc.qqc.fmriprep import run_fmriprep_on_data
 from qqc.qqc.dwipreproc import run_quick_dwi_preproc_on_data
@@ -29,12 +30,23 @@ import getpass
 from datetime import datetime, date, timedelta
 from jinja2 import Environment, FileSystemLoader
 from qqc.email import create_html_for_qqc, create_html_for_qqc_study
+from qqc.qqc.nifti import get_smoothness_all_nifti
 
 pd.set_option('max_columns', 50)
 pd.set_option('max_rows', 500)
 logger = logging.getLogger(__name__)
 logging.getLogger().addHandler(logging.StreamHandler())
 
+
+def update_standard_dir_for_me(qqc_input, config, standard_dir):
+    if standard_dir is None:
+        return standard_dir
+
+    device_number = get_value_from_first_dicom(
+            qqc_input, 'DeviceSerialNumber')
+
+    standard_dir = config.get(f'XA50 template {device_number}', 'ME')
+    return standard_dir
 
 def dicom_to_bids_QQC(args, **kwargs) -> None:
     '''Sort dicoms, convert to BIDS nifti structure and run quick QC.
@@ -147,6 +159,10 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
                     logger.info(f'XA 50 template: {standard_dir}')
                     break
             break
+
+        if site == 'ME':
+            standard_dir = update_standard_dir_for_me(
+                    qqc_input, config, standard_dir)
 
         if standard_dir is None:
             try:
@@ -319,6 +335,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
     # ----------------------------------------------------------------------
     logger.info('Creating summary figures')
     if not args.qc_subdir:
+        quick_figures(session_dir, qc_out_dir)
         try:
             quick_figures(session_dir, qc_out_dir)
         except RuntimeError:
@@ -560,6 +577,22 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     
     logger.info('Comparison to standard')
     compare_data_to_standard(nifti_session_dir, standard_dir, qc_out_dir)
+
+    logger.info('Smoothness')
+    smoothness_csv = qc_out_dir / 'smoothness.csv'
+    if not smoothness_csv.is_file():
+        smoothness_df = get_smoothness_all_nifti(nifti_session_dir)
+        smoothness_df.to_csv(qc_out_dir / 'smoothness.csv')
+
+    logger.info('Smoothness check')
+    smoothness_fig_out = qc_out_dir / 'smoothness.png'
+    if not smoothness_fig_out.is_file():
+        create_smoothness_figure(nifti_session_dir, smoothness_fig_out)
+
+    smoothness_check_out = qc_out_dir / 'smoothness_check.csv'
+    if not smoothness_check_out.is_file():
+        df_ses_checked = highlight_smoothness_deviations(nifti_session_dir)
+        df_ses_checked.reset_index(drop=True).to_csv(smoothness_check_out)
 
     logger.info('Summary function & DPdash')
     # qqc_summary_for_dpdash(qc_out_dir)

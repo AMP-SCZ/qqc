@@ -81,6 +81,7 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     bit_check = qqc_ss_dir / 'bit_check.csv'
     enhanced_check = qqc_ss_dir / 'enhanced_check.csv'
     dicom_conv_check = qqc_ss_dir / 'dicom_count.csv'
+    smoothness_check = qqc_ss_dir / 'smoothness_check.csv'
 
     # get subject info
     session_name = qqc_ss_dir.name
@@ -95,7 +96,7 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
     titles = []
     for df_loc in scan_count, scan_order, volume_shape, anat_orient, \
             non_anat_orident, shim_settings, bval, bit_check, enhanced_check, \
-            dicom_conv_check:
+            dicom_conv_check, smoothness_check:
         # clean up the name of each QC output
         title = re.sub(r'\d+\w{0,1}_', '', df_loc.name).split('.csv')[0]
         title = re.sub(r'_', ' ', title)
@@ -104,20 +105,19 @@ def qqc_summary_detailed(qqc_ss_dir: Path) -> pd.DataFrame:
 
         if df_loc.is_file():
             df_tmp = pd.read_csv(df_loc)
-
-            # convert to integer for visibility
-            digit_columns = df_tmp.select_dtypes(include='number').columns
-            for col in digit_columns:
-                df_tmp[col] = pd.to_numeric(
-                        df_tmp[col], errors='ignore').astype('Int64').apply(
-                                lambda x: '' if pd.isna(x) else x)
+            if 'smoothness' not in title.lower():
+                # convert to integer for visibility
+                digit_columns = df_tmp.select_dtypes(include='number').columns
+                for col in digit_columns:
+                    df_tmp[col] = pd.to_numeric(
+                            df_tmp[col], errors='ignore').astype(
+                                    'Int64').apply(lambda x: ''
+                                            if pd.isna(x) else x)
 
             # if Unnamed: 0 is null, drop the row
             if 'Unnamed: 0' in df_tmp.columns:
                 df_tmp.drop(df_tmp[df_tmp['Unnamed: 0'].isnull()].index,
                         inplace=True)
-
-            # 'Summary' rows to be empty
 
         else:
             df_tmp = pd.DataFrame()

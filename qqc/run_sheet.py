@@ -3,10 +3,18 @@ from pathlib import Path
 import sys
 import re
 import pandas as pd
+import math
+import logging
 import qqc
 data_loc = Path(qqc.__file__).parent.parent / 'data'
 # from pronet_run_sheet import var
 from qqc.pronet_run_sheet import var
+
+logger = logging.getLogger(__name__)
+
+
+class NoDateError(Exception):
+    pass
 
 
 def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
@@ -55,13 +63,20 @@ def get_matching_run_sheet_path(mri_data: str, session_str: str) -> Path:
         sp = session_str.split('_')
 
         for k, v in run_sheet_dict.items():  # prescient table had '2023.0'
-            run_sheet_dict[k] = int(float(v))
+            if math.isnan(float(v)):
+                run_sheet_dict[k] = ''
+            else:
+                run_sheet_dict[k] = int(float(v))
 
-        if int(run_sheet_dict['chrmri_session_year']) == int(sp[0]) and \
-                int(run_sheet_dict['chrmri_session_month']) == int(sp[1]) and \
-                int(run_sheet_dict['chrmri_session_day']) == int(sp[2]):
-            run_sheet = run_sheet_tmp
-            break
+        try:
+            if int(run_sheet_dict['chrmri_session_year']) == int(sp[0]) and \
+               int(run_sheet_dict['chrmri_session_month']) == int(sp[1]) and \
+               int(run_sheet_dict['chrmri_session_day']) == int(sp[2]):
+               run_sheet = run_sheet_tmp
+               break
+        except ValueError:
+            logger.critical('No date information in the run sheet')
+            raise NoDateError
 
     return run_sheet
 

@@ -460,10 +460,19 @@ def collect_info_from_json(subject: str,
         with open(json_path, 'r') as f:
             json_data = json.load(f)
     else:
+        logger.warning(f'No json: {subject}')
         return None
 
     # load json file into json
     df = pd.DataFrame(json_data)
+
+    # extract group
+    if '1' in df['chrcrit_part'].unique():
+        cohort = 'Clinical High Risk'
+    elif '2' in df['chrcrit_part'].unique():
+        cohort = 'Healthy Control'
+    else:
+        cohort = 'Unknown'
 
     # extract age
     age_df = df[[x for x in df.columns if 'chrdemo_age_mos' in x if 
@@ -499,7 +508,7 @@ def collect_info_from_json(subject: str,
     missing_info_tuple = extract_missing_data_info_new(
             df, scan_date, timepoint)
 
-    return (missing_info_tuple, age_df_condense, sex)
+    return (missing_info_tuple, age_df_condense, sex, cohort)
 
 
 def extract_missing_data_info_new(df,
@@ -628,7 +637,7 @@ def get_run_sheet_df(phoenix_dir: Path,
         datatype: data type, eg) 'mri', str.
     '''
     # get all run sheets extracted from RPMS or REDCap by lochness from
-    run_sheets = grep_run_sheets(phoenix_dir, test)
+    run_sheets = grep_run_sheets(phoenix_dir, subject, test)
 
     # create dataframe
     logger.info(f'Cleaning up run sheet information from {phoenix_dir}')
@@ -691,6 +700,13 @@ def get_run_sheet_df(phoenix_dir: Path,
                                              x['entry_date'],
                                              x['run_sheet_num']),
             axis=1)
+
+    # if no json, vars_tuple becomes None
+    no_json_df = datatype_df[datatype_df.vars_tuple.isnull()]
+    logger.info('There are cases without json files')
+    logger.info(no_json_df)
+    datatype_df.drop(no_json_df.index, inplace=True)
+
     # datatype_df['vars'] = datatype_df.apply(
             # lambda x: extract_missing_data_info_new(x['subject'],
                                                     # phoenix_dir,
@@ -712,6 +728,7 @@ def get_run_sheet_df(phoenix_dir: Path,
             (datatype_df['missing_discon'] == '1')).map({True: 1, False: None})
 
     # what if no age?
+    print(datatype_df[datatype_df['vars_tuple'].str[1].isnull()])
     datatype_df['age_col'] = datatype_df.apply(
             lambda x: x['vars_tuple'][1].columns[0], axis=1)
     datatype_df['age_val'] = datatype_df.apply(
@@ -722,14 +739,15 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['demo_date'] = datatype_df.apply(
             lambda x: x['vars_tuple'][1]['demo_date'].iloc[0], axis=1)
 
-    # TODO
+    # TODO: clean up
     def get_age_measure_date(row):
-        if row['age_col'] == 'chrdemo_age_mos_2':
+        if row['age_col'] == 'chrdemo_age_mos2':
             return row.demo_date
         elif row['age_col'] in ['chrdemo_age_mos_chr', 'chrdemo_age_mos_hc']:
             return row.consent_date
         else:
             return pd.NA
+
     datatype_df['age_measure_date'] = datatype_df.apply(
             get_age_measure_date, axis=1)
 
@@ -747,11 +765,11 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['timedelta_to_scan'] = datatype_df.apply(
             get_age_measure_date_to_scan, axis=1)
 
-
     def get_age_at_scan(row):
         date_format = '%Y-%m-%d'
         try:
             timedelta_in_months = (row['timedelta_to_scan'] / 365.25) * 12
+            # timedelta_in_months.days represent months
             age_at_scan = int(row['age_val']) + timedelta_in_months
             return np.round(age_at_scan, 2)
         except:
@@ -773,7 +791,9 @@ def get_run_sheet_df(phoenix_dir: Path,
             axis=1)
 
     # what if no sex?
+
     datatype_df['sex'] = datatype_df.vars_tuple.str[2]
+    datatype_df['cohort'] = datatype_df.vars_tuple.str[3]
 
     datatype_df.drop('vars', axis=1, inplace=True)
     datatype_df.drop('vars_tuple', axis=1, inplace=True)
@@ -815,6 +835,10 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['days_scan_to_today'] = datatype_df.apply(delay_time, axis=1)
     datatype_df.reset_index(drop=True,inplace=True)
     datatype_df.drop('index', axis=1, inplace=True)
+
+
+    # re-attach no-json files
+    # datatype_df = pd.concat([datatype_df, no_json_df])
 
     return datatype_df
 

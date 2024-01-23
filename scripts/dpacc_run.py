@@ -1,6 +1,7 @@
 import sys
-import argparse
 import os
+import logging
+import argparse
 import subprocess
 from pathlib import Path
 from typing import List
@@ -18,6 +19,10 @@ def parse_arguments():
                         nargs='+', choices=['Prescient', 'Pronet'],
                         default=['Prescient', 'Pronet'],
                         help='Study networks')
+
+    parser.add_argument('--use_bsub', '-ub',
+                        action='store_true',
+                        help='Use bsub')
 
     parser.add_argument('--ignore_file', '-if',
                         type=str,
@@ -140,36 +145,48 @@ def main(args: argparse.PARSER):
                 if args.pause_at_error:
                     dicom_to_bids_QQC(args)
                 else:
-                    try:
-                        dicom_to_bids_QQC(args)
-                        print("=========================")
-                        print()
-                    except Exception as e:
-                        print(e)
-                # Replace the following command with the appropriate Python code for executing dicom_to_dpacc_bids.py
-                # python_cmd = [
-# #                    '/usr/share/lsf/9.1/linux2.6-glibc2.3-x86_64/bin/bsub',
-# #                    '-q', 'pri_pnl',
-# #                    '-n', '1',
-# #                    '-e', '/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/qqc_bsub.err',
-# #                    '-o' '/data/predict1/data_from_nda/MRI_ROOT/derivatives/quick_qc/qqc_bsub.out',
-                    # '/data/pnl/kcho/anaconda3/bin/python',
-                    # '/data/predict1/home/kcho/software/qqc/scripts/dicom_to_dpacc_bids.py',
-                    # '-i', filepath,
-                    # '-s', subject,
-                    # '-ss', session,
-                    # '-o', str(MRI_ROOT),
-                    # '--email_report',
-                    # '--config', '/data/predict1/data_from_nda/MRI_ROOT/standard_templates.cfg',
-                    # '--force_heudiconv',
-                    # '--dwipreproc', '--mriqc', '--fmriprep'] + \
-                    # email_recipients
+                    if args.use_bsub:
+                        # Replace the following command with the appropriate
+                        # Python code for executing dicom_to_dpacc_bids.py
+                        bsub_loc = '/usr/share/lsf/9.1/' \
+                                'linux2.6-glibc2.3-x86_64/bin/bsub'
+                        python_cmd = [
+                            bsub_loc, '-q', 'normal', '-n', '1',
+                            '-e',
+                            f'{MRI_ROOT}/derivatives/quick_qc/qqc_bsub.err',
+                            '-o',
+                            f'{MRI_ROOT}/derivatives/quick_qc/qqc_bsub.out',
+                            '/data/pnl/kcho/anaconda3/bin/python',
+                            '/data/predict1/home/kcho/software/qqc/scripts/dicom_to_dpacc_bids.py',
+                            '-i', filepath,
+                            '-s', subject,
+                            '-ss', session,
+                            '-o', str(MRI_ROOT),
+                            '--config',
+                            f'{MRI_ROOT}/standard_templates.cfg',
+                            '-sh', '-sdr'
+                            ]
+                            # '--dwipreproc', '--mriqc', '--fmriprep'
+                            # '--force_heudiconv',
+                            # '--email_report',
+                            # email_recipients
+                        subprocess.run(python_cmd)
+                    else:
+                        try:
+                            dicom_to_bids_QQC(args)
+                            print("=========================")
+                            print()
+                        except Exception as e:
+                            print(e)
 
-                # print(python_cmd)
-                # subprocess.run(python_cmd)
 
 
 if __name__ == '__main__':
     # dicom_to_dpacc_bids args
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    logging.basicConfig(
+        format=formatter,
+        handlers=[logging.StreamHandler()])
+    logging.getLogger().setLevel(logging.INFO)
     args = parse_arguments().parse_args(sys.argv[1:])
     main(args)
