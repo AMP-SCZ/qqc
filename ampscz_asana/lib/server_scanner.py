@@ -63,8 +63,9 @@ def get_all_subjects_with_consent(phoenix_root: Path) -> list:
     metadata_files = (phoenix_root / 'GENERAL').glob('*/*metadata.csv')
     subject_ids = []
     for metadata_file in metadata_files:
-        df = pd.read_csv(metadata_file)
-        subject_ids += df['Subject ID'].tolist()
+        if metadata_file.parent.name == (metadata_file.name + '_metadata.csv'):
+            df = pd.read_csv(metadata_file)
+            subject_ids += df['Subject ID'].tolist()
         
     return subject_ids
 
