@@ -43,7 +43,7 @@ def get_entry_date_from_run_sheet(run_sheet: Path) -> str:
     return entry_date
 
 
-def get_mri_data(run_sheet: Path, entry_date: str) -> bool:
+def get_mri_data(run_sheet: Path, entry_date: str) -> Path:
     ''''return the matching MRI zip file based on the entry_date
 
     Key argument:
@@ -60,7 +60,8 @@ def get_mri_data(run_sheet: Path, entry_date: str) -> bool:
 
     # exact match
     for zip_file in run_sheet.parent.glob(f'*{entry_date}*.[Zz][Ii][Pp]'):
-        return zip_file
+        if re.search('^[A-Z]{2}\d{5}_MR_', zip_file.name):
+            return zip_file
 
     # date match
     for zip_file in run_sheet.parent.glob('*.[Zz][Ii][Pp]'):
