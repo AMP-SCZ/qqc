@@ -4,7 +4,9 @@ import json
 import logging
 import pandas as pd
 from pathlib import Path
+from typing import List, Dict
 from datetime import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +185,38 @@ def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
     return consent_date
 
 
+class MoreThanOneSubjectIdError(Exception):
+    pass
+
+
+def get_subject_timepoint(visit_df, subject_id: str) -> str:
+    '''Get subject timepoint using formqc outputs'''
+    subject_df = visit_df[visit_df.subjectid == subject_id]
+
+    if len(subject_df) > 1:
+        raise MoreThanOneSubjectIdError
+
+    return (subject_df.iloc[0]['visit_status_string'],
+            subject_df.iloc[0]['last_visit_status'])
+
+
+def get_visit_df(formqc_loc: str = '/data/predict1/data_from_nda/formqc') \
+        -> pd.DataFrame:
+    formsqc_path = Path(formqc_loc)
+    visit_status_file = formsqc_path / 'combined-AMPSCZ-screening-day1to1.csv'
+    df = pd.read_csv(visit_status_file)
+    columns = ['subjectid', 'visit_status_string', 'last_visit_status']
+    return df[columns]
+
+
+def return_matching_visit_status(subjects: List[str]) -> Dict[str, tuple]:
+    subject_visit_dict = {}
+    visit_df = get_visit_df()
+    for subject in subjects:
+        subject_visit_dict[subject] = get_subject_timepoint(visit_df, subject)
+
+    return subject_visit_dict
+        
 
 if __name__ == '__main__':
     print('Beginning of the Simone pipeline')

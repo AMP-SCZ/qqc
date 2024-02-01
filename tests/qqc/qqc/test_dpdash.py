@@ -164,4 +164,3 @@ def test_find_matching_files_between_BIDS_sessions_missing_input():
             inplace=True)
 
     return json_df_all
-
