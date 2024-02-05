@@ -32,8 +32,12 @@ def quick_figures(subject_dir: Path, outdir: Path):
         for nifti_path in dwi_dir.glob('*.nii.gz'):
             if 'sbref' not in nifti_path.name:
                 nifti_prefix = nifti_path.parent / nifti_path.name.split('.')[0]
-                data, bval_arr = get_diffusion_data_from_nifti_prefix(
-                        nifti_prefix, '', threshold, False)
+                try:
+                    data, bval_arr = get_diffusion_data_from_nifti_prefix(
+                            nifti_prefix, '', threshold, False)
+                except IndexError:
+                    logger.warning('bval mismatch')
+                    continue
                 dataset.append((data, bval_arr,
                                 nifti_prefix.name.split('ses-')[1]))
 
@@ -86,35 +90,35 @@ def quick_figures(subject_dir: Path, outdir: Path):
                 output_file = outdir / outname,
             )
 
-    # # add dMRI & fMRI visualization
-    # dwi_dir = subject_dir / 'dwi'
-    # for nifti_path in dwi_dir.glob('*.nii.gz'):
-        # outname = nifti_path.name.split('.nii.gz')[0] + '.png'
-        # if not (outdir / outname).is_file():
-            # fig = nifti_snapshot.SimpleFigure(
-                # image_files = [nifti_path],
-                # title = nifti_path.name,
-                # make_transparent_zero = True,
-                # volumes=[0],
-                # cbar_width = 0.5,
-                # cbar_title = 'Intensity',
-                # output_file = outdir / outname,
-            # )
+    # add dMRI & fMRI visualization
+    dwi_dir = subject_dir / 'dwi'
+    for nifti_path in dwi_dir.glob('*.nii.gz'):
+        outname = nifti_path.name.split('.nii.gz')[0] + '.png'
+        if not (outdir / outname).is_file():
+            fig = nifti_snapshot.SimpleFigure(
+                image_files = [nifti_path],
+                title = nifti_path.name,
+                make_transparent_zero = True,
+                volumes=[0],
+                cbar_width = 0.5,
+                cbar_title = 'Intensity',
+                output_file = outdir / outname,
+            )
 
-    # # add dMRI & fMRI visualization
-    # func_dir = subject_dir / 'func'
-    # for nifti_path in func_dir.glob('*.nii.gz'):
-        # outname = nifti_path.name.split('.nii.gz')[0] + '.png'
-        # if not (outdir / outname).is_file():
-            # fig = nifti_snapshot.SimpleFigure(
-                # image_files = [nifti_path],
-                # title = nifti_path.name,
-                # make_transparent_zero = True,
-                # volumes=[0],
-                # cbar_width = 0.5,
-                # cbar_title = 'Intensity',
-                # output_file = outdir / outname,
-            # )
+    # add dMRI & fMRI visualization
+    func_dir = subject_dir / 'func'
+    for nifti_path in func_dir.glob('*.nii.gz'):
+        outname = nifti_path.name.split('.nii.gz')[0] + '.png'
+        if not (outdir / outname).is_file():
+            fig = nifti_snapshot.SimpleFigure(
+                image_files = [nifti_path],
+                title = nifti_path.name,
+                make_transparent_zero = True,
+                volumes=[0],
+                cbar_width = 0.5,
+                cbar_title = 'Intensity',
+                output_file = outdir / outname,
+            )
 
     # add 4d visualization
     dwi_dir = subject_dir / 'dwi'
