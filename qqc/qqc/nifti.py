@@ -95,7 +95,11 @@ def get_smoothness_in_each_shell(dwi_nifti: Path,
     with tf.TemporaryDirectory() as tmp_dir:
         for bval in np.unique(bval_arr):
             bval_index = np.where(bval_arr == bval)[0]
-            data = dwi_data[:, :, :, bval_index]
+            try:
+                data = dwi_data[:, :, :, bval_index]
+            except IndexError:
+                logger.warning(f'Indexing Error: {dwi_nifti} with {bval}')
+                continue
             tmp_output = Path(tmp_dir) / f'{int(bval)}.nii.gz'
             nb.Nifti1Image(data, affine=dwi_img.affine,
                     header=dwi_img.header).to_filename(tmp_output)
