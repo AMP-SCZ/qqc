@@ -1,7 +1,7 @@
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, extract_missing_data_information, compare_dates, format_days
 from ampscz_asana.lib.qc import get_run_sheet_df, extract_missing_data_info_new
 from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash, \
-        extract_mri_comments
+        extract_mri_comments, get_mri_data
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, \
         extract_missing_data_information, compare_dates, format_days, \
         check_mri_data, extract_missing_data_info_new, \
@@ -347,4 +347,9 @@ def test_get_run_sheet_df_two():
     print(df)
     print(df.file_loc.unique())
 
+
+def test_get_mri_data():
+    run_sheet_path = Path('/data/predict1/data_from_nda/Prescient/PHOENIX/PROTECTED/PrescientJE/raw/JE27456/mri/JE27456.Prescient.Run_sheet_mri_1.csv')
+    entry_date = '2023_08_07'
+    print(get_mri_data(run_sheet_path, entry_date))
 

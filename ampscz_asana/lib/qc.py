@@ -1,4 +1,5 @@
-from ampscz_asana.lib.server_scanner import grep_run_sheets
+from ampscz_asana.lib.server_scanner import grep_run_sheets, \
+        return_matching_visit_status
 import re
 import pandas as pd
 import numpy as np
@@ -43,7 +44,7 @@ def get_entry_date_from_run_sheet(run_sheet: Path) -> str:
     return entry_date
 
 
-def get_mri_data(run_sheet: Path, entry_date: str) -> bool:
+def get_mri_data(run_sheet: Path, entry_date: str) -> Path:
     ''''return the matching MRI zip file based on the entry_date
 
     Key argument:
@@ -60,7 +61,8 @@ def get_mri_data(run_sheet: Path, entry_date: str) -> bool:
 
     # exact match
     for zip_file in run_sheet.parent.glob(f'*{entry_date}*.[Zz][Ii][Pp]'):
-        return zip_file
+        if re.search('^[A-Z]{2}\d{5}_MR_', zip_file.name):
+            return zip_file
 
     # date match
     for zip_file in run_sheet.parent.glob('*.[Zz][Ii][Pp]'):
@@ -652,6 +654,12 @@ def get_run_sheet_df(phoenix_dir: Path,
     df['run_sheet_num'] = df.file_path.apply(lambda x: x.name).str.extract(
             '[A-Z]{2}\d{5}\.P\w+\.Run_sheet_\w+_(\d).csv')
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
+
+    # add visit status
+    subject_visit_dict = return_matching_visit_status(subject_ids.subject)
+    df['visit_status_string'] = df['subject'].map(subject_visit_dict).str[0]
+    df['last_visit_status'] = df['subject'].map(subject_visit_dict).str[1]
+
     # AB00001.Pronet.Run_sheet_mri_1.csv
     df['datatype'] = df.file_path.apply(lambda x: x.name.split('_')[2])
     df['other_files'] = df['file_loc'].apply(lambda x: [x for x in os.listdir(
