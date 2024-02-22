@@ -666,6 +666,9 @@ def get_run_sheet_df(phoenix_dir: Path,
         Path(x).parent.absolute()) if re.search(r'zip', x, re.IGNORECASE)])
     df['other_files'] = df['other_files'].apply(lambda x: ', '.join(x))
 
+    if datatype == 'eeg':
+        return df
+
     # select given datatype
     datatype_index = df[df['datatype'] == datatype].index
     datatype_df = df.loc[datatype_index]
