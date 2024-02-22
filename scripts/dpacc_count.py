@@ -1,3 +1,4 @@
+import re
 import sys
 import logging
 import argparse
@@ -80,20 +81,24 @@ if __name__ == '__main__':
     
     # Read all available run sheets from PHOENIX and create db (MRI)
     logger.info('Read information from AMP-SCZ REDCap and RPMS')
-    df = pd.DataFrame()
-    for phoenix_root in args.phoenix_roots:
-        logger.info(f'Summarizing dataflow in {phoenix_root}')
-        df_tmp = get_run_sheet_df(phoenix_root,
-                                  test=args.test)
-        df = pd.concat([df, df_tmp])
-    df['entry_date'] = df['entry_date'].dt.strftime('%Y-%m-%d')
-    df.to_csv(args.mriflow_csv)
+    # for modality in 'eeg', 'mri':
+    for modality in ['mri']:
+        flow_csv = re.sub('mri', modality, str(args.mriflow_csv))
+        df = pd.DataFrame()
+        for phoenix_root in args.phoenix_roots:
+            logger.info(f'Summarizing dataflow in {phoenix_root}')
+            df_tmp = get_run_sheet_df(phoenix_root,
+                                      datatype=modality,
+                                      test=args.test)
+            df = pd.concat([df, df_tmp])
+        if 'entry_date' in df.columns:  # for mri
+            df['entry_date'] = df['entry_date'].dt.strftime('%Y-%m-%d')
+        df.to_csv(flow_csv)
 
-    # Count data and make DPDasah readable CSV files
-    for modality in 'eeg', 'mri':
+        # Count data and make DPDasah readable CSV files
         logger.info(f'Count and make counts available for DPDash: {modality}')
         count_and_make_it_available_for_dpdash(args.phoenix_roots,
-                                               args.mriflow_csv,
+                                               flow_csv,
                                                args.dpdash_outpath,
                                                args.final_qc_dir,
                                                modality=modality,

@@ -656,7 +656,7 @@ def get_run_sheet_df(phoenix_dir: Path,
     df['subject'] = df.file_loc.str.extract('([A-Z]{2}\d{5})')
 
     # add visit status
-    subject_visit_dict = return_matching_visit_status(subject_ids.subject)
+    subject_visit_dict = return_matching_visit_status(df.subject)
     df['visit_status_string'] = df['subject'].map(subject_visit_dict).str[0]
     df['last_visit_status'] = df['subject'].map(subject_visit_dict).str[1]
 
