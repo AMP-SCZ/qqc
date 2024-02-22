@@ -44,6 +44,12 @@ def count_and_make_it_available_for_dpdash(
     # matching information from the mriflow_csv table
     logger.info('Running get_mri_zip_df')
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
+
+    # exclude cases to ignore
+    ignore_path_list_txt = '/data/predict1/data_from_nda/MRI_ROOT/' \
+                           'data_to_ignore.txt'
+    ignore_df = pd.read_csv(ignore_path_list_txt, names=['zip_path'])
+    zip_df = zip_df[~zip_df.zip_path.isin(ignore_df)]
     zip_df.to_csv(dpdash_outpath / f'{modality}_tmp_db.csv')
 
     if modality == 'mri':
