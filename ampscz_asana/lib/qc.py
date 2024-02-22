@@ -118,8 +118,8 @@ def check_mri_data(run_sheet: Path, entry_date: str) -> bool:
 
 def check_when_transferred(expected_mri_path: Union[Path, str]) -> bool:
     ''''return the ctime of a file'''
-    ctime = Path(expected_mri_path).stat().st_ctime
-    date_str = datetime.fromtimestamp(ctime).strftime('%Y-%m-%d')
+    mtime = Path(expected_mri_path).stat().st_mtime
+    date_str = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')
     return date_str
 
 
