@@ -188,13 +188,20 @@ def consent_date_extraction_csv(ampscz_id: str, phoenix_root: Path) -> str:
 class MoreThanOneSubjectIdError(Exception):
     pass
 
+class SubjectIdMissingInVisitStatus(Exception):
+    pass
+
 
 def get_subject_timepoint(visit_df, subject_id: str) -> str:
     '''Get subject timepoint using formqc outputs'''
     subject_df = visit_df[visit_df.subjectid == subject_id]
 
     if len(subject_df) > 1:
+        logger.warning(f'{subject_id} has more than one line in visit status')
         raise MoreThanOneSubjectIdError
+    elif len(subject_df) == 0:
+        logger.warning(f'{subject_id} not in visit status')
+        raise SubjectIdMissingInVisitStatus
 
     return (subject_df.iloc[0]['visit_status_string'],
             subject_df.iloc[0]['last_visit_status'])
@@ -213,7 +220,11 @@ def return_matching_visit_status(subjects: List[str]) -> Dict[str, tuple]:
     subject_visit_dict = {}
     visit_df = get_visit_df()
     for subject in subjects:
-        subject_visit_dict[subject] = get_subject_timepoint(visit_df, subject)
+        try:
+            subject_visit_dict[subject] = get_subject_timepoint(visit_df,
+                                                                subject)
+        except SubjectIdMissingInVisitStatus:
+            subject_visit_dict[subject] = ('unknown', 'unknown')
 
     return subject_visit_dict
         
