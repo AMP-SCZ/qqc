@@ -391,6 +391,8 @@ def is_session_dir_16bit(nifti_root: Path) -> Tuple[bool, float]:
         for directory in dirs:
             if directory == 'dwi':
                 return is_dwi_dir_16bit(Path(root) / directory)
+            elif directory == 'fmap':
+                return is_fmap_dir_16bit(Path(root) / directory)
             else:
                 continue
                 
