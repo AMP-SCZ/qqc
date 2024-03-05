@@ -54,6 +54,7 @@ Contents
 .. toctree::
 
    installation
+   template_preparation.rst
    usage
    steps_in_detail
    qqc_outputs
