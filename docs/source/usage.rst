@@ -1,83 +1,117 @@
 Usage
 =====
 
-.. _usage:
+Running the Docker Container
+----------------------------
 
-``dicom_to_dpacc_bids.py``
---------------------------
-
-To process all dicom files under a dicom directory, and compare them to another
-BIDS directory for any protocol differences, use the command below.
+To execute the Docker container, use the following command:
 
 .. code-block:: shell
 
-   dicom_to_dpacc_bids.py \
+   docker run \
+     -v /absolute/path/to/ROOT/OF/INPUT_DICOM:/data/dicom \
+     -v /absolute/path/to/MRI_ROOT:/data/output \
+     -v /absolute/path/to/BIDS/SESSION/OF/STANDARD/DATA:/data/standard \
+     qqc \
+     qqc.py \
+         --input_dir /data/dicom \
+         --subject_name SubjectName \
+         --session_name SessionName \
+         --output_dir /data/output \
+         --standard_dir /data/standard
+
+Details on Docker Command Options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. **Docker Volume Binding (``-v`` or ``--volume``)**
+   Binds a host system directory to a container directory, granting the container access to host data for both input and output operations.
+
+   - **Input Directory** (``--input_dir``): Bind the directory containing DICOM files.
+   - **Output Directory** (``--output_dir``): Bind the directory for storing output data.
+   - **Standard Directory** (``--standard_dir``): Bind the directory of the BIDS session for protocol comparison.
+
+2. **Docker Image Name**: Specify the image name (``qqc``) after volume bindings.
+
+3. **Command and Options**: Include the `qqc.py` command with relevant options as they are to be executed within the container.
+
+
+Executing the Singularity Container
+-----------------------------------
+
+.. code-block:: shell
+
+   singularity exec \
+     --bind /absolute/path/to/ROOT/OF/INPUT_DICOM:/data/dicom \
+     --bind /absolute/path/to/MRI_ROOT:/data/output \
+     --bind /absolute/path/to/BIDS/SESSION/OF/STANDARD/DATA:/data/standard \
+     /path/to/qqc.sif \
+     qqc.py \
+         --input_dir /data/dicom \
+         --subject_name SubjectName \
+         --session_name SessionName \
+         --output_dir /data/output \
+         --standard_dir /data/standard
+
+Details on Singularity Command Options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Singularity command options are used similarly to Docker for executing containers but with some syntax differences:
+
+1. **Singularity Bind Option (``--bind``)**
+   This option maps host system directories to directories within the container, similar to Docker's volume binding.
+
+   - **Input Directory** (``--input_dir``): Use the ``--bind`` option to map the directory containing DICOM files into the container.
+   - **Output Directory** (``--output_dir``): Map the directory designated for output data storage into the container.
+   - **Standard Directory** (``--standard_dir``): Map the BIDS session directory for protocol comparison into the container.
+
+2. **Singularity Image File**: Specify the path to the Singularity image file (`.sif`) instead of an image name.
+
+3. **Executing the Command**: After specifying the image file and binding options, include the `qqc.py` command with associated options as intended for execution within the Singularity environment.
+
+
+Local Execution of ``qqc.py``
+-----------------------------
+
+To process all DICOM files under a specified directory and compare them with another BIDS directory for protocol discrepancies, utilize the following command:
+
+.. code-block:: shell
+
+   qqc.py \
        --input_dir ROOT/OF/DICOM_DIR \
        --subject_name SubjectName \    # without 'sub-'
        --session_name SessionName \    # without 'ses-'
        --output_dir OUTPUT/DIR/ROOT \
        --standard_dir BIDS/SESSION/OF/STANDARD/DATA
 
+This command will store the outputs under ``MRI_ROOT``.
 
-This wll save the outputs under ``MRI_ROOT``.
+Command Options for ``qqc.py``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. ``--input_dir`` can virtually take any form of structure as long as there
-   are dicom files under the directory.
-
-    * eg) ``PHOENIX/PROTECTED/PronetLA/raw/BW00001/mri/BW00001_MR_2021_07_22_1``
-
-#. For ``--subject_name``, use the subject ID. ``sub-`` prefix will be attached
-   in front of the given subject name.
-
-    * eg) ``--subject_name BW00001``
-
-#. For ``--session_name``, use the date and unique label number without any
-   spaces, `-`, or `_`. 
-
-    * eg) ``--session_name 202107221``
-
-#. ``--output_dir`` is the root directory of the output. This path is where 
-   ``sourcedata``, ``rawdata`` and ``derivatives`` directories will be created.
-
-    * eg) ``-output_dir MRI_ROOT``
-
-#. ``--standard_dir`` is the root of **BIDS session** that you would like to
-   compare the protocols of the ``--input_dir``.
-
-    * eg) ``rawdata/sub-ProNETUCLA/ses-phantom``
+- **``--input_dir``**: Accepts any structured directory containing DICOM files.
+- **``--subject_name``**: Utilize the subject ID; ``sub-`` prefix will be automatically appended.
+- **``--session_name``**: Specify the date and unique label number, omitting spaces, `-`, or `_`.
+- **``--output_dir``**: Designates the root directory for outputs, where ``sourcedata``, ``rawdata``, and ``derivatives`` directories will be generated.
+- **``--standard_dir``**: Indicates the root of the BIDS session for protocol comparison.
 
 
-.. _available_options:
+Extra Quality Control Options
+-----------------------------
 
-Available options
------------------
+- **Extra QC Comparison**:
 
-#. Run extra QC to make comparison to different standard BIDS directory.
+  .. code-block:: console
 
-.. code-block:: console
-
-  --qc_subdir QC_SUBDIR, -qs QC_SUBDIR
-                        ExtraQC output directory name.
+     --qc_subdir QC_SUBDIR, -qs QC_SUBDIR
+                           Extra QC output directory name.
 
 
-.. code-block:: shell
-
-   dicom_to_dpacc_bids.py \
-       --input_dir PHOENIX/PROTECTED/PronetLA/raw/BW00001/mri/BW00001_MR_2021_07_22_1 \
-       --subject_name BW00001 \
-       --session_name 202107221 \
-       --qc_subdir comparison_to_phantom \
-       --output_dir MRI_ROOT \
-       --standard_dir rawdata/sub-ProNETUCLA/ses-phantom \
-
-
-
-.. _outputs:
-
-Output structure
+Output Structure
 ----------------
 
-::
+The output structure is organized as follows, facilitating easy access and analysis:
+
+.. code-block:: none
 
    MRI_ROOT/
    ├── sourcedata
