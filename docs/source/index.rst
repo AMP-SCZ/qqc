@@ -3,6 +3,10 @@ Welcome to Quick Quality Check's documentation!
 
 **Quick Quality Check** (QQC) is a Python-based tool designed to identify protocol deviations in newly acquired MRI scans.
 
+
+What does QQC do?
+-----------------
+
 Initially, QQC organizes DICOM files by their series number and description from the DICOM headers. It then calls Heudiconv, which utilizes dcm2niix, to automatically convert DICOM files into NIFTI files, aligning with predefined BIDS structure file naming conventions. An example of the BIDS structure can be found in Figure 1 (https://github.com/AMP-SCZ/ampscz_mri_upload#example-structure).
 
 Following conversion, QQC compares the new MRI data against reference data from the same site—usually a pilot scan or the study's initial scan, already verified by the research team. This comparison checks every detail in the BIDS sidecar JSON files, with any discrepancies highlighting protocol adjustments. QQC further examines the number of diffusion weighting directions and values, as well as volumes and slices across all images, identifying any conversion errors, partial transfers, or incomplete scans.
