@@ -1,6 +1,25 @@
 Installation
 ============
 
+.. _dockerized_version:
+
+Use docker
+-----------------------
+TBA
+
+Go to setups
+
+
+.. _singularity_version:
+
+Use singularity
+-----------------------
+TBA
+
+Go to setups
+
+
+
 .. _dcm2niix:
 
 Install dcm2niix
