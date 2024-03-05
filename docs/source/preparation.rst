@@ -1,6 +1,22 @@
 Preparation
 ===========
 
+
+
+Configuration of the Heudiconv heuristic file
+----------------------------------------------
+  Heudiconv configuration file is required to run heudiconv on your dataset. Please follow `hediconv documentation <https://heudiconv.readthedocs.io/en/latest/>`_
+  to create a heudiconv configuration file specific for your scan.
+
+  An example of the heudiconv configuration file is available `here <https://github.com/AMP-SCZ/qqc/blob/main/data/heuristic.py>`_.
+
+
+A template MRI scan serving as the comparison standard
+-------------------------------------------------------
+
+TBA
+
+
 .. _dockerized_version:
 
 Use docker
