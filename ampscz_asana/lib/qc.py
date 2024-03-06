@@ -833,6 +833,12 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['qqc_date'] = pd.to_datetime(datatype_df['qqc_date'])
     datatype_df['zip_date'] = pd.to_datetime(datatype_df['zip_date'],
                                              errors='ignore')
+
+    # order of dates in the zip filename to be used to match with a run sheet
+    for subject, subject_df in df.gropuby('subject'):
+        zip_date_order_subject = subject_df.zip_date.rank()
+        df.loc[subject_df.index, 'zip_date_order'] = zip_date_order_subject
+
     datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
 
     # estimate time difference
