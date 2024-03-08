@@ -5,7 +5,7 @@ from ampscz_asana.lib.qc import is_qqc_executed, dataflow_dpdash, \
 from ampscz_asana.lib.qc import date_of_zip, extract_variable_information, \
         extract_missing_data_information, compare_dates, format_days, \
         check_mri_data, extract_missing_data_info_new, \
-        collect_info_from_json
+        collect_info_from_json, cache_json_and_get_csv
 
 from qqc.utils.dpdash import get_summary_included_ids
 
@@ -353,3 +353,23 @@ def test_get_mri_data():
     entry_date = '2023_08_07'
     print(get_mri_data(run_sheet_path, entry_date))
 
+
+def test_cache_json_and_get_csv():
+    json_path = Path('/data/predict1/data_from_nda/Pronet/PHOENIX/PROTECTED/'
+                     'PronetYA/raw/YA08362/surveys/YA08362.Pronet.json')
+    phoenix_path = Path('/data/predict1/data_from_nda/Pronet/PHOENIX')
+
+    out_csv = cache_json_and_get_csv(json_path, phoenix_path)
+    assert out_csv.is_file()
+    
+
+def test_all_cache_json_and_get_csv():
+    json_paths = Path('/data/predict1/data_from_nda').glob(
+            'P*/PHOENIX/PROTECTED/*/raw/*/surveys/*.P*.json')
+    for json_path in json_paths:
+        phoenix_path = Path('/data/predict1/data_from_nda') / \
+                json_path.relative_to(
+                        '/data/predict1/data_from_nda').parts[0] / 'PHOENIX'
+        out_csv = cache_json_and_get_csv(json_path, phoenix_path)
+        assert out_csv.is_file()
+        
