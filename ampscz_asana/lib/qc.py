@@ -437,6 +437,45 @@ def extract_session_num(run_sheet: Path) -> str:
         return None
 
 
+def cache_json_and_get_csv(json_path,
+                           phoenix_path,
+                           new_phoenix_root=None,
+                           overwrite=False) -> Path:
+    if new_phoenix_root is None:
+        new_phoenix_root = Path(
+                '/data/predict1/home/kcho/tmp/PHOENIX_cache_root')
+    new_json_path = new_phoenix_root / json_path.relative_to(phoenix_path)
+    csv_path = new_json_path.parent / \
+            (new_json_path.name.split('.')[0] + '.csv')
+
+    if not overwrite:
+        if csv_path.is_file():
+            return csv_path
+
+    csv_path.parent.mkdir(exist_ok=True, parents=True)
+
+    with open(json_path, 'r') as fp:
+        json_data = json.load(fp)
+
+    df = pd.DataFrame(json_data)
+    col_str_to_get_list = [
+            'chrcrit_part', 'chrdemo_age_mos',
+            'chric_consent_date', 'chrdemo_interview_date',
+            'chrdemo_sexassigned', 'chrmiss_domain_type___3',
+            'chrmiss_time', 'chrmiss_withdrawn',
+            'chrmiss_discon', 'redcap_event_name',
+            'chrmri_entry_date', 'chrmri_missing',
+            'chrmiss_domain_spec', 'chrdemo_age_mos2',
+            'chrdemo_age_mos_chr', 'chrdemo_age_mos_hc']
+    columns_to_select = []
+    for col_str in col_str_to_get_list:
+        columns_to_select += [x for x in df.columns if col_str in x]
+
+    df = df[set(columns_to_select)]
+    df.to_csv(csv_path)
+    return csv_path
+
+
 def collect_info_from_json(subject: str,
                            phoenix_dir: str,
                            scan_date: str,
@@ -459,14 +498,12 @@ def collect_info_from_json(subject: str,
     json_path = subject_dir / 'surveys' / f'{subject}.{network}.json'
 
     if json_path.exists():
-        with open(json_path, 'r') as f:
-            json_data = json.load(f)
+        csv_path = cache_json_and_get_csv(json_path, phoenix_dir)
+        df = pd.read_csv(csv_path, index_col=0)
     else:
         logger.warning(f'No json: {subject}')
         return None
 
-    # load json file into json
-    df = pd.DataFrame(json_data)
 
     # extract group
     if '1' in df['chrcrit_part'].unique():
@@ -835,9 +872,11 @@ def get_run_sheet_df(phoenix_dir: Path,
                                              errors='ignore')
 
     # order of dates in the zip filename to be used to match with a run sheet
-    for subject, subject_df in df.gropuby('subject'):
-        zip_date_order_subject = subject_df.zip_date.rank()
-        df.loc[subject_df.index, 'zip_date_order'] = zip_date_order_subject
+    for subject, subject_df in datatype_df.groupby('subject'):
+        zip_date_order_subject = subject_df.file_name.str.extract(
+                '(\d{4}_\d{2}_\d{2})').rank()
+        datatype_df.loc[subject_df.index,
+                        'zip_date_order'] = zip_date_order_subject
 
     datatype_df['entry_date'] = pd.to_datetime(datatype_df['entry_date'])
 
@@ -856,6 +895,7 @@ def get_run_sheet_df(phoenix_dir: Path,
 
     # re-attach no-json files
     # datatype_df = pd.concat([datatype_df, no_json_df])
+    datatype_df = categorize_unmatched_rows(datatype_df)
 
     return datatype_df
 
@@ -933,3 +973,117 @@ def dataflow_dpdash(datatype_df: pd.DataFrame,
         filename = f'{site}-{subject}-mridataflow-day1to{len(table)}.csv'
         table['day'] = range(1, len(table)+1)
         table.to_csv(outdir / filename, index=False)
+
+
+def categorize_unmatched_rows(df: pd.DataFrame) -> pd.DataFrame:
+    '''Cateorize unmatched run sheet and zip files'''
+    df['site'] = df['subject'].str[:2]
+    df.missing_marked = df.missing_marked.fillna(False)
+    df.missing_marked = df.missing_marked.map({1: True, False: False})
+
+    # including sessions with the wrong session number
+    # df_sessions_with_wrong_session_num = df[(df.zip_path.isnull()) &
+                                            # (df.mri_data_exist)]
+    # df.loc[df_sessions_with_wrong_session_num.index,
+    # 'zip_path'] = df.loc[df_sessions_with_wrong_session_num.index, 'expected_mri_path']
+
+    # zip file matched to a run sheet
+    zip_w_rs = df[(~df.zip_path.isnull()) & (~df.file_path.isnull())]
+    df.loc[zip_w_rs.index, 'zip_rs_matching'] = 'Correct match'
+
+    # zip file without run sheet <- will be iterated through later
+    zip_wo_rs = df[(~df.zip_path.isnull()) & (df.file_path.isnull())]
+
+    # run sheets without zip file
+    no_zip_w_rs = df.drop(zip_w_rs.index).drop(zip_wo_rs.index)
+    # missing marked
+    no_zip_w_rs_missing_marked = no_zip_w_rs[no_zip_w_rs.missing_marked]
+    df.loc[no_zip_w_rs_missing_marked.index,
+           'zip_rs_matching'] = 'Not expecting zip file'
+    # data not transferred yet
+    no_zip_w_rs_wo_missing_marked = no_zip_w_rs[~no_zip_w_rs.missing_marked]
+    df.loc[no_zip_w_rs_wo_missing_marked.index,
+           'zip_rs_matching'] = 'Data not transferred to DPACC yet'
+
+    # iterating through zip files without matching run sheets
+    for index, zip_wo_rs_row in zip_wo_rs.iterrows():
+        subject = zip_wo_rs_row['subject']
+        date_in_zip_str = re.search(r'(\d{4}_\d{2}_\d{2})',
+                                    zip_wo_rs_row.file_name).group(1)
+        date_in_zip = datetime.strptime(date_in_zip_str, '%Y_%m_%d')
+
+        # subject's run sheets
+        subject_rs_df = df[(df.subject == subject) & (~df.file_path.isnull())]
+        # calculate the date difference between the scan date
+        # and the run sheet date
+        subject_rs_df['date_delta'] = (
+            pd.to_datetime(subject_rs_df['entry_date']) - date_in_zip
+            ).abs()
+
+        if subject_rs_df.empty == 0:
+            df.loc[index, 'zip_rs_matching'] = 'No matching run sheet'
+        else:
+            # threshold: 30 days
+            days_diff_threshold_int = 30
+            days_diff_threshold = pd.to_timedelta(days_diff_threshold_int,
+                                                  unit='day')
+            # date difference less than 30 days
+            possible_match_df = subject_rs_df[
+                subject_rs_df['date_delta'] < days_diff_threshold]
+
+            if len(possible_match_df) == 1:
+                zip_wo_rs_row_new = zip_wo_rs.loc[[index]].reset_index(
+                    drop=True).combine_first(
+                        possible_match_df.reset_index(drop=True))
+                msg = f'Scan date diff less than {days_diff_threshold_int} ' \
+                      'days (Reach out to site to confrim)'
+                zip_wo_rs_row_new['zip_rs_matching'] = msg
+                zip_wo_rs_row_new['mri_data_exist'] = True
+                df.loc[index] = zip_wo_rs_row_new.iloc[0]
+
+                if possible_match_df.zip_path.isnull().all():
+                    df.drop(possible_match_df.index, inplace=True)
+
+            elif len(possible_match_df) > 1:
+                # 'More than one run sheets matched, closest run sheet used'
+                possible_match_df = possible_match_df.loc[[
+                    possible_match_df.date_delta.idxmin()]]
+                zip_wo_rs_row_new = zip_wo_rs.loc[[index]].reset_index(
+                    drop=True).combine_first(
+                        possible_match_df.reset_index(drop=True))
+                msg = 'Run sheet with closest date to the scan date is ' \
+                      'matched (Reach out to site to confrim)'
+                zip_wo_rs_row_new['zip_rs_matching'] = msg
+                zip_wo_rs_row_new['mri_data_exist'] = True
+                df.loc[index] = zip_wo_rs_row_new.iloc[0]
+                if possible_match_df.zip_path.isnull().all():
+                    df.drop(possible_match_df.index, inplace=True)
+
+            else:
+                print('There is no run sheet')
+                df.loc[index, 'zip_rs_matching'] = 'No matching run sheet'
+
+    # check if there are more than expected cases for a subjce
+    for (run_sheet_path, subject), rs_subject_df in df.groupby(
+            ['file_path', 'subject']):
+        # if there are multiple data for a run sheet
+        if len(rs_subject_df.zip_rs_matching.unique()) > 1:
+            if 'Correct match' in rs_subject_df.zip_rs_matching.unique():
+                correct_match_df = rs_subject_df[
+                    rs_subject_df.zip_rs_matching == 'Correct match']
+                df.loc[correct_match_df.index, 'matching_review'] = \
+                    'Correct match out of multiple ' \
+                    f'matches ({len(rs_subject_df)})'
+                df.loc[rs_subject_df.drop(correct_match_df.index).index,
+                        'matching_review'] = 'Partial match, but there ' \
+                                             'is a correct match'
+            else:
+                df.loc[index, 'matching_review'] = \
+                        'No correct match exists. Manual review required'
+        else:
+            df.loc[rs_subject_df.index, 'matching_review'] = \
+                    'No multiple cases for a timepoint'
+
+    df.loc[df[df.matching_review.isnull()].index, 'matching_review'] = \
+            'Manual review required - no run sheet'
+    # df.zip_rs_matching.unique()
