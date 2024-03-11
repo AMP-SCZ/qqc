@@ -10,6 +10,7 @@ QQC uses `heudiconv` to convert the raw dicom files to nifti files following the
 1. Test if you have `dcm2niix` available in your shell
 2. Setting up `dcm2niix` in PNL
 3. Setting up `dcm2niix` outside PNL
+4. Using `dcm2niix`
 
 
 
@@ -50,3 +51,20 @@ export PATH=/path/to/dcm2niix/root:${PATH}
 # then see if the command below returns the correct path of the dcm2niix
 which dcm2niix
 ```
+
+
+## Using `dcm2niix`
+
+Read through available options.
+
+```sh
+dcm2niix -h
+```
+
+For most of conversion jobs, you can use the following command
+
+```sh
+dcm2niix -o /output/dir /dicom/dir
+```
+
+
