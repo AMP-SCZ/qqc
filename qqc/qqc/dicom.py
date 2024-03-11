@@ -87,6 +87,8 @@ def is_enhanced(dicom_root: Path) -> Tuple[bool, str]:
             continue
 
         for file in files:
+            if file.endswith('xml'):
+                continue
             d = pydicom.read_file(Path(root) / file)
 
             # TODO: update with more pythonic lines to extract 0002, 0002 tag
