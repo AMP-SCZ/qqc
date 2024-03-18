@@ -587,12 +587,19 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     logger.info('Smoothness check')
     smoothness_fig_out = qc_out_dir / 'smoothness.png'
     if not smoothness_fig_out.is_file():
-        create_smoothness_figure(nifti_session_dir, smoothness_fig_out)
+        try:
+            create_smoothness_figure(nifti_session_dir, smoothness_fig_out)
+        except ValueError as e:
+            print(e)
+
 
     smoothness_check_out = qc_out_dir / 'smoothness_check.csv'
     if not smoothness_check_out.is_file():
-        df_ses_checked = highlight_smoothness_deviations(nifti_session_dir)
-        df_ses_checked.reset_index(drop=True).to_csv(smoothness_check_out)
+        try:
+            df_ses_checked = highlight_smoothness_deviations(nifti_session_dir)
+            df_ses_checked.reset_index(drop=True).to_csv(smoothness_check_out)
+        except ValueError as e:
+            print(e)
 
     logger.info('Summary function & DPdash')
     # qqc_summary_for_dpdash(qc_out_dir)

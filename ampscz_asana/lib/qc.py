@@ -172,7 +172,13 @@ def date_of_zip(subject, entry_date, phoenix_dir):
         date_match = re.search(date_pattern, filename)
         if date_match and entry_date != '':
             extracted_date = date_match.group(0)
-            extracted_date = datetime.strptime(extracted_date, '%Y_%m_%d')
+            try:
+                extracted_date = datetime.strptime(extracted_date, '%Y_%m_%d')
+            except ValueError:
+                logger.warning('Date format is wrong on the zip file: ',
+                               filename)
+                return None
+
             if formatted_entry_date == extracted_date and \
                     filename[-4:] == '.zip' and 'MR' in filename:
                 zip_file = zip_file_path / filename
@@ -779,12 +785,15 @@ def get_run_sheet_df(phoenix_dir: Path,
     datatype_df['missing_timepoint'] = datatype_df.vars.str[3]
     datatype_df['missing_withdrawn'] = datatype_df.vars.str[4]
     datatype_df['missing_discon'] = datatype_df.vars.str[5]
+
+    # when using cached csv file -> change to int instead of string
     datatype_df['missing_marked'] = (
-            (datatype_df['missing_info'] == '1') |
-            (datatype_df['mri_rs_missing_info'] == '1') |
-            (datatype_df['missing_timepoint'] == '1') |
-            (datatype_df['missing_withdrawn'] == '1') |
-            (datatype_df['missing_discon'] == '1')).map({True: 1, False: None})
+            (datatype_df['missing_info'] == 1) |
+            (datatype_df['mri_rs_missing_info'] == 1) |
+            (datatype_df['missing_timepoint'] == 1) |
+            (datatype_df['missing_withdrawn'] == 1) |
+            (datatype_df['missing_discon'] == 1)).map(
+                    {True: 1, False: None})
 
     # what if no age?
     print(datatype_df[datatype_df['vars_tuple'].str[1].isnull()])

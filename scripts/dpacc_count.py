@@ -73,7 +73,7 @@ if __name__ == '__main__':
             level=args.loglevel,
             format='%(asctime)s :: %(name)s :: %(levelname)-8s :: %(message)s',
             handlers=[
-                    logging.StreamHandler(),  # Output to terminal
+                    # logging.StreamHandler(),  # Output to terminal
                     logging.FileHandler('logfile.log')  # Output to log file
             ])
     logger = logging.getLogger(__name__)

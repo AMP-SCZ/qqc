@@ -109,7 +109,7 @@ def main(args: argparse.PARSER):
         PHOENIX_DIR = data_flow_dir / study_network / 'PHOENIX'
         for i in Path(PHOENIX_DIR / 'PROTECTED').glob(
             f'{site_str}/raw/{subject_str}/mri/'
-            '[!.]*_MR_*_[1234].[zZ][iI][pP]'):
+            '[!.]*_MR_*_*[1234].[zZ][iI][pP]'):
 
             filepath = str(i)
             args.input = filepath
@@ -122,7 +122,8 @@ def main(args: argparse.PARSER):
             subject = mri_dirname.split('_')[0]
             args.subject_name = subject
             year, month, day, dup = mri_dirname.split('_')[2:6]
-            year, month, day, dup = year[:4], month, day, dup[0]
+            # year, month, day, dup = year[:4], month, day, dup[0]
+            year, month, day, dup = year[:4], month, day, int(dup.split('.')[0])
 
             session = f"{year}_{month.zfill(2)}_{day.zfill(2)}_{dup}"
             session_wo = f"{year}{month.zfill(2)}{day.zfill(2)}{dup}"

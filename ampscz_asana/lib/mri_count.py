@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
 import logging
 import re
 from typing import List
@@ -641,6 +642,7 @@ def merge_zip_db_and_runsheet_db(zip_df_loc: Path,
                       on=['subject', 'entry_date', 'network', 'session_num'],
                       how='outer')
 
+    all_df = categorize_unmatched_rows(all_df)
     all_df.to_csv(output_merged_zip)
 
 
@@ -650,6 +652,125 @@ def note_used():
         other_files = list(Path(row['zip_path']).parent.glob('*.zip'))
         for file in other_files:
             logger.debug(f'\t{file.name}')
+
+
+def categorize_unmatched_rows(df: pd.DataFrame) -> pd.DataFrame:
+    '''Cateorize unmatched run sheet and zip files'''
+    df['site'] = df['subject'].str[:2]
+    df.missing_marked = df.missing_marked.fillna(False)
+    df.missing_marked = df.missing_marked.map({1: True, False: False})
+
+    # including sessions with the wrong session number
+    # df_sessions_with_wrong_session_num = df[(df.zip_path.isnull()) &
+                                            # (df.mri_data_exist)]
+    # df.loc[df_sessions_with_wrong_session_num.index,
+    # 'zip_path'] = df.loc[df_sessions_with_wrong_session_num.index, 'expected_mri_path']
+
+    # zip file matched to a run sheet
+    zip_w_rs = df[(~df.zip_path.isnull()) & (~df.file_path.isnull())]
+    df.loc[zip_w_rs.index, 'zip_rs_matching'] = 'Correct match'
+
+    # zip file without run sheet <- will be iterated through later
+    zip_wo_rs = df[(~df.zip_path.isnull()) & (df.file_path.isnull())]
+
+    # run sheets without zip file
+    no_zip_w_rs = df.drop(zip_w_rs.index).drop(zip_wo_rs.index)
+    # missing marked
+    no_zip_w_rs_missing_marked = no_zip_w_rs[no_zip_w_rs.missing_marked]
+    df.loc[no_zip_w_rs_missing_marked.index,
+           'zip_rs_matching'] = 'Not expecting zip file'
+    # data not transferred yet
+    no_zip_w_rs_wo_missing_marked = no_zip_w_rs[~no_zip_w_rs.missing_marked]
+    df.loc[no_zip_w_rs_wo_missing_marked.index,
+           'zip_rs_matching'] = 'Data not transferred to DPACC yet'
+
+    # iterating through zip files without matching run sheets
+    for index, zip_wo_rs_row in zip_wo_rs.iterrows():
+        subject = zip_wo_rs_row['subject']
+        date_in_zip_str = re.search(r'(\d{4}_\d{2}_\d{2})',
+                                    zip_wo_rs_row.file_name).group(1)
+        try:
+            date_in_zip = datetime.strptime(date_in_zip_str, '%Y_%m_%d')
+        except ValueError:
+            df.loc[index, 'zip_rs_matching'] = \
+                    'No matching run sheet - date format wrong (Reach out ' \
+                    'to sites)'
+
+        # subject's run sheets
+        subject_rs_df = df[(df.subject == subject) & (~df.file_path.isnull())]
+        # calculate the date difference between the scan date
+        # and the run sheet date
+        subject_rs_df['date_delta'] = (
+            pd.to_datetime(subject_rs_df['entry_date']) - date_in_zip
+            ).abs()
+
+        if subject_rs_df.empty == 0:
+            df.loc[index, 'zip_rs_matching'] = 'No matching run sheet'
+        else:
+            # threshold: 30 days
+            days_diff_threshold_int = 30
+            days_diff_threshold = pd.to_timedelta(days_diff_threshold_int,
+                                                  unit='day')
+            # date difference less than 30 days
+            possible_match_df = subject_rs_df[
+                subject_rs_df['date_delta'] < days_diff_threshold]
+
+            if len(possible_match_df) == 1:
+                zip_wo_rs_row_new = zip_wo_rs.loc[[index]].reset_index(
+                    drop=True).combine_first(
+                        possible_match_df.reset_index(drop=True))
+                msg = f'Scan date diff less than {days_diff_threshold_int} ' \
+                      'days (Reach out to site to confrim)'
+                zip_wo_rs_row_new['zip_rs_matching'] = msg
+                zip_wo_rs_row_new['mri_data_exist'] = True
+                df.loc[index] = zip_wo_rs_row_new.iloc[0]
+
+                if possible_match_df.zip_path.isnull().all():
+                    df.drop(possible_match_df.index, inplace=True)
+
+            elif len(possible_match_df) > 1:
+                # 'More than one run sheets matched, closest run sheet used'
+                possible_match_df = possible_match_df.loc[[
+                    possible_match_df.date_delta.idxmin()]]
+                zip_wo_rs_row_new = zip_wo_rs.loc[[index]].reset_index(
+                    drop=True).combine_first(
+                        possible_match_df.reset_index(drop=True))
+                msg = 'Run sheet with closest date to the scan date is ' \
+                      'matched (Reach out to site to confrim)'
+                zip_wo_rs_row_new['zip_rs_matching'] = msg
+                zip_wo_rs_row_new['mri_data_exist'] = True
+                df.loc[index] = zip_wo_rs_row_new.iloc[0]
+                if possible_match_df.zip_path.isnull().all():
+                    df.drop(possible_match_df.index, inplace=True)
+
+            else:
+                df.loc[index, 'zip_rs_matching'] = 'No matching run sheet'
+
+    # check if there are more than expected cases for a subjce
+    for (run_sheet_path, subject), rs_subject_df in df.groupby(
+            ['file_path', 'subject']):
+        # if there are multiple data for a run sheet
+        if len(rs_subject_df.zip_rs_matching.unique()) > 1:
+            if 'Correct match' in rs_subject_df.zip_rs_matching.unique():
+                correct_match_df = rs_subject_df[
+                    rs_subject_df.zip_rs_matching == 'Correct match']
+                df.loc[correct_match_df.index, 'matching_review'] = \
+                    'Correct match out of multiple ' \
+                    f'matches ({len(rs_subject_df)})'
+                df.loc[rs_subject_df.drop(correct_match_df.index).index,
+                        'matching_review'] = 'Partial match, but there ' \
+                                             'is a correct match'
+            else:
+                df.loc[index, 'matching_review'] = \
+                        'No correct match exists. Manual review required'
+        else:
+            df.loc[rs_subject_df.index, 'matching_review'] = \
+                    'Only available (closest) match for the timepoint'
+
+    df.loc[df[df.matching_review.isnull()].index, 'matching_review'] = \
+            'Manual review required - no run sheet'
+    # df.zip_rs_matching.unique()
+    return df
 
 
 if __name__ == '__main__':

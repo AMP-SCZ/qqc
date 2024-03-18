@@ -89,8 +89,6 @@ def summary_smoothness_table_for_a_session(
     df_ses = df_all[
         (df_all.subject == f'sub-{subject}') &
         (df_all.session == f'ses-{session}')]
-    print(df_ses)
-    print(df_site)
     if len(df_ses) == 0:
         logger.info('No smoothness.csv file. Calculating smoothness...')
         nifti_session_dir = Path(mri_root) / 'rawdata' / \

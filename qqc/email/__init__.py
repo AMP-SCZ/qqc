@@ -73,7 +73,8 @@ def send(recipients, sender, subject, message, test, mailx, sender_pw,
     # send email
     if mailx:
         s = smtplib.SMTP('localhost')
-        s.set_debuglevel(1)
+        # s.set_debuglevel(1)
+        s.set_debuglevel(0)
     else:
         s = smtplib.SMTP('smtp.gmail.com', 587)
         s.ehlo()
@@ -85,7 +86,8 @@ def send(recipients, sender, subject, message, test, mailx, sender_pw,
         s.sendmail(sender, recipients, msg.as_string())
         print('Email sent')
     else:
-        print(message)
+        pass
+        # print(message)
 
     s.quit()
 
