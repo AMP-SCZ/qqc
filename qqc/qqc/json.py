@@ -532,7 +532,7 @@ def find_matching_files_between_BIDS_sessions(
         
 
     '''
-    pd.set_option('max_columns', 50)
+    pd.set_option('display.max_columns', 50)
     json_df_input = get_all_json_information_quick(input_dir)
     json_df_std = get_all_json_information_quick(standard_dir)
 

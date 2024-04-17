@@ -38,7 +38,7 @@ def resize_image(image_path, percentile=20, quality=100):
         new_height = int(img.height * percentile / 100)
 
         # Resize the image
-        img = img.resize((new_width, new_height), Image.ANTIALIAS)
+        img = img.resize((new_width, new_height), Image.LANCZOS)
         
         buffer = BytesIO()
         img.save(buffer, format='JPEG', quality=quality)

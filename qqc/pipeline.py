@@ -32,8 +32,8 @@ from jinja2 import Environment, FileSystemLoader
 from qqc.email import create_html_for_qqc, create_html_for_qqc_study
 from qqc.qqc.nifti import get_smoothness_all_nifti
 
-pd.set_option('max_columns', 50)
-pd.set_option('max_rows', 500)
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.max_rows', 500)
 logger = logging.getLogger(__name__)
 logging.getLogger().addHandler(logging.StreamHandler())
 
@@ -177,6 +177,7 @@ def dicom_to_bids_QQC(args, **kwargs) -> None:
         standard_dir = args.standard_dir
 
     standard_dir = Path(standard_dir)
+    logger.info(f'Standard dir: {standard_dir}')
     if args.nifti_dir:  # if nifti directory is given
         df_full = get_information_from_rawdata(args.nifti_dir)
         session_dir = Path(args.nifti_dir)  # update session_dir
@@ -578,31 +579,35 @@ def run_qqc(qc_out_dir: Path, nifti_session_dir: Path,
     logger.info('Comparison to standard')
     compare_data_to_standard(nifti_session_dir, standard_dir, qc_out_dir)
 
-    logger.info('Smoothness')
-    smoothness_csv = qc_out_dir / 'smoothness.csv'
-    if not smoothness_csv.is_file():
-        smoothness_df = get_smoothness_all_nifti(nifti_session_dir)
-        smoothness_df.to_csv(qc_out_dir / 'smoothness.csv')
+    try:
+        logger.info('Smoothness')
+        smoothness_csv = qc_out_dir / 'smoothness.csv'
+        if not smoothness_csv.is_file():
+            smoothness_df = get_smoothness_all_nifti(nifti_session_dir)
+            smoothness_df.to_csv(qc_out_dir / 'smoothness.csv')
 
-    logger.info('Smoothness check')
-    smoothness_fig_out = qc_out_dir / 'smoothness.png'
-    if not smoothness_fig_out.is_file():
-        try:
-            create_smoothness_figure(nifti_session_dir, smoothness_fig_out)
-        except ValueError as e:
-            print(e)
+        logger.info('Smoothness check')
+        smoothness_fig_out = qc_out_dir / 'smoothness.png'
+        if not smoothness_fig_out.is_file():
+            try:
+                create_smoothness_figure(nifti_session_dir, smoothness_fig_out)
+            except ValueError as e:
+                print(e)
 
 
-    smoothness_check_out = qc_out_dir / 'smoothness_check.csv'
-    if not smoothness_check_out.is_file():
-        try:
-            df_ses_checked = highlight_smoothness_deviations(nifti_session_dir)
-            df_ses_checked.reset_index(drop=True).to_csv(smoothness_check_out)
-        except ValueError as e:
-            print(e)
+        smoothness_check_out = qc_out_dir / 'smoothness_check.csv'
+        if not smoothness_check_out.is_file():
+            try:
+                df_ses_checked = highlight_smoothness_deviations(nifti_session_dir)
+                df_ses_checked.reset_index(drop=True).to_csv(smoothness_check_out)
+            except ValueError as e:
+                print(e)
+    except:
+        logger.warning('Error in smoothness')
 
     logger.info('Summary function & DPdash')
     # qqc_summary_for_dpdash(qc_out_dir)
+
     try:
         # this requires formsqc to be processed
         refresh_qqc_summary_for_subject(qc_out_dir.parent)

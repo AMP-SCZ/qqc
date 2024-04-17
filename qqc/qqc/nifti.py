@@ -248,17 +248,17 @@ def compare_volume_to_standard_all_nifti(input_dir: str,
 
     if volume_comparison_df.series_desc.str.contains('localizer').any():
         if_localizer = volume_comparison_df.series_desc.str.contains(
-                'localizer', na=False)
+                'localizer', na=False).values
         localizer_index = volume_comparison_df[if_localizer].index
-        volume_comparison_df.at[localizer_index, 'check'] = \
+        volume_comparison_df.loc[localizer_index, 'check'] = \
             volume_comparison_df[if_localizer]['check'].map(
                     {'Pass': 'Pass', 'Fail': 'Warning'})
 
     if volume_comparison_df.series_desc.str.contains('scout').any():
         if_scout = volume_comparison_df.series_desc.str.contains(
-                'scout', na=False)
+                'scout', na=False).values
         scout_index = volume_comparison_df[if_scout].index
-        volume_comparison_df.at[scout_index, 'check'] = volume_comparison_df[
+        volume_comparison_df.loc[scout_index, 'check'] = volume_comparison_df[
             if_scout]['check'].map({'Pass': 'Pass', 'Fail': 'Warning'})
 
     volume_comparison_df.series_num = \

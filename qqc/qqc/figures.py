@@ -124,7 +124,7 @@ def quick_figures(subject_dir: Path, outdir: Path):
     dwi_dir = subject_dir / 'dwi'
     for nifti_path in dwi_dir.glob('*dwi.nii.gz'):
         outname = outdir / (nifti_path.name.split('.nii.gz')[0])
-        if not (outdir / outname).is_file():
+        if not (outdir / (outname.name + '.gif')).is_file():
             fig = nifti_snapshot.SimpleFigureGif(
                 image_files = [nifti_path],
                 file_name_prefix = outname)
@@ -132,7 +132,7 @@ def quick_figures(subject_dir: Path, outdir: Path):
     func_dir = subject_dir / 'func'
     for nifti_path in func_dir.glob('*bold.nii.gz'):
         outname = outdir / (nifti_path.name.split('.nii.gz')[0])
-        if not (outdir / outname).is_file():
+        if not (outdir / (outname.name + '.gif')).is_file():
             fig = nifti_snapshot.SimpleFigureGif(
                 image_files = [nifti_path],
                 file_name_prefix = outname)

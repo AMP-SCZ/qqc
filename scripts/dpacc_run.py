@@ -107,6 +107,17 @@ def main(args: argparse.PARSER):
 
     for study_network in args.study_networks:
         PHOENIX_DIR = data_flow_dir / study_network / 'PHOENIX'
+        glob_pattern = f'{site_str}/raw/{subject_str}/mri/' \
+            '[!.]*_MR_*_*[1234].[zZ][iI][pP]'
+        if args.session_name:
+            year = args.session_name[:4]
+            month = args.session_name[4:6]
+            day = args.session_name[6:8]
+            session = args.session_name[-1]
+            glob_pattern = f'{site_str}/raw/{subject_str}/mri/' \
+                f'[!.]*_MR_{year}_{month}_{day}_{session}.[zZ][iI][pP]'
+            print(glob_pattern)
+
         for i in Path(PHOENIX_DIR / 'PROTECTED').glob(
             f'{site_str}/raw/{subject_str}/mri/'
             '[!.]*_MR_*_*[1234].[zZ][iI][pP]'):

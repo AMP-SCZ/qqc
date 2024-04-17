@@ -488,7 +488,7 @@ def cache_json_and_get_csv(json_path,
     for col_str in col_str_to_get_list:
         columns_to_select += [x for x in df.columns if col_str in x]
 
-    df = df[set(columns_to_select)]
+    df = df[list(set(columns_to_select))]
     df.to_csv(csv_path)
     return csv_path
 
