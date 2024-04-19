@@ -18,7 +18,7 @@ class MriRunSheet(Base):
     matching_date_and_ses_num = Column(Boolean, default=False)
 
     qqc = relationship("Qqc", backref="mri_runsheet", uselist=False)
-    qqc = relationship("NoMri", backref="mri_runsheet", uselist=False)
+    noMri = relationship("NoMri", backref="mri_runsheet", uselist=False)
 
     def __str__(self):
         return f"MriRunSheet({self.run_sheet_num} " \

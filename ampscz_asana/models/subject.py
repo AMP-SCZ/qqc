@@ -17,6 +17,8 @@ class Subject(Base):
     mri_zips = relationship("MriZip", backref="subject")
     mri_runsheets = relationship("MriRunSheet", backref="subject")
 
+    baseline_runsheet_matched = Column(Boolean)
+    followup_runsheet_matched = Column(Boolean)
 
     def __str__(self):
         return f"Subject({self.subject_id})"

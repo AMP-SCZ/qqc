@@ -46,11 +46,11 @@ def count_and_make_it_available_for_dpdash(
     logger.info('Running get_mri_zip_df')
     zip_df = get_mri_zip_df(phoenix_paths, mriflow_csv, modality)
 
-    # exclude cases to ignore
-    ignore_path_list_txt = '/data/predict1/data_from_nda/MRI_ROOT/' \
-                           'data_to_ignore.txt'
-    ignore_df = pd.read_csv(ignore_path_list_txt, names=['zip_path'])
-    zip_df = zip_df[~zip_df.zip_path.isin(ignore_df)]
+    # # exclude cases to ignore
+    # ignore_path_list_txt = '/data/predict1/data_from_nda/MRI_ROOT/' \
+                           # 'data_to_ignore.txt'
+    # ignore_df = pd.read_csv(ignore_path_list_txt, names=['zip_path'])
+    # zip_df = zip_df[~zip_df.zip_path.isin(ignore_df)]
     zip_df.to_csv(dpdash_outpath / f'{modality}_tmp_db.csv')
 
     if modality == 'mri':
@@ -127,6 +127,7 @@ def get_mri_zip_df(
             mri_zip_files += get_all_eeg_zip(phoenix_root)
 
     mri_zip_df = pd.DataFrame({'zip_path': mri_zip_files})
+
     mri_zip_df['network'] = mri_zip_df.zip_path.apply(str).str.contains(
         'Prescient').map({True: 'Prescient', False: 'Pronet'})
     get_sub_from_path = lambda x: x.parent.parent.name
@@ -148,12 +149,18 @@ def get_mri_zip_df(
     mri_zip_df['scan_date'] = pd.to_datetime(
         mri_zip_df.scan_date, format='%Y-%m-%d', errors='ignore').astype(str)
 
+
     # merge mri_flow_df information to include timepoint
     mri_zip_df['zip_path'] = mri_zip_df['zip_path'].apply(str)
     mri_zip_df = pd.merge(mri_zip_df,
                           mri_flow_df,
                           on=['subject_id', 'scan_date_str'],
                           how='left')
+
+    # include subses
+    mri_zip_df['subses'] = 'sub-' + mri_zip_df['subject_id'] + '/' \
+            'ses-' + mri_zip_df['scan_date'].str.replace('_', '') + \
+            mri_zip_df['session_num'].astype(str)
 
     return mri_zip_df
 

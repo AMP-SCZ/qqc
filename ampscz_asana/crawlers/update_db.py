@@ -36,22 +36,22 @@ def update_db(db_session):
                      '/data/predict1/data_from_nda/Prescient/PHOENIX']
 
     # # last modified for zip file?
-    # add_subjects(db_session, phoenix_roots)
-    # add_session_date(db_session)
-    # add_run_sheets(db_session)
+    add_subjects(db_session, phoenix_roots)
+    add_session_date(db_session)
+    add_run_sheets(db_session)
 
     # # why update multiple qqc sessions in every run?
-    # add_qqc(db_session)
+    add_qqc(db_session)
 
-    # update_mri_zip(db_session)
-    # update_subjects(db_session, phoenix_roots)
+    update_mri_zip(db_session)
+    update_subjects(db_session, phoenix_roots)
 
     # add dwi
-    # add_dwi(db_session)
-    # add_dwi_ap_pa(db_session)
-    # add_unring(db_session)
-    # add_denoise(db_session)
-    # add_topup(db_session)
+    add_dwi(db_session)
+    add_dwi_ap_pa(db_session)
+    add_unring(db_session)
+    add_denoise(db_session)
+    add_topup(db_session)
     add_eddy(db_session)
     add_cnn_masking(db_session)
     add_freewater(db_session)
@@ -84,7 +84,7 @@ def get_db_session():
     # Create an engine and establish a session
     keys = config('/data/predict1/home/kcho/keys/.database_key',
                   'mri_analysis_db')
-    # remove_all_data(keys)
+    remove_all_data(keys)
     engine = create_engine(f'postgresql://{keys["id"]}:{keys["password"]}'
                            f'@{keys["host"]}:{keys["port"]}/{keys["db_name"]}')
 
@@ -108,10 +108,10 @@ if __name__ == '__main__':
     update_db(db_session)
 
     
-    # print("Running denoise")
+    print("Running processing")
     # run_denoise()
+    run_freewater()
     run_skeletonization()
-    # run_freewater()
     # print("Main process exiting")
 
     # update_post_qqc_db(keys)

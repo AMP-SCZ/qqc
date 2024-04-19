@@ -58,6 +58,13 @@ def get_all_mri_zip(phoenix_root: Path, **kwargs) -> list:
 
     zip_files = list(phoenix_root.glob(prefix))
 
+    # exclude cases to ignore
+    ignore_path_list_csv = '/data/predict1/data_from_nda/MRI_ROOT/' \
+                           'data_to_ignore.csv'
+    ignore_df = pd.read_csv(ignore_path_list_csv)
+    zip_files = [x for x in zip_files
+            if str(x) not in ignore_df.zip_path.tolist()]
+
     return zip_files
 
 

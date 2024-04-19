@@ -384,6 +384,7 @@ def add_freewater(db_session):
         if freewater is None:
             freewater = DwiFreewater(
                     eddy_id = eddy.id,
+                    cnnmasking_id = cnn_masking.id,
                     processed = processed)
             print(f'Adding Freewater object: {freewater}')
             db_session.add(freewater)
@@ -531,6 +532,20 @@ def run_skeletonization():
     pool.join()
 
 
+    for freewater in freewaters:
+        if freewater.processed:
+            skeleton = freewater.skeleton
+            if not skeleton.processed:
+                tbss_dir = Path(
+                    freewater.dwi_eddy.topup.dwi.output_loc
+                    ) / 'tbss' / 'tbss_out'
+                stat_file = tbss_dir / 'stats' / 'MD_combined_roi_avg.csv'
+                if stat_file.is_file():
+                    skeleton.processed = True
+                    db_session.commit()
+
+
+
 def run_freewater():
     db_session = get_db_session()
 
@@ -542,9 +557,19 @@ def run_freewater():
 
     freewaters = db_session.query(DwiFreewater).filter_by(processed=False)
     for freewater in freewaters:
-        if freewater.dwi_eddy.cnn_masking.processed:
+        print('Going through:', freewater)
+        eddy = freewater.dwi_eddy
+        print(eddy.topup.dwi.qqc)
+        cnn_masking = freewater.cnn_masking
+
+        if eddy.processed and cnn_masking.processed:
             print('running freewater: ', freewater)
             freewater.run_freewater()
+            filename = f'sub-{subject_id}_FW.nii.gz'
+            outfile = Path(dwi.output_loc) / 'fw'/ filename
+            if (Path(dwi.output_loc) / 'fw'/ filename).is_file():
+                freewater.processed = True
+                db_session.commit()
             break
 
     pool.close()

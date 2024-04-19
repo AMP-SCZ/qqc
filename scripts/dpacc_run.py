@@ -3,6 +3,7 @@ import os
 import logging
 import argparse
 import subprocess
+import pandas as pd
 from pathlib import Path
 from typing import List
 from dicom_to_dpacc_bids import parse_args
@@ -79,10 +80,12 @@ def read_ignore_file(ignore_file: str = None):
         with open(ignore_file, 'r') as fp:
             return [x.strip() for x in fp.readlines()]
     else:
-        default_file = MRI_ROOT / 'data_to_ignore.txt'
+        default_file = MRI_ROOT / 'data_to_ignore.csv'
         if default_file.is_file():
-            with open(ignore_file, 'r') as fp:
-                return [x.strip() for x in fp.readlines()]
+            df = pd.read_csv(default_file)
+            return df['zip_path'].to_list()
+            # with open(ignore_file, 'r') as fp:
+                # return [x.strip() for x in fp.readlines()]
         else:
             return []
 
@@ -101,6 +104,8 @@ def main(args: argparse.PARSER):
                 args.email_recipients_file)
 
     ignore_list = read_ignore_file(args.ignore_file)
+    # print(ignore_list)
+    # return
 
     site_str = '*' if args.site is None else f'*{args.site}'
     subject_str = '*' if args.subject is None else f'{args.subject}'
@@ -126,6 +131,7 @@ def main(args: argparse.PARSER):
             args.input = filepath
 
             if filepath in ignore_list:
+                print(f'Skipping {filepath}')
                 continue
 
             print(f"reviewing {filepath} ...")
